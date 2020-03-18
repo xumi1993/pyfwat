@@ -1,24 +1,35 @@
 #!/bin/bash
-ls -1 OUTPUT_FILES/*.xyz > moviedata.lst
 
+R=$1
+axis=$2
+ls -1 OUTPUT_FILES/*_${axis}_*.xyz > moviedata.lst
+ra=`echo $R | awk -F"/" '{print ($2-$1)/($4-$3)}'`
+J=`awk 'BEGIN {print "X"2.4*"'$ra'""i/2.4i"}'`
 cat << eof > vel.cpt
--100 0 0 255 0 255 255 255
-0 255 255 255 100 255 0 0
+-5 0 0 255 0 255 255 255
+0 255 255 255 5 255 0 0
 B 0 0 255
 F 255 0 0
 eof
-
+if [ $axis == "Y" ]; then
+    awk '{print $3,2000}' DATA/STATIONS > sta.xz
+else
+    awk '{print $4,2000}' DATA/STATIONS > sta.xz
+fi
+python `dirname $0`/create_interf_z.py > interface
 cat << eof > main.sh
 gmt begin
-    gmt psbasemap -R0/100000/-60000/0 -Jx0.005p -Bxaf+l"X (m)" -Byaf+l"Z (m)" -BWSne -X1i -Y1i --PS_MEDIA=9.6ix5.4i
-    gmt surface \${MOVIE_TEXT} -I1000/1500 -Gtmp.grd -R0/100000/-60000/0
+    gmt psbasemap -R$R -J$J -Bxaf+l"$axis (m)" -Byaf+l"Z (m)" -BWSne -X1.2i -Y1i --PS_MEDIA=11ix3.8i
+    gmt plot sta.xz -Si6p -G0 -N
+    gmt surface \${MOVIE_TEXT} -I1000/1500 -Gtmp.grd -R$R
     gmt grdimage tmp.grd -Cvel.cpt
+    gmt plot interface -W1.5p
     printf "0 500 \${MOVIE_TEXT} "| gmt text -F+f12p,Helvetica+jTL -N 
 gmt end
 eof
 
-gmt movie main.sh -C9.6ix5.4ix100 -Nforward -Tmoviedata.lst -A+l -D3
+gmt movie main.sh -C11ix3.8ix100 -Nforward -Tmoviedata.lst -A+l -D3
 
-rm vel.cpt main.sh moviedata.lst
+rm vel.cpt main.sh moviedata.lst sta.xz interface
 rm -rf forward
 

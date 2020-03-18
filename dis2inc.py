@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 from seispy.geo import *
 from obspy.taup import TauPyModel

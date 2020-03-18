@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from seispy.decov import decovit
 import numpy as np
 from plot_seis import read_tr, rotate, get_stations
@@ -23,7 +24,7 @@ def cal_rf(basepath, sta, net):
     rrf = np.zeros_like(zst)
     dt = readpar(join(basepath, 'DATA', 'Par_file'), 'DT')
     for i, ztr in enumerate(zst):
-        rrf[i], _, _ = decovit(rst[i], ztr, dt, itmax=100)
+        rrf[i], _, _ = decovit(rst[i], ztr, dt, itmax=50)
     time_axis = np.linspace(0, rrf[0].shape[0]*dt, rrf[0].shape[0]) - 10
     saverf(rrf, time_axis, dt, join(basepath, 'OUTPUT_FILES'), sta, net)
     return time_axis, rrf
@@ -34,14 +35,14 @@ def draw(basepath, enf=20):
     xs /= 1000
     time_axis, rrf = cal_rf(basepath, sta, net)
     bound = np.zeros_like(rrf[0])
-    plt.figure(figsize=(5, 10))
-    plt.grid()
+    plt.figure(figsize=(5.6, 8.3))
+    plt.grid(axis='x')
     for i, x in enumerate(xs):
         amp = rrf[i]*enf + x
         plt.plot(time_axis, amp, color='gray', linewidth=0.3)
         plt.fill_between(time_axis, amp, bound + x, where=amp > x, facecolor='red', alpha=0.7)
         plt.fill_between(time_axis, amp, bound + x, where=amp < x, facecolor='#1193F4', alpha=0.7)
-    plt.xlim([-2, 20])
+    plt.xlim([-2, 30])
     plt.xlabel('Time after P (s)')
     plt.ylim([xs[0]-10, xs[-1]+10])
     plt.ylabel('X (km)')

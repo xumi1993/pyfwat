@@ -7,7 +7,7 @@ import glob
     
 
 class VTKFrame():
-    def __init__(self, fname, y=0):
+    def __init__(self, fname, coor=0, axis='x'):
         with open(fname) as f:
             lines = f.readlines()
         nodes_num = int(lines[4].split()[1])
@@ -16,8 +16,12 @@ class VTKFrame():
         values = np.array([float(line) for line in lines[loc:loc+nodes_num]])
         points = np.hstack((points, values.reshape(-1, 1)))
         print(points.shape)
-        self.points = points[np.where(points[:, 1].reshape(-1) == 0)[0], :]
-        self.points = np.delete(self.points, 1, axis=1)
+        if axis == 'x':
+            self.points = points[np.where(points[:, 1].reshape(-1) == coor)[0], :]
+            self.points = np.delete(self.points, 1, axis=1)
+        else:
+            self.points = points[np.where(points[:, 0].reshape(-1) == coor)[0], :]
+            self.points = np.delete(self.points, 0, axis=1)
         print(self.points.shape)
 
     def write(self, ofname):
@@ -41,10 +45,20 @@ class AVSFrame():
         np.savetxt(ofname, self.xz_values)
 
 def main():
-    for fname in glob.glob('OUTPUT_FILES/*it*.vtk'):
-        VTKFrame(fname).write(fname+".xyz")
+    """
+    Usage: avs2xyz.py [coor] [axis]
+    """
+    arg = sys.argv[1:]
+    if len(arg) == 2:
+        coor = float(arg[0])
+        axis = arg[1]
+    else:
+        coor = 0
+        axis = 'x'
+    for fname in glob.glob('OUTPUT_FILES/*_'+axis.upper()+'_*it*.vtk'):
+        VTKFrame(fname, coor=coor, axis=axis).write(fname+".xyz")
 
 if __name__ == "__main__":
     main()
-    # fname = 'OUTPUT_FILES/velocity_Z_it000500.vtk'
-    # VTKFrame(fname).write(fname+".xyz")
+    # fname = 'OUTPUT_FILES/velocity_Y_it000500.vtk'
+    # VTKFrame(fname, coor=50000, axis='y').write(fname+".xyz")

@@ -34,7 +34,7 @@ def rotate(basepath):
     return rotateSeisENtoTR(stx, sty, baz)
 
 
-def single_draw(ax, time_axis, stx, data, enf=0.2):
+def single_draw(ax, time_axis, stx, data, enf=0.5):
     stx = stx/1000
     for i, tr in enumerate(data):
         # tr /= np.max(tr)

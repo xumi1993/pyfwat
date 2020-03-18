@@ -44,3 +44,15 @@ def bool2str(condition):
         return '.true.'
     else:
         return '.false.'
+
+
+def read_interface(fname='DATA/meshfem3D_files/interfaces.dat', inter_num=1):
+    with open(fname) as f:
+        cont = f.read()
+    interfs = re.findall(r'(\d+)\s+(\d+)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\n', cont)
+    return [float(value) for value in interfs[inter_num-1]]
+
+
+if __name__ == "__main__":
+    interf = read_interface('/share/home/goxu/xu_mijian/workspace/semfk/slop_1/DATA/meshfem3D_files/interfaces.dat')
+    print(interf)
