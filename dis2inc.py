@@ -5,6 +5,7 @@ from obspy.taup import TauPyModel
 import inspect
 from os.path import dirname, join, abspath
 from scipy.interpolate import interp1d
+import sys
 model = TauPyModel(model="iasp91")
 
 
@@ -24,8 +25,9 @@ def dis2inc(dep, evdp, dis):
     inc_vp = interp_vp(dep)
     inc_angle = asind(rayp*inc_vp)
     rayp = get_rayp(evdp, dis)
-    return rayp, inc_angle
+    return inc_angle
 
 if __name__ == "__main__":
-    print(dis2inc(60, 10, 50))
+    args = [float(value) for value in sys.argv[1:]]
+    print('{:.4f}'.format(dis2inc(args[0], args[1], args[2])))
     

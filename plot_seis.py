@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 from os.path import join
 import sys
@@ -23,7 +24,7 @@ def read_tr(basepath, comp='z', filter=True):
     for i, staname in enumerate(stations):
         fname = join(basepath, 'OUTPUT_FILES', network[i]+'.'+staname+'.CX'+comp.upper()+'.semv')
         st[i] = np.loadtxt(fname, usecols=[1,])
-        st[i] = lowpass(st[i], 1, 1/dt)
+        # st[i] = lowpass(st[i], 1, 1/dt)
     return time_axis, st
 
 
@@ -63,7 +64,7 @@ def draw(basepath):
     single_draw(axr, time_axis, x, rst)
     single_draw(axt, time_axis, x, tst)
     single_draw(axz, time_axis, x, zst)
-    plt.savefig(join(basepath, 'OUTPUT_FILES', 'waves_rtz.png'))
+    plt.savefig(join(basepath, 'OUTPUT_FILES', 'waves_rtz.png'), bbox_inches='tight')
 
 
 if __name__ == "__main__":

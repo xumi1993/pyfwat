@@ -46,7 +46,7 @@ def draw(basepath, enf=20):
     plt.xlabel('Time after P (s)')
     plt.ylim([xs[0]-10, xs[-1]+10])
     plt.ylabel('X (km)')
-    plt.savefig(join(basepath, 'OUTPUT_FILES', 'rrf.png'))
+    plt.savefig(join(basepath, 'OUTPUT_FILES', 'rrf.png'), bbox_inches='tight')
     # plt.show()
 
 

@@ -5,15 +5,15 @@ import matplotlib.pyplot as plt
 from utils import read_interface
 # from os.path import dirname, abspath, join
 
-def create_buffer(z, z_buffer, xaxis, x, dir='left'):
+def create_buffer(z, z_buffer, xaxis, x1, x2, dir='left'):
     if dir == 'left':
-        xidx = np.where(xaxis < x)[0]
+        xidx = np.where((xaxis < x2) & (xaxis > x1))[0]
         if z < z_buffer:
             window = np.cos(np.linspace(0, np.pi/2, xidx.shape[0]))**2*(z_buffer-z)+z
         else:
             window = np.cos(np.linspace(np.pi/2., np.pi, xidx.shape[0]))**2*(z-z_buffer)+z_buffer
     else:
-        xidx = np.where(xaxis > x)[0]
+        xidx = np.where((xaxis < x2) & (xaxis > x1))[0]
         if z < z_buffer:
             window = np.cos(np.linspace(np.pi/2., np.pi, xidx.shape[0]))**2*(z_buffer-z)+z
         else:
@@ -50,14 +50,33 @@ class InterfZ():
                 self.xz[i] = z_deep + (x-x1)*tand(angle)
             else:
                 self.xz[i] = z_shallow
-        # plt.plot(self.xaxis, self.xz)
-        # plt.savefig('interface.png')
     
-    def interf_buffer(self, z_buffer, x_buffer_begin, x_buffer_end):
-        xleft, buffer_left = create_buffer(self.z_deep, z_buffer, self.xaxis, x_buffer_begin, dir='left')
-        self.xz[xleft] = buffer_left
-        xright, buffer_right = create_buffer(self.z_shallow, z_buffer, self.xaxis, x_buffer_end, dir='right')
-        self.xz[xright] = buffer_right
+    def plot(self):
+        plt.plot(self.xaxis, self.xz)
+        plt.savefig('interface.png')
+
+    def create_buffer(self, z_buffer, xaxis, x1, x2, dir='left'):
+        if dir == 'left':
+            xidx = np.where((xaxis < x2) & (xaxis > x1))[0]
+            if self.z_deep < z_buffer:
+                window = np.cos(np.linspace(0, np.pi/2, xidx.shape[0]))**2*(z_buffer-self.z_deep)+self.z_deep
+            else:
+                window = np.cos(np.linspace(np.pi/2., np.pi, xidx.shape[0]))**2*(self.z_deep-z_buffer)+z_buffer
+        else:
+            xidx = np.where((xaxis < x2) & (xaxis > x1))[0]
+            if self.z_shallow < z_buffer:
+                window = np.cos(np.linspace(np.pi/2., np.pi, xidx.shape[0]))**2*(z_buffer-self.z_shallow)+self.z_shallow
+            else:
+                window = np.cos(np.linspace(0, np.pi/2, xidx.shape[0]))**2*(self.z_shallow-z_buffer)+z_buffer
+        return xidx, window
+    
+    def interf_buffer(self, z_buffer, x_buffer_begin, x_buffer_end, direct='left'):
+        xidx, buffer = self.create_buffer(z_buffer, self.xaxis, x_buffer_begin, x_buffer_end, dir=direct)
+        self.xz[xidx] = buffer
+        if direct == 'left':
+            self.xz[np.where(self.xaxis <= x_buffer_begin)] = z_buffer
+        else:
+            self.xz[np.where(self.xaxis >= x_buffer_end)] = z_buffer
 
     def create_interf_z(self, path):
         with open(path, 'w') as f:
@@ -70,7 +89,9 @@ if __name__ == "__main__":
     interf_para = read_interface(inter_num=1)
     iz = InterfZ(*interf_para)
     iz.z_2d(20, -60000, -40000)
-    # iz.interf_buffer(-50000, -100000, 300000)
+    iz.interf_buffer(-50000, -150000, -50000, direct='left')
+    iz.interf_buffer(-50000, 250000, 350000, direct='right')
+    iz.plot()
     for x, z in zip(iz.xaxis, iz.xz):
         print(x, z)
     iz.create_interf_z('DATA/meshfem3D_files/interf_2.dat')

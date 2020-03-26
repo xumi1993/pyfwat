@@ -19,7 +19,7 @@ fi
 python `dirname $0`/create_interf_z.py > interface
 cat << eof > main.sh
 gmt begin
-    gmt psbasemap -R$R -J$J -Bxaf+l"$axis (m)" -Byaf+l"Z (m)" -BWSne -X1.2i -Y1i --PS_MEDIA=11ix3.8i
+    gmt psbasemap -R$R -J$J -Bxaf+l"$axis (m)" -Byaf+l"Z (m)" -BWSne -X1.2i -Y1i --PS_MEDIA=17ix3.8i
     gmt plot sta.xz -Si6p -G0 -N
     gmt surface \${MOVIE_TEXT} -I1000/1500 -Gtmp.grd -R$R
     gmt grdimage tmp.grd -Cvel.cpt
@@ -28,7 +28,7 @@ gmt begin
 gmt end
 eof
 
-gmt movie main.sh -C11ix3.8ix100 -Nforward -Tmoviedata.lst -A+l -D3
+gmt movie main.sh -C17ix3.8ix100 -Nforward -Tmoviedata.lst -A+l -D3
 
 rm vel.cpt main.sh moviedata.lst sta.xz interface
 rm -rf forward
