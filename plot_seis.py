@@ -24,7 +24,7 @@ def read_tr(basepath, comp='z', filter=True):
     for i, staname in enumerate(stations):
         fname = join(basepath, 'OUTPUT_FILES', network[i]+'.'+staname+'.CX'+comp.upper()+'.semv')
         st[i] = np.loadtxt(fname, usecols=[1,])
-        # st[i] = lowpass(st[i], 1, 1/dt)
+        st[i] = lowpass(st[i], 1, 1/dt)
     return time_axis, st
 
 

@@ -6,7 +6,7 @@ import sys
 def chpar(parstr, key, value):
     if not re.search('{}'.format(key), parstr):
         raise ValueError('No paremeter called {}'.format(key))
-    parstr, repl_num = re.subn(r'({}\s+)(\S+)'.format(key), '\g<1>{}'.format(str(value)), parstr)
+    parstr, repl_num = re.subn(r'({}\s+)(.+?)\n'.format(key), '\g<1>{}\n'.format(str(value)), parstr)
     if repl_num != 1:
         raise ValueError('More than one parameter will be changed. Please check.')
     else:
