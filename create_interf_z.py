@@ -2,7 +2,10 @@
 import numpy as np
 from seispy.geo import *
 import matplotlib.pyplot as plt
-from utils import read_interface
+from .utils import read_interface
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from scipy.interpolate import interpn
 # from os.path import dirname, abspath, join
 
 def create_buffer(z, z_buffer, xaxis, x1, x2, dir='left'):
@@ -21,10 +24,19 @@ def create_buffer(z, z_buffer, xaxis, x1, x2, dir='left'):
     return xidx, window
 
 
+def xdip(angle, z_deep, z_shallow, x_begin, x_end, spx):
+    x_slop_len = np.abs(z_shallow - z_deep)/tand(angle)
+    x1 = (x_end-x_begin)/2-(x_slop_len/2)
+    x2 = x1 + (x_slop_len)
+    x1 = round(x1/spx)*spx
+    x2 = round(x2/spx)*spx
+    return x1, x2
+
+
 class InterfZ():
     def __init__(self, nx, ny, xmin, ymin, spx, spy):
-        self.nx = nx
-        self.ny = ny
+        self.nx = int(nx)
+        self.ny = int(ny)
         self.xmin = xmin
         self.xmax = (nx-1)*spx + xmin
         self.ymax = (ny-1)*spy + ymin
@@ -37,21 +49,65 @@ class InterfZ():
     def z_2d(self, angle, z_deep, z_shallow, x_begin=0, x_end=200000):
         self.z_deep = z_deep
         self.z_shallow = z_shallow
-        x_slop_len = np.abs(z_shallow - z_deep)/tand(angle)
-        x1 = (x_end-x_begin)/2-(x_slop_len/2)
-        x2 = x1 + (x_slop_len)
-        x1 = round(x1/self.spx)*self.spx
-        x2 = round(x2/self.spx)*self.spx
+        x1, x2 = xdip(angle, z_deep, z_shallow, x_begin, x_end, self.spx)
         self.xz = np.zeros_like(self.xaxis)
+        idx = np.where((self.xaxis>=x1) & (self.xaxis<x2))[0]
         for i, x in enumerate(self.xaxis):
             if x < x1:
                 self.xz[i] = z_deep
-            elif x1 <= x < x2:
-                self.xz[i] = z_deep + (x-x1)*tand(angle)
-            else:
+            elif x>=x2:
                 self.xz[i] = z_shallow
+        self.xz[idx] = (z_shallow - z_deep) * np.cos(np.linspace(np.pi/2., np.pi, idx.shape[0]))**2 + z_deep
+
+    def z_thick(self, z_deep, z_shallow, x1, x2, x3, x4):
+        self.xz = np.zeros_like(self.xaxis)
+        idx = np.where(self.xaxis<x1)[0]
+        self.xz[idx] = np.ones(idx.shape[0])*z_shallow
+        idx = np.where((self.xaxis>=x1) & (self.xaxis<x2))[0]
+        self.xz[idx] = (z_shallow - z_deep) * np.cos(np.linspace(0, np.pi/2, idx.shape[0]))**2 + z_deep
+        idx = np.where((self.xaxis>=x2) & (self.xaxis<x3))[0]
+        self.xz[idx] = np.ones(idx.shape[0])*z_deep
+        idx = np.where((self.xaxis>=x3) & (self.xaxis<x4))[0]
+        self.xz[idx] = (z_shallow - z_deep) * np.cos(np.linspace(np.pi/2., np.pi, idx.shape[0]))**2 + z_deep
+        idx = np.where(self.xaxis>=x4)[0]
+        self.xz[idx] = np.ones(idx.shape[0])*z_shallow
+
+    def y_smooth(self, z_buffer, y1, y2, y3, y4):
+        self.interface = np.zeros([self.ny, self.nx])
+        for i, z in enumerate(self.xz):
+            idx = np.where(self.yaxis<=y1)[0]
+            self.interface[idx, i] = np.ones(idx.shape[0])*z_buffer
+            idx, buffer = create_buffer(z, z_buffer, self.yaxis, y1, y2, dir='left')
+            self.interface[idx, i] = buffer
+            idx = np.where((self.yaxis>=y2) & (self.yaxis<=y3))[0]
+            self.interface[idx, i] = np.ones(idx.shape[0])*z
+            idx, buffer = create_buffer(z, z_buffer, self.yaxis, y3, y4, dir='right')
+            self.interface[idx, i] = buffer
+            idx = np.where(self.yaxis>=y4)[0]
+            self.interface[idx, i] = np.ones(idx.shape[0])*z_buffer
     
-    def plot(self):
+    def write_interface(self, path):
+        with open(path, 'w') as f:
+            for j, y in enumerate(self.yaxis):
+                for i, x in enumerate(self.xaxis):
+                    f.write('{:.4f}\n'.format(self.interface[j, i]))
+
+    def cut_sec(self, x_begin, y_begin, x_end, y_end, num=500):
+        x_po = np.linspace(x_begin, x_end, num)
+        y_po = np.linspace(y_begin, y_end, num)
+        xx, yy = np.meshgrid(self.xaxis, self.yaxis, indexing='ij')
+        z = interpn((self.yaxis, self.xaxis), self.interface, (y_po, x_po))
+        return np.vstack((x_po, y_po, z)).T
+
+    def plot2d(self):
+        x, y = np.meshgrid(self.xaxis, self.yaxis)
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        ax.plot_surface(x, y, self.interface, cmap = cm.coolwarm)
+        # ax.set_aspect('equal')
+        fig.savefig('interface.png')
+
+    def plotxz(self):
         plt.plot(self.xaxis, self.xz)
         plt.savefig('interface.png')
 
@@ -89,9 +145,12 @@ if __name__ == "__main__":
     interf_para = read_interface(inter_num=1)
     iz = InterfZ(*interf_para)
     iz.z_2d(20, -60000, -40000)
-    iz.interf_buffer(-50000, -150000, -50000, direct='left')
+    # iz.z_thick(-40000, -30000, 20000, 60000, 140000, 180000)
+    # iz.y_smooth(-30000, -25000, -20000, 20000, 25000)
+    # iz.plot2d()
+    iz.interf_buffer(-50000, -300000, -200000, direct='left')
     iz.interf_buffer(-50000, 250000, 350000, direct='right')
-    iz.plot()
+    iz.plotxz()
     for x, z in zip(iz.xaxis, iz.xz):
         print(x, z)
     iz.create_interf_z('DATA/meshfem3D_files/interf_2.dat')

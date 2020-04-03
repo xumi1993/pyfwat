@@ -74,4 +74,4 @@ if __name__ == "__main__":
     # vvs.section()
     vvp = VolVTK('vp')
     vvp.griddata()
-    np.savez('vel.npz', dep=vvs.z, lat=vvs.y, lon=vvs.x, vs=vvs.vs, vp=vvp.vp)
+    np.savez('vel.npz', dep=vvs.z, lat=vvs.y, lon=vvs.x, vs=vvs.vs*0.001, vp=vvp.vp*0.001)

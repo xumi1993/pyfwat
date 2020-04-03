@@ -13,23 +13,25 @@ F 255 0 0
 eof
 if [ $axis == "Y" ]; then
     awk '{print $3,2000}' DATA/STATIONS > sta.xz
+    awk '{print $2,$3}' interface > tmp.inter
 else
     awk '{print $4,2000}' DATA/STATIONS > sta.xz
+    awk '{print $1,$3}' interface > tmp.inter
 fi
-python `dirname $0`/create_interf_z.py > interface
+# ./create_interf.py > interface
 cat << eof > main.sh
 gmt begin
     gmt psbasemap -R$R -J$J -Bxaf+l"$axis (m)" -Byaf+l"Z (m)" -BWSne -X1.2i -Y1i --PS_MEDIA=17ix3.8i
     gmt plot sta.xz -Si6p -G0 -N
     gmt surface \${MOVIE_TEXT} -I1000/1500 -Gtmp.grd -R$R
     gmt grdimage tmp.grd -Cvel.cpt
-    gmt plot interface -W1.5p
+    gmt plot tmp.inter -W1.5p
     printf "0 500 \${MOVIE_TEXT} "| gmt text -F+f12p,Helvetica+jTL -N 
 gmt end
 eof
 
 gmt movie main.sh -C17ix3.8ix100 -Nforward -Tmoviedata.lst -A+l -D3
 
-rm vel.cpt main.sh moviedata.lst sta.xz interface
-rm -rf forward
+rm vel.cpt main.sh moviedata.lst sta.xz tmp.inter
+# rm -rf forward
 
