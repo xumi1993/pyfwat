@@ -15,24 +15,24 @@ def get_stations(basepath):
     return stations, network, x, y, z
 
 
-def read_tr(basepath, comp='z', filter=True):
+def read_tr(basepath, comp='z', filter=True, unit='d'):
     stations, network, x, y, z = get_stations(basepath)
     npts = int(readpar(join(basepath, 'DATA', 'Par_file'), 'NSTEP'))
     st = np.zeros([x.shape[0], npts])
-    time_axis = np.loadtxt(join(basepath, 'OUTPUT_FILES', network[0]+'.'+stations[0]+'.CX'+comp.upper()+'.semd'), usecols=[0,])
+    time_axis = np.loadtxt(join(basepath, 'OUTPUT_FILES', network[0]+'.'+stations[0]+'.CX'+comp.upper()+'.sem'+unit), usecols=[0,])
     dt = np.mean(np.diff(time_axis))
     for i, staname in enumerate(stations):
-        fname = join(basepath, 'OUTPUT_FILES', network[i]+'.'+staname+'.CX'+comp.upper()+'.semd')
+        fname = join(basepath, 'OUTPUT_FILES', network[i]+'.'+staname+'.CX'+comp.upper()+'.sem'+unit)
         st[i] = np.loadtxt(fname, usecols=[1,])
         if filter:
             st[i] = lowpass(st[i], 1, 1/dt)
     return time_axis, st
 
 
-def rotate(basepath):
+def rotate(basepath, unit='d'):
     baz = readfkpar(join(basepath, 'DATA', 'FKMODEL'), 'BACK_AZIMUTH')
-    _, stx = read_tr(basepath, comp='x')
-    _, sty = read_tr(basepath, comp='y')
+    _, stx = read_tr(basepath, comp='x', unit=unit)
+    _, sty = read_tr(basepath, comp='y', unit=unit)
     return rotateSeisENtoTR(stx, sty, baz)
 
 

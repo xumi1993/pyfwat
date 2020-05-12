@@ -27,7 +27,14 @@ def readpar(par_file, key):
 def readfkpar(par_file, key):
     with open(par_file) as f:
         par = f.read()
-    outstr = re.findall(r'{}\s+(.+?)\n'.format(key), par)[0]
+    if key == 'LAYER':
+        outstr = re.findall(r'{}\s+(\d+\s+\d+.+?)\n'.format(key), par)
+        model = np.empty([0, 5])
+        for line in outstr:
+            model = np.vstack((model, np.array([float(value) for value in line.split()])))
+        return model
+    else:
+        outstr = re.findall(r'{}\s+(.+?)\n'.format(key), par)[0]
     # outstr = s.stdout.read().decode().strip()
     if key != 'INCIDENT_WAVE':
         val_lst = [float(value) for value in outstr.split()]

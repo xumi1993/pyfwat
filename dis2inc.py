@@ -23,6 +23,7 @@ def get_rayp(evdp, dis):
 def dis2inc(dep, evdp, dis):
     rayp = get_rayp(evdp, dis)
     inc_vp = interp_vp(dep)
+    inc_vp = interp_vp(dep)
     inc_angle = asind(rayp*inc_vp)
     rayp = get_rayp(evdp, dis)
     return inc_angle

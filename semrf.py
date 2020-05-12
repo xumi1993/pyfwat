@@ -24,13 +24,13 @@ def cal_rf(basepath, sta, net):
     rrf = np.zeros_like(zst)
     dt = readpar(join(basepath, 'DATA', 'Par_file'), 'DT')
     for i, ztr in enumerate(zst):
-        rrf[i], _, _ = decovit(rst[i], ztr, dt, itmax=20)
+        rrf[i], _, _ = decovit(rst[i], ztr, dt, itmax=200)
     time_axis = np.linspace(0, rrf[0].shape[0]*dt, rrf[0].shape[0]) - 10
     saverf(rrf, time_axis, dt, join(basepath, 'OUTPUT_FILES'), sta, net)
     return time_axis, rrf
 
 
-def draw(basepath, enf=20):
+def draw(basepath, enf=30):
     sta, net, xs, _, _ = get_stations(basepath)
     xs /= 1000
     time_axis, rrf = cal_rf(basepath, sta, net)
@@ -44,7 +44,7 @@ def draw(basepath, enf=20):
         plt.fill_between(time_axis, amp, bound + x, where=amp < x, facecolor='#1193F4', alpha=0.7)
     plt.xlim([-2, 30])
     plt.xlabel('Time after P (s)')
-    plt.ylim([xs[0]-10, xs[-1]+10])
+    plt.ylim([np.min(xs)-10, np.max(xs)+10])
     plt.ylabel('X (km)')
     plt.savefig(join(basepath, 'OUTPUT_FILES', 'rrf.png'), bbox_inches='tight')
     # plt.show()

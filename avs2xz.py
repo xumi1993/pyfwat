@@ -15,14 +15,12 @@ class VTKFrame():
         loc = lines.index('LOOKUP_TABLE default\n')+1
         values = np.array([float(line) for line in lines[loc:loc+nodes_num]])
         points = np.hstack((points, values.reshape(-1, 1)))
-        print(points.shape)
         if axis == 'x':
             self.points = points[np.where(points[:, 1].reshape(-1) == coor)[0], :]
             self.points = np.delete(self.points, 1, axis=1)
         else:
             self.points = points[np.where(points[:, 0].reshape(-1) == coor)[0], :]
             self.points = np.delete(self.points, 0, axis=1)
-        print(self.points.shape)
 
     def write(self, ofname):
         np.savetxt(ofname, self.points)
@@ -55,8 +53,9 @@ def main():
     else:
         coor = 0
         axis = 'x'
-    for fname in glob.glob('OUTPUT_FILES/*_'+axis.upper()+'_*it*.vtk'):
-        VTKFrame(fname, coor=coor, axis=axis).write(fname+".xyz")
+    for fname in sorted(glob.glob('OUTPUT_FILES/*_X_*it*.vtk')):
+        print(fname)
+        VTKFrame(fname, coor=coor, axis=axis).write(fname+"."+axis+".xyz")
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from .utils import read_interface
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from scipy.interpolate import interpn
+from scipy.interpolate import interpn, interp1d
 # from os.path import dirname, abspath, join
 
 def create_buffer(z, z_buffer, xaxis, x1, x2, dir='left'):
@@ -45,6 +45,12 @@ class InterfZ():
         self.spy = spy
         self.xaxis = np.linspace(xmin, self.xmax, nx)
         self.yaxis = np.linspace(ymin, self.ymax, ny)
+        self.xz = np.array([])
+
+    def loadxz(self, x, moho):
+        self.xz = interp1d(x, moho, bounds_error=False, fill_value='extrapolate')(self.xaxis)
+        self.z_deep = moho[0]
+        self.z_shallow = moho[-1]
 
     def z_2d(self, angle, z_deep, z_shallow, x_begin=0, x_end=200000):
         self.z_deep = z_deep
@@ -99,17 +105,24 @@ class InterfZ():
         z = interpn((self.yaxis, self.xaxis), self.interface, (y_po, x_po))
         return np.vstack((x_po, y_po, z)).T
 
-    def plot2d(self):
+    def plot2d(self, path='interface.png'):
         x, y = np.meshgrid(self.xaxis, self.yaxis)
+        plt.clf()
         fig = plt.figure()
         ax = Axes3D(fig)
         ax.plot_surface(x, y, self.interface, cmap = cm.coolwarm)
-        # ax.set_aspect('equal')
-        fig.savefig('interface.png')
+        ax.set_aspect('equal')
+        fig.savefig(path, bbox_inches='tight')
 
-    def plotxz(self):
+    def plotxz(self, path='interface.png', ylim=[-60000, 0]):
+        plt.figure(figsize=(10, 4))
         plt.plot(self.xaxis, self.xz)
-        plt.savefig('interface.png')
+        plt.gca().set(ylim=(-60000, 0))
+        # plt.axis('equal')
+        plt.grid()
+        plt.xlabel('X (m)')
+        plt.ylabel('Z (m)')
+        plt.savefig(path, bbox_inches='tight')
 
     def create_buffer(self, z_buffer, xaxis, x1, x2, dir='left'):
         if dir == 'left':

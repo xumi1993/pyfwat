@@ -2,7 +2,7 @@
 import numpy as np
 import glob
 from scipy.interpolate import griddata, interpn, LinearNDInterpolator
-from utils import readpar
+from .utils import readpar
 from os.path import join
 import matplotlib.pyplot as plt
 import vtk
@@ -26,7 +26,7 @@ def read_vtk(path, nx=600, ny=60, nz=100):
 
 
 class VolVTK():
-    def __init__(self, tag, basepath='/share/home/goxu/xu_mijian/workspace/semfk/slop_mesh'):
+    def __init__(self, tag, basepath='./'):
         self.tag = tag
         self.vtk_data = read_vtk(join(basepath, './DATABASES_MPI', '*{}.vtk'.format(tag)))
         meshpname = join(basepath, 'DATA/meshfem3D_files/Mesh_Par_file')
@@ -36,11 +36,11 @@ class VolVTK():
         self.lonmax = readpar(meshpname, 'LONGITUDE_MAX')
         self.depmax = readpar(meshpname, 'DEPTH_BLOCK_KM') * -1000
 
-    def griddata(self, dx=1000, dy=1000, dz=1000):
+    def griddata(self, dx=1000, dy=1000, dz=1000, key='gll_data'):
         self.x = np.linspace(self.vtk_data.bounds[0], self.vtk_data.bounds[1], self.vtk_data.dimensions[0])
         self.y = np.linspace(self.vtk_data.bounds[2], self.vtk_data.bounds[3], self.vtk_data.dimensions[1])
         self.z = np.linspace(self.vtk_data.bounds[4], self.vtk_data.bounds[5], self.vtk_data.dimensions[2])
-        self.__dict__[self.tag] = self.vtk_data.point_arrays['gll_data'].reshape((self.vtk_data.dimensions[::-1]))
+        self.__dict__[self.tag] = self.vtk_data.point_arrays[key].reshape((self.vtk_data.dimensions[::-1]))
         self.__dict__[self.tag][np.where(self.__dict__[self.tag] == 0)] = np.nan
 
     def section(self, axis='x', corr=0):
