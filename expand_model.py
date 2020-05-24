@@ -44,17 +44,18 @@ class MeshModel():
         self.vp1d[np.where(self.zmodel >= self.fkmodel[1, -1])] = self.fkmodel[1, -3]
         # print(self.vp1d)
 
-    def expand_x(self, buffer_x=50000, buffer_z=30):
+    def expand_x(self, buffer_x=50000, buffer_z=20):
         self.buffer_x = buffer_x
         self.xmodel = np.arange(self.xmin, self.xmax+self.dx, self.dx)
         self.vsxz = np.zeros([self.zmodel.shape[0], self.xmodel.shape[0]])
         for i, dep in enumerate(self.z):
-            self.vsxz[i][np.where(self.xmodel<self.xmin+buffer_x)] = self.vs1d[i]
             idx_buffer_left = np.where((self.xmodel>=self.xmin+buffer_x) & (self.xmodel<self.x[0]))[0]
             if dep < self.moho[0]:
                 vs_buffer_left = np.linspace(self.vs1d[0], self.vs[i][0], idx_buffer_left.shape[0])
+                self.vsxz[i][np.where(self.xmodel<self.xmin+buffer_x)] = self.vs1d[0]
             else:
                 vs_buffer_left = np.linspace(self.vs1d[-1], self.vs[i][0], idx_buffer_left.shape[0])
+                self.vsxz[i][np.where(self.xmodel<self.xmin+buffer_x)] = self.vs1d[-1]
             # print(idx_buffer_left, vs_buffer_left, self.vsxz[i])
             self.vsxz[i][idx_buffer_left] = vs_buffer_left
             idx_model_begin = np.where(self.xmodel==self.x[0])[0][0]
@@ -62,13 +63,15 @@ class MeshModel():
             idx_buffer_right = np.where((self.xmodel>self.x[-1]) & (self.xmodel<=self.xmax-buffer_x))[0]
             if dep < self.moho[-1]:
                 vs_buffer_right = np.linspace(self.vs[i][-1], self.vs1d[0], idx_buffer_right.shape[0])
+                self.vsxz[i][np.where(self.xmodel>self.xmax-buffer_x)] = self.vs1d[0]
             else:
                 vs_buffer_right = np.linspace(self.vs[i][-1], self.vs1d[-1], idx_buffer_right.shape[0])
+                self.vsxz[i][np.where(self.xmodel>self.xmax-buffer_x)] = self.vs1d[-1]
             self.vsxz[i][idx_buffer_right] = vs_buffer_right
-            self.vsxz[i][np.where(self.xmodel>self.xmax-buffer_x)] = self.vs1d[i]
+            
             self.expand_z(buffer_z)
         
-    def expand_z(self, buffer_z=30):
+    def expand_z(self, buffer_z=20):
         for i, x in enumerate(self.xmodel):
             idx = np.where((self.zmodel>self.z[-1]) & (self.zmodel<=self.z[-1]+buffer_z))[0]
             self.vsxz[idx, i] = np.linspace(self.vsxz[idx[0]-1, i], self.vs1d[-1], idx.shape[0])
