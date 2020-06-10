@@ -14,29 +14,30 @@ import pyvista as pv
 #     unstrgrid.SetPoints = points_vtk.GetOutput().
 
 
-def read_vtk(path, nx=600, ny=60, nz=100):
+def read_vtk(path, nx=600, ny=60, nz=100, enf=0.001):
     blocks=[]
     for fname in sorted(glob.glob(path)):
         blocks.append(pv.read(fname))
     points_vtk = pv.MultiBlock(blocks)
     mesh = points_vtk.combine()
+    mesh.points *= enf
     grid = pv.create_grid(mesh, dimensions=(nx, ny, nz))
     image = grid.sample(mesh)
     return image
 
 
 class VolVTK():
-    def __init__(self, tag, basepath='./'):
+    def __init__(self, tag, basepath='./', enf=0.001):
         self.tag = tag
-        self.vtk_data = read_vtk(join(basepath, './DATABASES_MPI', '*{}.vtk'.format(tag)))
+        self.vtk_data = read_vtk(join(basepath, './DATABASES_MPI', '*{}.vtk'.format(tag)), enf=enf)
         meshpname = join(basepath, 'DATA/meshfem3D_files/Mesh_Par_file')
-        self.latmin = readpar(meshpname, 'LATITUDE_MIN')
-        self.latmax = readpar(meshpname, 'LATITUDE_MAX')
-        self.lonmin = readpar(meshpname, 'LONGITUDE_MIN')
-        self.lonmax = readpar(meshpname, 'LONGITUDE_MAX')
-        self.depmax = readpar(meshpname, 'DEPTH_BLOCK_KM') * -1000
+        self.latmin = readpar(meshpname, 'LATITUDE_MIN') * enf
+        self.latmax = readpar(meshpname, 'LATITUDE_MAX') * enf
+        self.lonmin = readpar(meshpname, 'LONGITUDE_MIN') * enf
+        self.lonmax = readpar(meshpname, 'LONGITUDE_MAX') * enf
+        self.depmax = readpar(meshpname, 'DEPTH_BLOCK_KM') * enf * 1000
 
-    def griddata(self, dx=1000, dy=1000, dz=1000, key='gll_data'):
+    def griddata(self, key='gll_data'):
         self.x = np.linspace(self.vtk_data.bounds[0], self.vtk_data.bounds[1], self.vtk_data.dimensions[0])
         self.y = np.linspace(self.vtk_data.bounds[2], self.vtk_data.bounds[3], self.vtk_data.dimensions[1])
         self.z = np.linspace(self.vtk_data.bounds[4], self.vtk_data.bounds[5], self.vtk_data.dimensions[2])
