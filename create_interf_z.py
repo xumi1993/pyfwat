@@ -113,8 +113,17 @@ class InterfZ():
         ax.plot_surface(x, y, self.interface, cmap = cm.coolwarm)
         ax.set_aspect('equal')
         fig.savefig(path, bbox_inches='tight')
+    
+    def plotyz(self, xpos=300000):
+        sec_moho = self.cut_sec(xpos, self.yaxis[0], xpos, self.yaxis[-1])
+        plt.figure(figsize=(5, 4))
+        plt.plot(sec_moho[:, 1], sec_moho[:, 2])
+        plt.grid()
+        plt.xlabel('X (m)')
+        plt.ylabel('Z (m)')
+        plt.savefig('interface_yz_{}.png'.format(xpos), bbox_inches='tight')
 
-    def plotxz(self, path='interface.png', ylim=[-60000, 0]):
+    def plotxz(self, path='interface_xz.png', ylim=[-60000, 0]):
         plt.figure(figsize=(10, 4))
         plt.plot(self.xaxis, self.xz)
         plt.gca().set(ylim=(-60000, 0))
