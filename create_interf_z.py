@@ -43,8 +43,8 @@ class InterfZ():
         self.ymin = ymin
         self.spx = spx
         self.spy = spy
-        self.xaxis = np.linspace(xmin, self.xmax, nx)
-        self.yaxis = np.linspace(ymin, self.ymax, ny)
+        self.xaxis = np.linspace(xmin, self.xmax, self.nx)
+        self.yaxis = np.linspace(ymin, self.ymax, self.ny)
         self.xz = np.array([])
 
     def loadxz(self, x, moho):
