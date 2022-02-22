@@ -1,0 +1,2 @@
+mpif90 -O3 -traceback -o sem_model_addpert sem_model_addpert.f90 exit_mpi.f90 read_basin_topo_bathy_file.f90 utm_geo.f90
+mpif90 -O3 -traceback -o sem_model_checkboard sem_model_checkboard.f90 exit_mpi.f90 read_basin_topo_bathy_file.f90 utm_geo.f90
