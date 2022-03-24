@@ -2,7 +2,6 @@
 import re
 import sys
 
-
 def bool2str(condition):
     if not isinstance(condition, bool):
         raise ValueError('condition must be bool type')

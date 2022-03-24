@@ -20,6 +20,7 @@ def get_stations(basepath):
 def read_tr(basepath, comp='z', filter=True, unit='d'):
     stations, network, x, y, z = get_stations(basepath)
     npts = int(readpar(join(basepath, 'DATA', 'Par_file'), 'NSTEP'))
+    # print(npts)
     st = np.zeros([x.shape[0], npts])
     time_axis = np.loadtxt(join(basepath, 'OUTPUT_FILES', network[0]+'.'+stations[0]+'.BX'+comp.upper()+'.sem'+unit), usecols=[0,])
     dt = np.mean(np.diff(time_axis))
@@ -33,8 +34,8 @@ def read_tr(basepath, comp='z', filter=True, unit='d'):
 
 def rotate(basepath, unit='d'):
     baz = readfkpar(join(basepath, 'DATA', 'FKMODEL'), 'BACK_AZIMUTH')
-    _, stx = read_tr(basepath, comp='x', unit=unit)
-    _, sty = read_tr(basepath, comp='y', unit=unit)
+    _, stx = read_tr(basepath, comp='E', unit=unit)
+    _, sty = read_tr(basepath, comp='N', unit=unit)
     return rotateSeisENtoTR(stx, sty, baz)
 
 

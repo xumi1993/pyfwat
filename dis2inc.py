@@ -28,7 +28,11 @@ def dis2inc(dep, evdp, dis):
     rayp = get_rayp(evdp, dis)
     return inc_angle
 
+
 if __name__ == "__main__":
     args = [float(value) for value in sys.argv[1:]]
-    print('{:.4f}'.format(dis2inc(args[0], args[1], args[2])))
+    if len(args) != 3:
+        print('Usage: dis2inc.py dep evdp dis')
+        sys.exit(1)
+    print('{:.6f}'.format(dis2inc(args[0], args[1], args[2])))
     
