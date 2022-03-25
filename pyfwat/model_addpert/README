@@ -1,0 +1,20 @@
+Kai Wang, 30-June-2018
+
+This program is intended to add model perturbations to a given binary model in specfem3d.
+
+Max number of input points is set at NMAXPTS = 100000.
+
+sem_model_addpert    --- add a gaussian model perturbation
+sem_model_checkboard --- add checkerboard model perturbations 
+
+compile --- commands to compile the program 
+--------------------------
+Input: gaus01.dat/checkboard_grid.dat
+----
+ UTM_X                UTM_Y          UTM_Z
+407648.316883206  3762400.26968899 -15000.0
+----
+
+
+Make changes to sbash_sem_model_addpert.bash/sbash_add_chb_anomalies.sh to submit the job via SLURM
+
