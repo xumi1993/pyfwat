@@ -3,7 +3,7 @@ from time import time
 import numpy as np
 from os.path import join
 import sys
-from utils import *
+from pyfwat.pario import *
 from seispy.geo import rotateSeisENtoTR
 import matplotlib.pyplot as plt
 from obspy.signal.filter import bandpass, highpass, lowpass

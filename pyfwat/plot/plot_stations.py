@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import sys
 from os.path import dirname, abspath
-sys.path.append(dirname(dirname(abspath(__file__))))
-from utils import readpar
+from ..pario import readpar
 import pygmt
 import numpy as np
 import argparse

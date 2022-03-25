@@ -2,7 +2,7 @@
 import numpy as np
 from obspy.io.sac import SACTrace
 import sys
-from utils import readpar
+from pyfwat.pario import readpar
 
 def gauss(x, a=1, b=0, c=2):
     return a*np.exp(-(x-b)**2/2*c**2)

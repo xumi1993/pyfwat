@@ -2,10 +2,9 @@
 import numpy as np
 import glob
 from scipy.interpolate import griddata, interpn, LinearNDInterpolator
-from .utils import readpar
+from pyfwat.pario import readpar
 from os.path import join
 import matplotlib.pyplot as plt
-import vtk
 import pyvista as pv
 
 

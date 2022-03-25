@@ -1,8 +1,6 @@
 import numpy as np
 from os.path import join, abspath, dirname
-import sys
-sys.path.append('../')
-from semcmd.utils import readpar, readfkpar
+from pyfwat.utils import readpar, readfkpar
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from seispy.signal import smooth

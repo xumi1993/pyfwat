@@ -2,9 +2,9 @@ import numpy as np
 import sys
 sys.path.append('../')
 # semcmd is open accessed at https://git.nju.edu.cn/xumi1993/semcmd
-from semcmd.expand_model import MeshModel
-from semcmd.utils import readpar
-from semcmd.create_interf_z import InterfZ, read_interface
+from pyfwat.expand_model import MeshModel
+from pyfwat.pario import readpar
+from pyfwat.create_interf_z import InterfZ, read_interface
 from scipy.interpolate import interp1d, interpn, interp2d
 from os.path import join, dirname, abspath
 from seispy.signal import smooth

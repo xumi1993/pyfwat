@@ -3,7 +3,7 @@ import numpy as np
 from plot_seis import read_tr, get_stations
 from seispy.mccc import mccc
 from seispy.geo import rotateSeisENtoTR
-from utils import readfkpar, readpar
+from pyfwat.pario import readfkpar, readpar
 from os.path import join
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
