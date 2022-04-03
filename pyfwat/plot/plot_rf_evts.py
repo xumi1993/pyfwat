@@ -43,10 +43,10 @@ def plot_evts(label_angle=22.5, outpath='./figures'):
 
 
 def main():
-    parser = argparse.ArgumentParser(help='Plot virtual events of RFs with back-azimuth and ray-parameters.'
-                                          'This command read event id in src_rec/sources_*.dat'
-                                          'and read TAKE_OFF in src_rec/FKmodel_* for computing ray-parameters.')
-    parser.add_argument('-a', help='Azimuth of label position of rayp, defaults to 22.5',
+    parser = argparse.ArgumentParser('Plot virtual events of RFs with back-azimuth and ray-parameters.'
+                                     'This command read event id in src_rec/sources_*.dat'
+                                     'and read TAKE_OFF in src_rec/FKmodel_* for computing ray-parameters.')
+    parser.add_argument('-a', help='Azimuth for drawing rayp label, defaults to 22.5',
                         type=float, metavar='angle', default=22.5)
     parser.add_argument('-o', help='Figure output path, defaults to ./figures', default='./figures')
     args = parser.parse_args()

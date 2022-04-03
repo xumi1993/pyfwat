@@ -1,4 +1,4 @@
-from utils import readfkpar
+from pyfwat.pario import readfkpar
 import numpy as np
 from seispy.geo import sind, cosd
 import sys

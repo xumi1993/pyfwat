@@ -69,10 +69,10 @@ def chpar(parstr, key, value, type='sem'):
     if isinstance(value, bool):
         value = bool2str(value)
     if type.lower() == 'fk':
-        patten = r'({}\s+)(.+?)\n'.format(key)
+        patten = r'({}\s+)(.+?)(\S+)'.format(key)
     else:
         patten = r'({}\s+=\s*)(\S+)'.format(key)
-    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr)
+    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(value), parstr)
     if repl_num != 1:
         raise ValueError('More than one parameter will be changed. Please check.')
     else:

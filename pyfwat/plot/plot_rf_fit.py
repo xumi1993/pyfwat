@@ -40,8 +40,8 @@ def plot_rf_fit(modelname, setid, gauss, xlim=(-5,30), outpath='./figures'):
 
 
 def main():
-    parser = argparse.ArgumentParser(help='Plot rf fitting. read data/evtid/*F{{gauss}}.rf.sac for data,'
-                                          'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/syn.*.F{{gauss}} for syn')
+    parser = argparse.ArgumentParser('Plot rf fitting. read data/evtid/*F{{gauss}}.rf.sac for data,'
+                                     'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/syn.*.F{{gauss}} for syn')
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
     parser.add_argument('-s', help='Set id', metavar='setid')
     parser.add_argument('-g', help='Gaussian factor, should be the same as in filename', metavar='gauss')

@@ -2,7 +2,7 @@
 import numpy as np
 from seispy.geo import *
 import matplotlib.pyplot as plt
-from .utils import read_interface
+from pyfwat.pario import read_interface
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from scipy.interpolate import interpn, interp1d

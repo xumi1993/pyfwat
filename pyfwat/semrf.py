@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-from seispy.decov import decovit
+from seispy.decon import deconit
 import numpy as np
 from plot_seis import read_tr, rotate, get_stations
 from obspy.io.sac import SACTrace
-from utils import readpar
+from pyfwat.pario import readpar
 from os.path import join
 import matplotlib.pyplot as plt
 import sys
@@ -24,7 +24,7 @@ def cal_rf(basepath, sta, net):
     rrf = np.zeros_like(zst)
     dt = readpar(join(basepath, 'DATA', 'Par_file'), 'DT')
     for i, ztr in enumerate(zst):
-        rrf[i], _, _ = decovit(rst[i], ztr, dt, itmax=400)
+        rrf[i], _, _ = deconit(rst[i], ztr, dt, itmax=400)
     time_axis = np.linspace(0, rrf[0].shape[0]*dt, rrf[0].shape[0]) - 10
     saverf(rrf, time_axis, dt, join(basepath, 'OUTPUT_FILES'), sta, net)
     return time_axis, rrf

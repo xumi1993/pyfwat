@@ -2,10 +2,7 @@
 import numpy as np
 from seispy.geo import asind
 import sys
-from os.path import dirname, abspath
-sys.path.append(dirname(dirname(abspath(__file__))))
-from setfk import chpar
-from utils import readfkpar
+from ..pario import readfkpar, chpar
 import argparse
 
 
@@ -15,7 +12,7 @@ class FKEvts():
         self.baz = baz
         self.rayp = rayp
         model = readfkpar(fkfile, 'LAYER')
-        vp_half = model[-1, 2]
+        vp_half = model[-1, 2]/1000
         with open(stafile) as f:
             self.stations = f.read()
         with open(fkfile) as f:
@@ -25,19 +22,23 @@ class FKEvts():
 
     def evt_set(self, basepath='src_rec'):
         count = 0
-        for baz in self.baz:
-            for inc in self.inc_angle:
-                count += 1
-                evtid = '{}'.format(count)
-                setid = 'set{:d}'.format(count)
-                chpar(self.fkpar, 'BACK_AZIMUTH', baz)
-                chpar(self.fkpar, 'TAKE_OFF', inc)
-                with open('{}/FKmodel_{}'.format(basepath, evtid), 'w') as f:
-                    f.write(self.fkpar)
-                with open('{}/sources_{}.dat'.format(basepath, setid), 'w') as f:
-                    f.write('{} 0.0 0.0 0.0 0.0\n'.format(evtid))
-                with open('{}/STATIONS_{}'.format(basepath, evtid), 'w') as f:
-                    f.write(self.stations)
+        with open('{}/sources_ls.dat'.format(basepath), 'w') as fls:
+            for baz in self.baz:
+                for inc in self.inc_angle:
+                    count += 1
+                    evtid = '{}'.format(count)
+                    setid = 'set{:d}'.format(count)
+                    self.fkpar = chpar(self.fkpar, 'BACK_AZIMUTH', baz, type='fk')
+                    self.fkpar = chpar(self.fkpar, 'TAKE_OFF', inc, type='fk')
+                    with open('{}/FKmodel_{}'.format(basepath, evtid), 'w') as f:
+                        f.write(self.fkpar)
+                    with open('{}/sources_{}.dat'.format(basepath, setid), 'w') as f:
+                        f.write('{} 0.0 0.0 0.0 0.0\n'.format(evtid))
+                    with open('{}/STATIONS_{}'.format(basepath, evtid), 'w') as f:
+                        f.write(self.stations)
+                    fls.write('{} 0.0 0.0 0.0 0.0\n'.format(evtid))
+            
+
 
 def main():
     parser = argparse.ArgumentParser('Generate FKmodel, sources and STATIONS')
@@ -49,17 +50,19 @@ def main():
                         default='DATA/FKMODEL', metavar='FKMODEL')
     parser.add_argument('-s', help='Path to a template of STATIONS, defaults to DATA/STATIONS',
                         default='DATA/STATIONS', metavar='STATIONS')
-    parser.add_argument('-o', help='Output path, defaults to src_rec', default='src_rec', metavar='src_rec')
+    parser.add_argument('-o', help='Output path, defaults to ./src_rec', default='./src_rec', metavar='src_rec')
     args = parser.parse_args()
     try:
         bazs = [float(v) for v in args.b.split('/')]
         baz = np.arange(*bazs)
+        # print(baz)
     except:
         print('ERROR: Error format in -b argument')
         sys.exit(1)
     try:
         rayps = [float(v) for v in args.r.split('/')]
         rayp = np.arange(*rayps)
+        # print(rayp)
     except:
         print("ERROR: Error format in -r argument")
         sys.exit(1)
