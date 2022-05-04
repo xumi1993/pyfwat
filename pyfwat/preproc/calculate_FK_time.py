@@ -12,7 +12,7 @@ from pyproj import Proj
 
 ###
 #compute travetime of code phases for FK method in layered halfspace model
-def traveltime(H,p,al,be,nlayer,x0,y0,z0,x,y,z,phi_FK):
+def traveltime(H,p,al,be,nlayer,x0,y0,z0,xi,yi,z,phi_FK):
   t=np.zeros(7)
   t[:]=p*(xi-x0)*np.cos(phi_FK/180.*np.pi)+p*(yi-y0)*np.sin(phi_FK/180*np.pi)
   # figure out the lcoation of z with respect to layer stack
@@ -162,7 +162,7 @@ for i, line in enumerate(fp):
       tdelay=traveltime(H, p, vp_fk_input, vs_fk_input, nlayer, x0, y0, z0-z_ref_fk, xi, yi, zi-z_ref_fk, phi_FK)
     elif kpsv==2:
       tdelay=p*(xi-x0)*np.cos(phi_FK/180.*np.pi)+p*(yi-y0)*np.sin(phi_FK/180*np.pi)+eta_s*(0-z0)
-    print('net.stnm xi yi tdelay %s %s %f %f %f\n' %(netwk,stnm,xi,yi,tdelay[0]))
+    # print('net.stnm xi yi tdelay %s %s %f %f %f\n' %(netwk,stnm,xi,yi,tdelay[0]))
     fp1.write('%s %s %f %f %f %f %f %f %f %f\n' %(netwk,stnm,dist,tdelay[0],tdelay[1],tdelay[2],tdelay[3],tdelay[4],tdelay[5],tdelay[6]))
 fp.close()
 fp1.close()

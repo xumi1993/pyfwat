@@ -70,6 +70,9 @@ def chpar(parstr, key, value, type='sem'):
         value = bool2str(value)
     if type.lower() == 'fk':
         patten = r'({}\s+)(.+?)(\S+)'.format(key)
+        if key == 'ORIGIN_WAVEFRONT':
+            patten = r'({}\s+)(.+?)\n'.format('ORIGIN_WAVEFRONT')
+            value += '\n'
     else:
         patten = r'({}\s+=\s*)(\S+)'.format(key)
     parstr, repl_num = re.subn(patten, '\g<1>{}'.format(value), parstr)

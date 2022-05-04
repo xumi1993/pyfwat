@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import find_packages, setup
+from setuptools import setup,find_packages
 packages = find_packages()
 
 with open("README.md", "r") as fh:
@@ -26,10 +26,13 @@ setup(name='pyfwat',
                 'matplotlib>=3.2.0',
                 'pygmt'],
       entry_points={'console_scripts': ['plot_vel_sec=pyfwat.plot.plot_vel_sec:main',
+                                        'plot_kernel_sec=pyfwat.plot.plot_kernel_sec:main',
+                                        'plot_misfit=pyfwat.plot.plot_misfit:main',
                                         'plot_stations=pyfwat.plot.plot_stations:main',
                                         'plot_rf_evts=pyfwat.plot.plot_rf_evts:main',
                                         'gen_virt_fkevts=pyfwat.preproc.gen_virt_fkevts:main',
-                                        'plot_rf_fit=pyfwat.plot.plot_rf_fit:main']},
+                                        'plot_rf_fit=pyfwat.plot.plot_rf_fit:main',
+                                        'gen_gauss_stf=pyfwat.preproc.gen_gauss_stf:main']},
       #  include_package_data=True,
       zip_safe=False,
       classifiers=['Programming Language :: Python',
