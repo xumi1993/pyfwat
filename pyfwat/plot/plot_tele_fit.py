@@ -1,0 +1,60 @@
+from curses import meta
+import pygmt
+import subprocess
+import numpy as np
+from os import remove
+from pygmt.clib import Session
+from .plot_rf_fit import post_plot
+import glob
+import argparse
+
+
+def pre_plot(modelname, setid, comp):
+    with open('src_rec/sources_set{}.dat'.format(setid)) as f:
+        evtid = f.readlines()[0].strip().split()[0]
+    s = ''
+    s += 'saclst knetwk kstnm b e f solver/{}.set{}/{}/OUTPUT_FILES/wdat.*.*{}.sac.* > saclst_dat\n'.format(modelname, setid, evtid, comp)
+    s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
+    s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
+    s += 'ls solver/{}.set{}/{}/OUTPUT_FILES/wsyn.*.*{}.sac.* > saclst_syn\n'.format(modelname, setid, evtid, comp)
+    subp = subprocess.Popen(['bash'], stdin=subprocess.PIPE)
+    subp.communicate(s.encode())
+    xlim_all = np.loadtxt('saclst_dat', usecols=[3,4])
+    xlim = [np.max(xlim_all[:, 0]), np.max(xlim_all[:, 1])]
+    num_sta = xlim_all.shape[0]
+    return evtid, num_sta, xlim
+
+
+def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', enf=0.05):
+    evtid, num_sta, xlim_auto = pre_plot(modelname, setid, comp)
+    if xlim is None:
+        xlim = xlim_auto
+    fig = pygmt.Figure()
+    pygmt.config(FONT_TITLE='14p',
+                 MAP_GRID_PEN='0.3p,gray')
+    fig.basemap(region=[*xlim, -1, num_sta+2], projection='x0.4c/0.6c',
+                frame=['xa5f1g5+l"Time after P (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
+    with Session() as lib:
+        lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1.3p".format(enf))
+        lib.call_module("sac", "saclst_syn -En1 -M{} -W1.3p,255/25/25".format(enf))
+    fig.savefig('{}/{}.set{}_tele_fit.png'.format(outpath, modelname, setid))
+    post_plot()
+
+
+def main():
+    parser = argparse.ArgumentParser('Plot teleseismic fitting. read '
+                                     'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wdat* for data,'
+                                     'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wsyn* for syn')
+    parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
+    parser.add_argument('-s', help='Set id', metavar='setid')
+    parser.add_argument('-c', help='Component name to plot R or Z avaliable, defaults to Z', default='Z', metavar='component')
+    parser.add_argument('-x', help='x-axis limits, defaults to read b and e from sac files, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05, metavar='coef')
+    parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
+    args = parser.parse_args()
+
+    if args.x is not None:
+        xlim = [float(v) for v in args.x.split('/')]
+    else:
+        xlim = None
+    plot_tele_fit(args.m, args.s, xlim=xlim, outpath=args.o, enf=args.e)

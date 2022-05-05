@@ -46,8 +46,8 @@ def main():
     parser.add_argument('-s', help='Set id', metavar='setid')
     parser.add_argument('-g', help='Gaussian factor, should be the same as in filename', metavar='gauss')
     parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: donnot insert space after -x', default='-5/30', metavar='xmin/xmax')
-    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05)
-    parser.add_argument('-o', help='Figure output path', default='./figures')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05, metavar='coef')
+    parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
 
     xlim = [float(v) for v in args.x.split('/')]
