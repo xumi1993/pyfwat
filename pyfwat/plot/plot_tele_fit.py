@@ -1,11 +1,13 @@
-from curses import meta
+from genericpath import exists
 import pygmt
 import subprocess
 import numpy as np
 from os import remove
 from pygmt.clib import Session
 from .plot_rf_fit import post_plot
+from ..pario import readfwatpar
 import glob
+import re
 import argparse
 
 
@@ -24,9 +26,24 @@ def pre_plot(modelname, setid, comp):
     num_sta = xlim_all.shape[0]
     return evtid, num_sta, xlim
 
+def read_time_window(evtid):
+    with open('saclst_dat') as f:
+        staname = [[line.split()[1], line.split()[2]] for line in f.readlines()]
+    with open('src_rec/FKtimes_{}'.format(evtid)) as f:
+        fktimes_str = f.read()
+    fktimes = np.zeros(len(staname))
+    for i, sta in enumerate(staname):
+        fktimes[i] = float(re.findall(r'{}\s+{}\s+(.+?)\s+'.format(sta[0], sta[1]), fktimes_str)[0])
+    return fktimes
 
 def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', enf=0.05):
     evtid, num_sta, xlim_auto = pre_plot(modelname, setid, comp)
+    fktimes = read_time_window(evtid)
+    par_file = 'fwat_params/FWAT.PAR.tele'
+    if not exists(par_file):
+        raise FileNotFoundError('No such file of {}'.format(par_file))
+    time_before = readfwatpar(par_file, 'TW_BEFORE')
+    time_after = readfwatpar(par_file, 'TW_AFTER')
     if xlim is None:
         xlim = xlim_auto
     fig = pygmt.Figure()
@@ -37,6 +54,9 @@ def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', en
     with Session() as lib:
         lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1.3p".format(enf))
         lib.call_module("sac", "saclst_syn -En1 -M{} -W1.3p,255/25/25".format(enf))
+    for i, fktime in enumerate(fktimes):
+        fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
+        fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
     fig.savefig('{}/{}.set{}_tele_fit.png'.format(outpath, modelname, setid))
     post_plot()
 

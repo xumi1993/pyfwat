@@ -43,7 +43,30 @@ def readfkpar(par_file, key):
         return val_lst[0]
     else:
         return np.array(val_lst)
-    
+
+
+def readfwatpar(par_file, key):
+    int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX']
+    array_str = ['SHORT_P', 'LONG_P', 'GROUPVEL_MIN', 'GROUPVEL_MAX', 'STEP_LENS', 'F0']
+    with open(par_file) as f:
+        par = f.read()
+    outstr = re.findall(r'{}:\s+(.+?)\n'.format(key), par)[0]
+    if key.upper() in array_str:
+        return np.array([float(v) for v in outstr.split()])
+    elif key.upper() in ['SCOMPS', 'RCOMPS']:
+        return [v for v in outstr.split()]
+    elif outstr.lower() == '.true.':
+        return True
+    elif outstr.lower() == '.false.':
+        return False
+    elif key.upper() in int_str:
+        return int(outstr)
+    else:
+        try:
+            return float(outstr)
+        except Exception:
+            raise ValueError('Error format in {}'.format(key))
+
 
 def bool2str(condition):
     if not isinstance(condition, bool):
@@ -68,11 +91,15 @@ def chpar(parstr, key, value, type='sem'):
         raise ValueError('No paremeter called {}'.format(key))
     if isinstance(value, bool):
         value = bool2str(value)
+    if isinstance(value, (list, np.ndarray)):
+        value = ' '.join('{:5.3f}'.format(v) for v in value)
     if type.lower() == 'fk':
         patten = r'({}\s+)(.+?)(\S+)'.format(key)
         if key == 'ORIGIN_WAVEFRONT':
             patten = r'({}\s+)(.+?)\n'.format('ORIGIN_WAVEFRONT')
             value += '\n'
+    if type.lower() == 'fwat':
+        patten = r'({}:\s+\s*)(.*?)[\n|#]'.format(key)
     else:
         patten = r'({}\s+=\s*)(\S+)'.format(key)
     parstr, repl_num = re.subn(patten, '\g<1>{}'.format(value), parstr)
