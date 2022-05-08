@@ -85,7 +85,7 @@ def read_interface(fname='DATA/meshfem3D_files/interfaces.dat', inter_num=1):
 
 
 def chpar(parstr, key, value, type='sem'):
-    if type.lower() not in ['sem', 'fk']:
+    if type.lower() not in ['sem', 'fk', 'fwat']:
         raise ValueError('type should be in \'sem\' and \'fk\'')
     if not re.search('{}'.format(key), parstr):
         raise ValueError('No paremeter called {}'.format(key))
@@ -98,12 +98,12 @@ def chpar(parstr, key, value, type='sem'):
         if key == 'ORIGIN_WAVEFRONT':
             patten = r'({}\s+)(.+?)\n'.format('ORIGIN_WAVEFRONT')
             value += '\n'
-    if type.lower() == 'fwat':
+    elif type.lower() == 'fwat':
         patten = r'({}:\s+\s*)(.*?)[\n|#]'.format(key)
     else:
         patten = r'({}\s+=\s*)(\S+)'.format(key)
-    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(value), parstr)
-    if repl_num != 1:
+    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr)
+    if repl_num > 1:
         raise ValueError('More than one parameter will be changed. Please check.')
     else:
         return parstr

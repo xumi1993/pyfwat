@@ -47,11 +47,13 @@ class Pltvel():
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
     
-    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/kernel_avg.cpt'), outpath='./figures', colorbar=True):
+    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/kernel_avg.cpt'), outpath='./figures', colorbar=True, enf=1):
         fig = pygmt.Figure()
         fig.basemap(region=line['region'],
                     projection="x0.1c/-0.1c",
                     frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
+        print('Max value of data: {}'.format(np.max(np.abs(line['grid'].values))))
+        line['grid'].values *= enf
         vmax = np.max(np.abs(line['grid'].values))
         vmin = -vmax
         vval = (vmax-vmin)/50
@@ -60,7 +62,7 @@ class Pltvel():
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
                  style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
         if colorbar:
-            fig.colorbar(position="JMR+o0.7c/0c+w5c/0.3c+ebf", frame=['xag'])
+            fig.colorbar(position="JMR+o0.7c/0c+w5c/0.3c+ebf", frame=['xag', 'y+l"x{:0e}"'.format(enf/enf/enf)])
         fig.savefig('{}/{}_{:.1f}_{:.1f}_{:.1f}_{:.1f}.png'.format(
                     outpath, self.fname, *line['pos']))
     
@@ -75,6 +77,7 @@ def main():
     parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with              \'xproject_and_combine_vol_data_on_regular_grid\'',
                         metavar='data_structure_file', required=True)
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='src_rec/STATIONS_1')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
     parser.add_argument('-k', help='Key name of the volume data',metavar='kernel_name', default='beta_kernel_smooth')
@@ -87,4 +90,4 @@ def main():
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(*line)
-    plotsec.plot_all(outpath=args.o, colorbar=args.c)
+    plotsec.plot_all(outpath=args.o, colorbar=args.c, enf=args.e)
