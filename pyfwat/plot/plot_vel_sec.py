@@ -99,6 +99,7 @@ class Pltvel():
         else:
             _, vmin = vs2vprho(2)
             _, vmax = vs2vprho(5)
+            vmax+=0.2
             label = 'Density (g/cm@+3@+)'
         pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], continuous=True)
         fig.grdimage(grid=line['grid'], cmap=True)

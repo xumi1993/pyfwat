@@ -54,8 +54,6 @@ class FKEvts():
             xmin, ymin = utm(lonmin, latmin)
             xmax, ymax = utm(lonmax, latmax)
         else:
-            if center_la is None or center_lo is None:
-                raise ValueError('Please set central position of the region')
             xmin = lonmin
             ymin = latmin
             xmax = lonmax
@@ -64,7 +62,10 @@ class FKEvts():
             for baz in self.baz:
                 for i, inc in enumerate(self.inc_angle):
                     count += 1
-                    evla, evlo = latlon_from(center_la, center_lo, baz, self.dis[i])
+                    if not readpar('DATA/meshfem3D_files/Mesh_Par_file', 'SUPPRESS_UTM_PROJECTION'):
+                        evla, evlo = latlon_from(center_la, center_lo, baz, self.dis[i])
+                    else:
+                        evla, evlo = 0., 0.
                     evtid = '{}'.format(count)
                     setid = 'set{:d}'.format(count)
                     self.fkpar = chpar(self.fkpar, 'BACK_AZIMUTH', baz, type='fk')

@@ -2,6 +2,7 @@ import pygmt
 import subprocess
 from os import remove
 from pygmt.clib import Session
+from ..pario import readfwatpar
 import argparse
 
 
@@ -9,7 +10,7 @@ def pre_plot(modelname, setid, gauss):
     with open('src_rec/sources_set{}.dat'.format(setid)) as f:
         evtid = f.readlines()[0].strip().split()[0]
     s = ''
-    s += 'saclst knetwk kstnm f data/{}/*.F{}.rf.sac > saclst_dat\n'.format(evtid, gauss)
+    s += 'saclst knetwk kstnm f fwat_data/{}/*.F{}.rf.sac > saclst_dat\n'.format(evtid, gauss)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
     s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
     s += 'ls solver/{}.set{}/{}/OUTPUT_FILES/syn.*.F{} > saclst_syn\n'.format(modelname, setid, evtid, gauss)
@@ -25,8 +26,12 @@ def post_plot():
     remove('yticklabel.txt')
     remove('saclst_syn')
 
-def plot_rf_fit(modelname, setid, gauss, xlim=(-5,30), outpath='./figures', enf=0.05):
+def plot_rf_fit(modelname, setid, gauss, xlim=None, outpath='./figures', enf=0.05):
     evtid, num_sta = pre_plot(modelname, setid, gauss)
+    if xlim is None:
+        xmin = -1 * readfwatpar('fwat_params/FWAT.PAR.rf', 'TW_BEFORE')
+        xmax = readfwatpar('fwat_params/FWAT.PAR.rf', 'TW_AFTER')
+        xlim = [xmin, xmax]
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',
                  MAP_GRID_PEN='0.3p,gray')
@@ -45,11 +50,14 @@ def main():
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
     parser.add_argument('-s', help='Set id', metavar='setid')
     parser.add_argument('-g', help='Gaussian factor, should be the same as in filename', metavar='gauss')
-    parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: donnot insert space after -x', default='-5/30', metavar='xmin/xmax')
+    parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05, metavar='coef')
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
 
-    xlim = [float(v) for v in args.x.split('/')]
+    if args.x is not None:
+        xlim = [float(v) for v in args.x.split('/')]
+    else:
+        xlim = None
     plot_rf_fit(args.m, args.s, args.g, xlim=xlim, outpath=args.o, enf=args.e)
     

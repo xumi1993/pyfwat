@@ -57,6 +57,7 @@ def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', en
     for i, fktime in enumerate(fktimes):
         fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
         fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
+        fig.plot(x=fktime, y=i+1, style='y0.5c', pen='1.8p,green3')
     fig.savefig('{}/{}.set{}_tele_{}_fit.png'.format(outpath, modelname, setid, comp))
     post_plot()
 
