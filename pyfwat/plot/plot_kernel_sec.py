@@ -31,7 +31,7 @@ from pyfwat.plot.plot_vel_sec import proj_sta, interp_sec
 
 
 class Pltvel():
-    def __init__(self, kerfile, stafile='src_rec/STATIONS_1', key='beta_kernel_smooth'):
+    def __init__(self, kerfile, stafile='src_rec/STATIONS', key='beta_kernel_smooth'):
         self.kerfile = kerfile
         self.stafile = stafile
         self.dataname = key
@@ -74,11 +74,11 @@ class Pltvel():
 def main(): 
     parser = argparse.ArgumentParser('Plot kernel values with cross sections')
     parser.add_argument('sections', help='File to line positions or positions of single line (lat1/lon1/lat2/lon2)')
-    parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with              \'xproject_and_combine_vol_data_on_regular_grid\'',
+    parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',
                         metavar='data_structure_file', required=True)
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
-    parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='src_rec/STATIONS_1')
+    parser.add_argument('-s', help='Path to STATIONS, defaults to DATA/STATIONS', default='DATA/STATIONS')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
     parser.add_argument('-k', help='Key name of the volume data',metavar='kernel_name', default='beta_kernel_smooth')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
