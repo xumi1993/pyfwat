@@ -15,35 +15,46 @@ def vs2vprho(vs):
 
 
 
-def proj_sta(stafile, lat1, lon1, lat2, lon2):
+def proj_sta(stafile, lat1, lon1, lat2, lon2, utm=False):
     st, net, stla, stlo, stel = np.loadtxt(stafile, usecols=[0,1,2,3,4],
                                            dtype = {'names': ('station', 'net','stla', 'stlo', 'stel'),
                                                         'formats': ('U20', 'U20', 'f4', 'f4', 'f2')},
                                            unpack=True, ndmin=1)
     sta = ['{}.{}'.format(net[i], st[i]) for i in range(st.size)]
-    pos = np.vstack((stlo, stla)).T
-    st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention='p', unit=True)
+    if utm:
+        pos = np.vstack((stlo, stla)).T
+        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention='p', unit=True)
+    else:
+        pos = np.vstack((stlo/1000, stla/1000)).T
+        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention='p', flat_earth=True)
     # dimension need to be checked
     return sta, st_pos.values[:,0], stel
 
 
-def interp_sec(data, lat1, lon1, lat2, lon2, hval=0.5, vval=0.5, name='vs'):
+def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False):
     """
     hval = horizantal interval in km
     vval = vertical interval in km
     points = lon, lat, dist-from-start
     """
-    points = pygmt.project(center='{}/{}'.format(lon1, lat1),
+    if utm:
+        points = pygmt.project(center='{}/{}'.format(lon1, lat1),
                        endpoint='{}/{}'.format(lon2, lat2),
                        generate=hval, unit=True)
-    depth = np.arange(data['z'][0], 0-vval, vval)
+        xx, yy, zz = data['x'], data['y'], data['z']
+    else:
+        points = pygmt.project(center='{}/{}'.format(lon1, lat1),
+                       endpoint='{}/{}'.format(lon2, lat2),
+                       generate=hval, flat_earth=True)
+        xx, yy, zz = data['x']/1000, data['y']/1000, data['z']
+    depth = np.arange(zz[0], 0-vval, vval)
     points2d = np.empty([0, 4])
     for i, x in enumerate(points.values):
         for j,d in enumerate(depth):
             points2d = np.vstack((points2d, np.append(x, d)))
     # inter_dep, inter_y, inter_x = np.meshgrid(data['z'], data['y'], data['x'], indexing='ij')
-    points_value = interpn((data['x'], data['y'], data['z']),
-                            data[name]/1000, points2d[:, [0, 1, 3]], bounds_error=False, fill_value=None)
+    points_value = interpn((xx, yy, zz), data[name]/1000, points2d[:, [0, 1, 3]],
+                           bounds_error=False, fill_value=None)
     grid = pygmt.surface(x=points2d[:, 2], y=-points2d[:, 3], z=points_value,
                          region=[points.values[0, -1], points.values[-1, -1], 0, -depth[0]],
                          spacing='{}/{}'.format(hval, vval))
@@ -75,10 +86,10 @@ class Pltvel():
         self.lines = []
 
     
-    def append_lines(self, lat1, lon1, lat2, lon2):
-        sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2)
+    def append_lines(self, lat1, lon1, lat2, lon2, utm=False):
+        sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2, utm=utm)
         points, depth, grid = interp_sec(self.data, lat1, lon1, lat2, lon2, hval=0.5,
-                                         vval=0.5, name=self.dataname)
+                                         vval=0.5, name=self.dataname, utm=utm)
         region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
@@ -86,7 +97,7 @@ class Pltvel():
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'), outpath='./figures', colorbar=True):
         fig = pygmt.Figure()
         fig.basemap(region=line['region'],
-                    projection="x0.1c/-0.1c",
+                    projection="x0.05c/-0.05c",
                     frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
         if self.dataname == 'vs':
             vmin = 2
@@ -123,13 +134,14 @@ def main():
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
     parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='src_rec/STATIONS_1')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
-    parser.add_argument('-k', help='Key name of the volume data', default='vs')
+    parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
+    parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
     args = parser.parse_args()
     plotsec =  Pltvel(args.i, stafile=args.s, key=args.k)
     if exists(args.sections):
         lines = np.loadtxt(args.sections)
         for line in lines:
-            plotsec.append_lines(*list(line))
+            plotsec.append_lines(*list(line), utm=args.u)
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(*line)
