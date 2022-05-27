@@ -41,10 +41,13 @@ class Pltvel():
 
     def append_lines(self, lat1, lon1, lat2, lon2, utm=False):
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2,utm=utm)
-        hval = np.mean(np.diff(self.data['x']))
-        vval = abs(np.mean(np.diff(self.data['z']/1000)))
+        if utm:
+            hval = 0.01
+        else:
+            hval = 1
+        vval = 0.5
         points, depth, grid = interp_sec(self.data, lat1, lon1, lat2, lon2, hval=hval,
-                                         vval=vval, name=self.dataname, utm=utm)
+                                         vval=vval, name=self.dataname, utm=utm, unit_trans=False)
         region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
@@ -92,5 +95,5 @@ def main():
             plotsec.append_lines(*list(line), utm=args.u)
     else:
         line = [float(v) for v in args.sections.split('/')]
-        plotsec.append_lines(*line)
+        plotsec.append_lines(*line, utm=args.u)
     plotsec.plot_all(outpath=args.o, colorbar=args.c, enf=args.e)

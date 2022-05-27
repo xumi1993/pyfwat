@@ -31,7 +31,7 @@ def proj_sta(stafile, lat1, lon1, lat2, lon2, utm=False):
     return sta, st_pos.values[:,0], stel
 
 
-def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False):
+def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False, unit_trans=True):
     """
     hval = horizantal interval in km
     vval = vertical interval in km
@@ -53,7 +53,11 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=Fa
         for j,d in enumerate(depth):
             points2d = np.vstack((points2d, np.append(x, d)))
     # inter_dep, inter_y, inter_x = np.meshgrid(data['z'], data['y'], data['x'], indexing='ij')
-    points_value = interpn((xx, yy, zz), data[name]/1000, points2d[:, [0, 1, 3]],
+    if unit_trans:
+        datap = data[name]/1000
+    else:
+        datap = data[name]
+    points_value = interpn((xx, yy, zz), datap, points2d[:, [0, 1, 3]],
                            bounds_error=False, fill_value=None)
     print(points)
     grid = pygmt.surface(x=points2d[:, 2], y=-points2d[:, 3], z=points_value,
@@ -89,8 +93,11 @@ class Pltvel():
     
     def append_lines(self, lat1, lon1, lat2, lon2, utm=False):
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2, utm=utm)
-        hval = np.mean(np.diff(self.data['x']))
-        vval = abs(np.mean(np.diff(self.data['z']/1000)))
+        if utm:
+            hval = 0.01
+        else:
+            hval = 1
+        vval = 0.5
         points, depth, grid = interp_sec(self.data, lat1, lon1, lat2, lon2, hval=hval,
                                          vval=vval, name=self.dataname, utm=utm)
         region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
@@ -147,7 +154,7 @@ def main():
             plotsec.append_lines(*list(line), utm=args.u)
     else:
         line = [float(v) for v in args.sections.split('/')]
-        plotsec.append_lines(*line)
+        plotsec.append_lines(*line, utm=args.u)
     plotsec.plot_all(outpath=args.o, colorbar=args.c)
 
 
