@@ -100,6 +100,7 @@ def chpar(parstr, key, value, type='sem'):
             value += '\n'
     elif type.lower() == 'fwat':
         patten = r'({}:\s+\s*)(.*?)[\n|#]'.format(key)
+        value = str(value)+'\n'
     else:
         patten = r'({}\s+=\s*)(\S+)'.format(key)
     parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr)

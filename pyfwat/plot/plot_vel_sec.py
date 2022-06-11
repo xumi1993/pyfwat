@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from audioop import reverse
 import numpy as np
 import sys
 from os.path import basename, dirname, join, exists
@@ -47,7 +48,7 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=Fa
                        endpoint='{}/{}'.format(lon2, lat2),
                        generate=hval, flat_earth=True)
         xx, yy, zz = data['x']/1000, data['y']/1000, data['z']
-    depth = np.arange(zz[0], 0-vval, vval)
+    depth = np.arange(zz[0], 0+vval, vval)
     points2d = np.empty([0, 4])
     for i, x in enumerate(points.values):
         for j,d in enumerate(depth):
@@ -59,7 +60,6 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=Fa
         datap = data[name]
     points_value = interpn((xx, yy, zz), datap, points2d[:, [0, 1, 3]],
                            bounds_error=False, fill_value=None)
-    print(points)
     grid = pygmt.surface(x=points2d[:, 2], y=-points2d[:, 3], z=points_value,
                          region=[points.values[0, -1], points.values[-1, -1], 0, -depth[0]],
                          spacing='{}/{}'.format(hval, vval))
@@ -93,36 +93,37 @@ class Pltvel():
     
     def append_lines(self, lat1, lon1, lat2, lon2, utm=False):
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2, utm=utm)
-        if utm:
-            hval = 0.01
-        else:
-            hval = 1
+        hval = 1
         vval = 0.5
         points, depth, grid = interp_sec(self.data, lat1, lon1, lat2, lon2, hval=hval,
                                          vval=vval, name=self.dataname, utm=utm)
         region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
-
-    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'), outpath='./figures', colorbar=True):
+    #  cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt')
+    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
+             reverse=False, outpath='./figures', colorbar=True):
         fig = pygmt.Figure()
+        enf_x = (5/line['region'][-1])*(line['region'][1]-line['region'][0])
         fig.basemap(region=line['region'],
-                    projection="x0.05c/-0.05c",
+                    projection="X{}c/-5c".format(enf_x),
                     frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
+        # vmin = np.min(line['grid'].values)-0.05
+        # vmax = np.max(line['grid'].values)+0.05
         if self.dataname == 'vs':
-            vmin = 2
-            vmax = 5
+            vmin = 2.7
+            vmax = 4.8
             label = 'Vs (km/s)'
         elif self.dataname == 'vp':
-            vmin, _ = vs2vprho(2)
-            vmax, _ = vs2vprho(5)
+            vmin, _ = vs2vprho(2.7)
+            vmax, _ = vs2vprho(4.8)
             label = 'Vp (km/s)'
         else:
-            _, vmin = vs2vprho(2)
-            _, vmax = vs2vprho(5)
-            vmax+=0.2
+            _, vmin = vs2vprho(2.7)
+            _, vmax = vs2vprho(4.8)
+            # vmax+=0.2
             label = 'Density (g/cm@+3@+)'
-        pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], continuous=True)
+        pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], reverse=reverse, continuous=True)
         fig.grdimage(grid=line['grid'], cmap=True)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
                  style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
@@ -139,11 +140,13 @@ class Pltvel():
 def main(): 
     parser = argparse.ArgumentParser('Plot model parameter (Vp, vs or rho) with cross sections')
     parser.add_argument('sections', help='File to line positions or positions of single line (lat1/lon1/lat2/lon2)')
-    parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with              \'xproject_and_combine_vol_data_on_regular_grid\'',
+    parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',
                         metavar='data_structure_file', required=True)
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
     parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='src_rec/STATIONS_1')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
+    parser.add_argument('-C', help='Cmap name', default=join(dirname(dirname(__file__)), 'cpt/vel_norm.cpt'), metavar='cpt_name')
+    parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
     parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
     args = parser.parse_args()
@@ -155,7 +158,7 @@ def main():
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(*line, utm=args.u)
-    plotsec.plot_all(outpath=args.o, colorbar=args.c)
+    plotsec.plot_all(outpath=args.o, colorbar=args.c, cpt=args.C, reverse=args.I)
 
 
 if __name__ == '__main__':

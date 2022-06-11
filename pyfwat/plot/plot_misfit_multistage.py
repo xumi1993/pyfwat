@@ -15,6 +15,7 @@ class PlotMulMisfit():
         """
         self.stages = stages
         self.read_stage_misfit(norm)
+        self.colors = ['218/56/58', '47/127/193', '150/195/125', '196/151/178']
 
     def read_stage_misfit(self, norm=True):
         for i, stage in enumerate(self.stages):
@@ -30,17 +31,19 @@ class PlotMulMisfit():
         else:
             self.min_misfit = min([np.min(st[-1]) for st in self.stages])
 
-    def plot(self, outpath='./figures', color='255/25/25'):
+    def plot(self, outpath='./figures'):
         fig = pygmt.Figure()
-        print(self.stages)
+        # print(self.stages)
         bound = (self.stages[-1][1]-self.stages[0][0])*0.1
+        if bound > 1:
+            bound = 0.95
         bound_ms = ((self.max_misfit-self.min_misfit)/self.max_misfit)*0.1
         fig.basemap(region=[self.stages[0][0]-bound, self.stages[-1][1]+bound, self.min_misfit-bound_ms, 1+bound_ms],
-                    projection="X10c/5c",
-                    frame=['WSrt', 'xa1f1+l"Iteration"', 'yaf+l"Misfit"'])
-        for stage in self.stages:
+                    projection="x0.5c/3c",
+                    frame=['WSrt', 'xaf+l"Iteration"', 'yaf+l"Misfit"'])
+        for i, stage in enumerate(self.stages):
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], pen='0.5p')
-            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', color=color, pen='0.1p')
+            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', color=self.colors[i], pen='0.1p')
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multistages.png'.format(outpath, self.stages[0][0], self.stages[-1][1]))
 
 
@@ -62,7 +65,7 @@ def main():
         cols = [int(v) for v in args.l.split(',')]
     stages = [[int(st[0]), int(st[1]), col] for st, col in zip(its, cols)]
     pm = PlotMulMisfit(stages, norm=args.n)
-    pm.plot(args.o, args.c)
+    pm.plot(args.o)
         
             
 

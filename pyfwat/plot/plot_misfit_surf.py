@@ -1,0 +1,76 @@
+import pygmt
+import glob
+import numpy as np
+import argparse
+from ..pario import readfwatpar
+
+
+def read_misfit(it, filtstr, col=28):
+    fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
+    misfit = 0
+    for f in fs:
+        chi = np.loadtxt(f, usecols=[col], unpack=True)
+        misfit += np.mean(chi)
+    return misfit/len(fs)
+
+class PlotMisfit():
+    def __init__(self, iter_start, iter_end, col=28, all_band=True, norm=False) -> None:
+        self.iter_start = iter_start
+        self.iter_end = iter_end
+        self.col = col
+        self.all_band = all_band
+        if self.all_band:
+            self.norm = False
+        else:
+            self.norm = norm
+        self.colors = ['47/127/193', '150/195/125', '196/151/178', '73/108/136']
+        self.periodmin = readfwatpar('fwat_params/FWAT.PAR', 'SHORT_P')
+        self.periodmax = readfwatpar('fwat_params/FWAT.PAR', 'LONG_P')
+        self.bandname = ['T{:03.0f}_T{:03.0f}'.format(pmin, pmax) for pmin, pmax in zip(self.periodmin, self.periodmax)]
+        self.iters = np.arange(self.iter_start, self.iter_end+1)
+        # self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
+        self.read_misfit_all()
+
+    def read_misfit_all(self):
+        self.misfits = np.zeros([len(self.bandname), self.iters.size])
+        for i, it in enumerate(self.iters):
+            for j, band in enumerate(self.bandname):
+                self.misfits[j, i] = read_misfit(it, band, self.col)
+        self.misfit_mean = np.mean(self.misfits, axis=0)
+
+    def plot(self, outpath='./figures', color='218/56/58'):
+        # self.misfits /= np.max(self.misfits)
+        fig = pygmt.Figure()
+        bound = (self.iter_end-self.iter_start)*0.1
+        if self.all_band:
+            bound_ms = (np.max(self.misfits)-np.min(self.misfits))*0.1
+            ylim = [np.min(self.misfits)-bound_ms, np.max(self.misfits)+bound_ms]
+        else:
+            if self.norm:
+                self.misfit_mean /= np.max(self.misfit_mean)
+            bound_ms = (np.max(self.misfit_mean)-np.min(self.misfit_mean))*0.1
+            ylim = [np.min(self.misfit_mean)-bound_ms, np.max(self.misfit_mean)+bound_ms]
+        fig.basemap(region=[self.iter_start-bound, self.iter_end+bound, *ylim],
+                    projection="x0.5c/3c",
+                    frame=['WSrt', 'xaf+l"Iteration"', 'yaf+l"Misfit"'])
+        if self.all_band:
+            for i, band in enumerate(self.bandname):
+                fig.plot(x=self.iters, y=self.misfits[i],  style='c0.25c', color=self.colors[i], pen='0.1p', label=band)
+            fig.legend()
+        fig.plot(x=self.iters, y=self.misfit_mean, pen='0.5p')
+        fig.plot(x=self.iters, y=self.misfit_mean, style='c0.25c', color=color, pen='0.1p')
+        fig.savefig('{}/misfit_M{:02d}_M{:02d}_surf.png'.format(outpath, self.iter_start, self.iter_end))
+
+
+def main():
+    parser = argparse.ArgumentParser('Plot Misfit with iterations')
+    parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/10', metavar='iter_start/iter_end')
+    parser.add_argument('-a', help='Plot all bands', action='store_true',default=False)
+    parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
+    parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
+    parser.add_argument('-n', help='Normalization when plotting mean misfits', action='store_true',default=False)
+    args = parser.parse_args()
+    its = [int(v) for v in args.m.split('/')]
+    pm = PlotMisfit(its[0], its[1], col=args.l, all_band=args.a, norm=args.n)
+    pm.plot(args.o)
+
