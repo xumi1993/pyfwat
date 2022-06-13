@@ -57,7 +57,7 @@ class FKEvts():
             xmin = lonmin
             ymin = latmin
             xmax = lonmax
-            ymax = lonmax
+            ymax = latmax
         with open('{}/sources_ls.dat'.format(basepath), 'w') as fls:
             for baz in self.baz:
                 for i, inc in enumerate(self.inc_angle):
