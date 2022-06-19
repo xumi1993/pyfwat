@@ -19,18 +19,20 @@ def get_rayp(evtid):
     return baz, rayp
 
 
-def plot_evts(label_angle=22.5, outpath='./figures'):
-    srcfiles = sorted(glob.glob('src_rec/sources_*.dat'))
-    baz = np.zeros(len(srcfiles))
-    rayp = np.zeros_like(baz)
+def plot_evts(label_angle=22.5, setid=None, outpath='./figures'):
+    if setid is not None:
+        srcfiles = ['src_rec/sources_set{}.dat'.format(setid)]
+    else:
+        srcfiles = sorted(glob.glob('src_rec/sources_*.dat'))
+    baz = []
+    rayp = []
     for i, fsrc in enumerate(srcfiles):
         with open(fsrc) as f:
-            evtid = f.readlines()[0].split()[0]
-        baz[i], rayp[i] = get_rayp(evtid)
-    for i, fsrc in enumerate(srcfiles):
-        with open(fsrc) as f:
-            evtid = f.readlines()[0].split()[0]
-        baz[i], rayp[i] = get_rayp(evtid)
+            for line in f.readlines():
+                evtid = line.split()[0]
+                ba, ra = get_rayp(evtid)
+                baz.append(ba)
+                rayp.append(ra)
     fig = pygmt.Figure()
     pygmt.config(FORMAT_GEO_MAP="+D")
     ymin = 0.035
@@ -48,11 +50,13 @@ def main():
                                      'and read TAKE_OFF in src_rec/FKmodel_* for computing ray-parameters.')
     parser.add_argument('-a', help='Azimuth for drawing rayp label, defaults to 22.5',
                         type=float, metavar='angle', default=22.5)
+    parser.add_argument('-s', help='Set id to Plot events in specified SET.',
+                        type=str, metavar='setid', default=None)
     parser.add_argument('-o', help='Figure output path, defaults to ./figures', default='./figures')
     args = parser.parse_args()
     if not exists(args.o):
         makedirs(args.o)
-    plot_evts(args.a, args.o)
+    plot_evts(args.a, args.s, args.o)
 
 
 if __name__ == '__main__':

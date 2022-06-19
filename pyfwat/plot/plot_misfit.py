@@ -9,7 +9,7 @@ def read_misfit(it, filtstr, col=26):
     misfit = 0
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
-        misfit += np.sum(chi)
+        misfit += np.mean(chi)
     return misfit/len(fs)
 
 class PlotMisfit():

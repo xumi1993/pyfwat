@@ -94,16 +94,18 @@ def chpar(parstr, key, value, type='sem'):
     if isinstance(value, (list, np.ndarray)):
         value = ' '.join('{:5.3f}'.format(v) for v in value)
     if type.lower() == 'fk':
-        patten = r'({}\s+)(.+?)(\S+)'.format(key)
+        patten = r'^({}\s+)(.+?)(\S+)'.format(key)
         if key == 'ORIGIN_WAVEFRONT':
-            patten = r'({}\s+)(.+?)\n'.format('ORIGIN_WAVEFRONT')
+            patten = r'^({}\s+)(.+?)$'.format('ORIGIN_WAVEFRONT')
             value += '\n'
     elif type.lower() == 'fwat':
-        patten = r'({}:\s+\s*)(.*?)[\n|#]'.format(key)
-        value = str(value)+'\n'
+        patten = r'^({}:\s+\s*)(.*?)$'.format(key)
+        # value = str(value)+'\n'
     else:
-        patten = r'({}\s+=\s*)(\S+)'.format(key)
-    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr)
+        patten = r'^({}\s+=\s+)(.*?)$'.format(key)
+        # value = str(value)
+    # print(re.findall(patten,parstr, flags=re.MULTILINE))
+    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr, flags=re.MULTILINE)
     if repl_num > 1:
         raise ValueError('More than one parameter will be changed. Please check.')
     else:
@@ -118,6 +120,8 @@ def setpar():
     args = parser.parse_args()
     if basename(args.par_file) == 'Par_file':
         type = 'sem'
+    elif 'fwat' in basename(args.par_file).lower():
+        type = 'fwat'
     else:
         type = 'fk'
     with open(args.par_file) as f:
