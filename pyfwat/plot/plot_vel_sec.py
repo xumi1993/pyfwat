@@ -32,7 +32,7 @@ def proj_sta(stafile, lat1, lon1, lat2, lon2, utm=False):
     return sta, st_pos.values[:,0], stel
 
 
-def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False, unit_trans=True):
+def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False, unit_trans=True, enf=1):
     """
     hval = horizantal interval in km
     vval = vertical interval in km
@@ -55,9 +55,9 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=Fa
             points2d = np.vstack((points2d, np.append(x, d)))
     # inter_dep, inter_y, inter_x = np.meshgrid(data['z'], data['y'], data['x'], indexing='ij')
     if unit_trans:
-        datap = data[name]/1000
+        datap = data[name]/1000 * enf
     else:
-        datap = data[name]
+        datap = data[name] * enf
     points_value = interpn((xx, yy, zz), datap, points2d[:, [0, 1, 3]],
                            bounds_error=False, fill_value=None)
     grid = pygmt.surface(x=points2d[:, 2], y=-points2d[:, 3], z=points_value,

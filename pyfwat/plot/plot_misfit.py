@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 
-def read_misfit(it, filtstr, col=26):
+def read_misfit(it, filtstr, col=28):
     fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
     misfit = 0
     for f in fs:

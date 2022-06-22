@@ -22,14 +22,9 @@ class PlotMulMisfit():
             self.stages[i].append(np.array([read_misfit(iter, '*', col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
         self.max_misfit = max([np.max(st[-1]) for st in self.stages])
         for i, stage in enumerate(self.stages):
-            if not norm:
-                stage[-1] /= self.max_misfit
-            else:
+            if norm:
                 stage[-1] /= np.max(stage[-1])
-        if not norm:
-            self.min_misfit = min([np.min(st[-1]) for st in self.stages])/self.max_misfit
-        else:
-            self.min_misfit = min([np.min(st[-1]) for st in self.stages])
+        self.min_misfit = min([np.min(st[-1]) for st in self.stages])
 
     def plot(self, outpath='./figures'):
         fig = pygmt.Figure()
