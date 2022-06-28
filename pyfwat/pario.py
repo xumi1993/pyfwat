@@ -97,7 +97,6 @@ def chpar(parstr, key, value, type='sem'):
         patten = r'^({}\s+)(.+?)(\S+)'.format(key)
         if key == 'ORIGIN_WAVEFRONT':
             patten = r'^({}\s+)(.+?)$'.format('ORIGIN_WAVEFRONT')
-            value += '\n'
     elif type.lower() == 'fwat':
         patten = r'^({}:\s+\s*)(.*?)$'.format(key)
         # value = str(value)+'\n'
