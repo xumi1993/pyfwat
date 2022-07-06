@@ -20,10 +20,10 @@ class PlotMulMisfit():
     def read_stage_misfit(self, norm=True):
         for i, stage in enumerate(self.stages):
             self.stages[i].append(np.array([read_misfit(iter, '*', col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
-        self.max_misfit = max([np.max(st[-1]) for st in self.stages])
-        for i, stage in enumerate(self.stages):
-            if norm:
+        if norm:
+            for i, stage in enumerate(self.stages):
                 stage[-1] /= np.max(stage[-1])
+        self.max_misfit = max([np.max(st[-1]) for st in self.stages])
         self.min_misfit = min([np.min(st[-1]) for st in self.stages])
 
     def plot(self, outpath='./figures'):
@@ -33,7 +33,7 @@ class PlotMulMisfit():
         if bound > 1:
             bound = 0.95
         bound_ms = ((self.max_misfit-self.min_misfit)/self.max_misfit)*0.1
-        fig.basemap(region=[self.stages[0][0]-bound, self.stages[-1][1]+bound, self.min_misfit-bound_ms, 1+bound_ms],
+        fig.basemap(region=[self.stages[0][0]-bound, self.stages[-1][1]+bound, self.min_misfit-bound_ms, self.max_misfit+bound_ms],
                     projection="x0.5c/3c",
                     frame=['WSrt', 'xaf+l"Iteration"', 'yaf+l"Misfit"'])
         for i, stage in enumerate(self.stages):

@@ -28,16 +28,16 @@ class Pltvel():
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
     
-    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/kernel.cpt'), outpath='./figures', colorbar=True):
+    def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/kernel_avg.cpt'), outpath='./figures', colorbar=True):
         fig = pygmt.Figure()
         fig.basemap(region=line['region'],
                     projection="x0.05c/-0.05c",
                     frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
         print('Max value of data: {}'.format(np.max(np.abs(line['grid'].values))))
         line['grid'].values
-        vmax = np.max(line['grid'].values)/5
+        vmax = np.max(line['grid'].values)
         vmin = -vmax
-        vval = (vmax-vmin)
+        vval = (vmax-vmin)/10
         pygmt.makecpt(cmap=cpt, series=[vmin, vmax, vval], continuous=True)
         fig.grdimage(grid=line['grid'], cmap=True)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
