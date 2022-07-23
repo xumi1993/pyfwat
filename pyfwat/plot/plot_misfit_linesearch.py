@@ -20,7 +20,7 @@ class PlotMisfit():
             self.chi[i] = np.mean(chi)
             self.steplen[i] = float(re.findall(r'step(.+?).ls', step_file)[0])
 
-    def plot(self, outpath='./figures', color='255/25/25'):
+    def plot(self, outpath='./figures', color='255/50/50'):
         fig = pygmt.Figure()
         bound = np.min(self.chi)*0.1
         ylim = [np.min(self.chi)-bound, np.max(self.chi)+bound]
@@ -37,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser('Plot Misfit with iterations')
     parser.add_argument('-m', help='start and end iteration nunbers e.g.,M01', metavar='M??')
     parser.add_argument('-f', help='Filter info in the filename, e.g., T005_T050')
-    parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/25/25')
+    parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/50/50')
     parser.add_argument('-l', help='Column in misfit to plot, defaults to 26', metavar='col_num', type=int, default=26)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()

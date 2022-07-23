@@ -11,20 +11,20 @@ import re
 import argparse
 
 
-def pre_plot(modelname, setid, comp):
-    with open('src_rec/sources_set{}.dat'.format(setid)) as f:
-        evtid = f.readlines()[0].strip().split()[0]
+def pre_plot(modelname, evtid, comp):
+    # with open('src_rec/sources_set{}.dat'.format(setid)) as f:
+    #     evtid = f.readlines()[0].strip().split()[0]
     s = ''
-    s += 'saclst knetwk kstnm b e f solver/{}.set{}/{}/OUTPUT_FILES/wdat.*.*{}.sac.* > saclst_dat\n'.format(modelname, setid, evtid, comp)
+    s += 'saclst knetwk kstnm b e f solver/{}.set*/{}/OUTPUT_FILES/wdat.*.*{}.sac.* > saclst_dat\n'.format(modelname, evtid, comp)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
     s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
-    s += 'ls solver/{}.set{}/{}/OUTPUT_FILES/wsyn.*.*{}.sac.* > saclst_syn\n'.format(modelname, setid, evtid, comp)
+    s += 'ls solver/{}.set*/{}/OUTPUT_FILES/wsyn.*.*{}.sac.* > saclst_syn\n'.format(modelname, evtid, comp)
     subp = subprocess.Popen(['bash'], stdin=subprocess.PIPE)
     subp.communicate(s.encode())
     xlim_all = np.loadtxt('saclst_dat', usecols=[3,4])
     xlim = [np.max(xlim_all[:, 0]), np.max(xlim_all[:, 1])]
     num_sta = xlim_all.shape[0]
-    return evtid, num_sta, xlim
+    return num_sta, xlim
 
 def read_time_window(evtid):
     with open('saclst_dat') as f:
@@ -36,10 +36,10 @@ def read_time_window(evtid):
         fktimes[i] = float(re.findall(r'{}\s+{}\s+(.+?)\s+'.format(sta[0], sta[1]), fktimes_str)[0])
     return fktimes
 
-def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', enf=0.05):
-    evtid, num_sta, xlim_auto = pre_plot(modelname, setid, comp)
+def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
+                  enf=0.05, par_file = 'fwat_params/FWAT.PAR'):
+    num_sta, xlim_auto = pre_plot(modelname, evtid, comp)
     fktimes = read_time_window(evtid)
-    par_file = 'fwat_params/FWAT.PAR.tele'
     if not exists(par_file):
         raise FileNotFoundError('No such file of {}'.format(par_file))
     time_before = readfwatpar(par_file, 'TW_BEFORE')
@@ -58,7 +58,7 @@ def plot_tele_fit(modelname, setid, comp='R', xlim=None, outpath='./figures', en
         fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
         fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
         fig.plot(x=fktime, y=i+1, style='y0.5c', pen='1.8p,green3')
-    fig.savefig('{}/{}.set{}_tele_{}_fit.png'.format(outpath, modelname, setid, comp))
+    fig.savefig('{}/{}.set{}_tele_{}_fit.png'.format(outpath, modelname, evtid, comp))
     post_plot()
 
 
@@ -67,7 +67,7 @@ def main():
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wdat* for data,'
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wsyn* for syn')
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
-    parser.add_argument('-s', help='Set id', metavar='setid')
+    parser.add_argument('-s', help='Evt id', metavar='evtid')
     parser.add_argument('-c', help='Component name to plot R or Z avaliable, defaults to Z', default='Z', metavar='component')
     parser.add_argument('-x', help='x-axis limits, defaults to read b and e from sac files, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05, metavar='coef')

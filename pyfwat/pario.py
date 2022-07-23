@@ -117,7 +117,7 @@ def setpar():
     parser.add_argument('key', type=str, help='key name')
     parser.add_argument('value', type=str, help='value')
     args = parser.parse_args()
-    if basename(args.par_file) == 'Par_file':
+    if basename(args.par_file) == 'Par_file' or basename(args.par_file) == 'Mesh_Par_file':
         type = 'sem'
     elif 'fwat' in basename(args.par_file).lower():
         type = 'fwat'

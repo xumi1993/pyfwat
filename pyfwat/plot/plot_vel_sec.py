@@ -66,7 +66,7 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=Fa
     return points, depth, grid
 
 class Pltvel():
-    def __init__(self, velfile, stafile='src_rec/STATIONS_1', key='vs'):
+    def __init__(self, velfile, stafile='DATA/STATIONS', key='vs'):
         self.velfile = velfile
         self.stafile = stafile
         try:
@@ -102,7 +102,7 @@ class Pltvel():
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
     #  cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt')
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
-             reverse=False, outpath='./figures', colorbar=True):
+             reverse=False, outpath='./figures', colorbar=True, norm=None):
         fig = pygmt.Figure()
         enf_x = (5/line['region'][-1])*(line['region'][1]-line['region'][0])
         fig.basemap(region=line['region'],
@@ -123,7 +123,10 @@ class Pltvel():
             _, vmax = vs2vprho(4.8)
             # vmax+=0.2
             label = 'Density (g/cm@+3@+)'
-        pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], reverse=reverse, continuous=True)
+        if norm is None:
+            pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], reverse=reverse, continuous=True)
+        else:
+            pygmt.makecpt(cmap=cpt, series=[norm[0], norm[1], 0.05], reverse=reverse, continuous=True)
         fig.grdimage(grid=line['grid'], cmap=True)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
                  style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
@@ -143,8 +146,9 @@ def main():
     parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',
                         metavar='data_structure_file', required=True)
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
-    parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='src_rec/STATIONS_1')
+    parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='DATA/STATIONS')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
+    parser.add_argument('-n', help='Bounds of values', default=None, metavar='vmin/vmax')
     parser.add_argument('-C', help='Cmap name', default=join(dirname(dirname(__file__)), 'cpt/vel_norm.cpt'), metavar='cpt_name')
     parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
     parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
@@ -158,7 +162,11 @@ def main():
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(*line, utm=args.u)
-    plotsec.plot_all(outpath=args.o, colorbar=args.c, cpt=args.C, reverse=args.I)
+    if args.n is not None:
+        norm = [float(v) for v in args.n.split('/')]
+    else:
+        norm = None
+    plotsec.plot_all(outpath=args.o, colorbar=args.c, cpt=args.C, reverse=args.I, norm=norm)
 
 
 if __name__ == '__main__':
