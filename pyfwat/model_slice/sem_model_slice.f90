@@ -88,7 +88,7 @@ program sem_model_slice
   read(27) zstore
   close(27)
 
-  close(27)
+  ! close(27)
   !write(*,*)'myrank,NGLOB_AB,NSPEC_AB=',myrank,NGLOB_AB,NSPEC_AB
   !!!!
 
@@ -123,7 +123,6 @@ program sem_model_slice
   distmin(1:npts) = HUGEVAL
 
   do ispec=1,NSPEC_AB
-
     do k=1,NGLLZ
       do j=1,NGLLY
         do i=1,NGLLX
