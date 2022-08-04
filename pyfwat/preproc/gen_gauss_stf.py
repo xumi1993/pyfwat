@@ -22,13 +22,13 @@ def create_stf(evtid, npts=3000, dt=0.04, shift=6, a=1e-5, c=0.8):
     #         sac.write('src_rec/STF_{}.sac'.format(label))
 
 
-def stf(setname, shift=6, amp=1e-5,c=0.8):
+def stf(setname, shift=6, amp=1e-5,c=0.8,parfile = 'DATA/Par_file'):
     with open('src_rec/sources_set{}.dat'.format(setname)) as f:
-        evtid = f.readline().strip().split()[0]
-    parfile = 'DATA/Par_file'
-    npts = int(readpar(parfile, 'NSTEP'))
-    dt = readpar(parfile, 'DT')
-    create_stf(evtid, npts, dt, shift, amp, c)
+        for line in f.readlines():
+            evtid = line.split()[0]
+            npts = int(readpar(parfile, 'NSTEP'))
+            dt = readpar(parfile, 'DT')
+            create_stf(evtid, npts, dt, shift, amp, c)
 
 
 def main():

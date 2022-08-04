@@ -27,8 +27,8 @@ def post_plot():
 def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.05):
     num_sta = pre_plot(modelname, evtid, gauss)
     if xlim is None:
-        xmin = -1 * readfwatpar('fwat_params/FWAT.PAR.rf', 'TW_BEFORE')
-        xmax = readfwatpar('fwat_params/FWAT.PAR.rf', 'TW_AFTER')
+        xmin = -1 * readfwatpar('fwat_params/FWAT.PAR', 'TW_BEFORE')
+        xmax = readfwatpar('fwat_params/FWAT.PAR', 'TW_AFTER')
         xlim = [xmin, xmax]
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',

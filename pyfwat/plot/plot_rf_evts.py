@@ -37,7 +37,7 @@ def plot_evts(label_angle=22.5, setid=None, outpath='./figures'):
     pygmt.config(FORMAT_GEO_MAP="+D")
     ymin = 0.035
     ymax = 0.085
-    fig.basemap(region=[0, 360, ymin, ymax], projection="P8c+a",  frame=["xa45f", "yg0.02"])
+    fig.basemap(region=[0, 360, ymin, ymax], projection="P5c+a",  frame=["xa45f", "yg0.02"])
     fig.plot(x=baz, y=rayp, style='a0.26c', pen='0.1p', color='255/25/25')
     fig.text(text='{:.3f}'.format(ymin), x=label_angle, y=ymin, font='8p', angle=-label_angle, no_clip=True, fill='255')
     fig.text(text='{:.3f}'.format(ymax), x=label_angle, y=ymax, font='8p', angle=-label_angle, no_clip=True, fill='255')

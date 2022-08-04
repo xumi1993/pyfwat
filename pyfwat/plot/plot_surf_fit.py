@@ -10,4 +10,4 @@ from os.path import basename
 import os
 
 def read_waveforms(evtid, periodmin, periodmax):
-    
+    pass
