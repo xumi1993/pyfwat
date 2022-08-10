@@ -39,7 +39,7 @@ def main():
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/10', metavar='iter_start/iter_end')
     parser.add_argument('-f', help='Filter info in the filename, e.g., T005_T050', default='*')
     parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/25/25')
-    parser.add_argument('-l', help='Column in misfit to plot, defaults to 26', metavar='col_num', type=int, default=26)
+    parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
     its = [int(v) for v in args.m.split('/')]

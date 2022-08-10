@@ -7,6 +7,7 @@ from os.path import basename, dirname, join, exists
 from scipy.interpolate import interpn
 import pygmt
 import argparse
+from ..utils import parse_cpt_name
 
 
 def vs2vprho(vs):
@@ -32,7 +33,7 @@ def proj_sta(stafile, lat1, lon1, lat2, lon2, utm=False):
     return sta, st_pos.values[:,0], stel
 
 
-def interp_sec(data, lat1, lon1, lat2, lon2, hval=1, vval=0.5, name='vs', utm=False, unit_trans=True, enf=1):
+def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs', utm=False, unit_trans=True, enf=1):
     """
     hval = horizantal interval in km
     vval = vertical interval in km
@@ -90,23 +91,24 @@ class Pltvel():
         self.fname = basename(velfile).split('.')[0]
         self.lines = []
 
-    
-    def append_lines(self, lat1, lon1, lat2, lon2, utm=False):
+    def append_lines(self, data, lat1, lon1, lat2, lon2, utm=False, 
+                     hval=1, vval=0.5, unit_trans=True):
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2, utm=utm)
-        hval = 1
-        vval = 0.5
-        points, depth, grid = interp_sec(self.data, lat1, lon1, lat2, lon2, hval=hval,
-                                         vval=vval, name=self.dataname, utm=utm)
+
+        points, depth, grid = interp_sec(data, lat1, lon1, lat2, lon2, hval=hval,
+                                         vval=vval, name=self.dataname, utm=utm, 
+                                         unit_trans=unit_trans)
         region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
+
     #  cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt')
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
              reverse=False, outpath='./figures', colorbar=True, norm=None):
         fig = pygmt.Figure()
         enf_x = (5/line['region'][-1])*(line['region'][1]-line['region'][0])
         fig.basemap(region=line['region'],
-                    projection="X{}c/-5c".format(enf_x),
+                    projection="x0.04c/-0.04c",
                     frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
         # vmin = np.min(line['grid'].values)-0.05
         # vmax = np.max(line['grid'].values)+0.05
@@ -125,13 +127,17 @@ class Pltvel():
             label = 'Density (g/cm@+3@+)'
         if norm is None:
             pygmt.makecpt(cmap=cpt, series=[vmin, vmax, 0.05], reverse=reverse, continuous=True)
-        else:
+            cmapp = True
+        elif norm:
             pygmt.makecpt(cmap=cpt, series=[norm[0], norm[1], 0.05], reverse=reverse, continuous=True)
-        fig.grdimage(grid=line['grid'], cmap=True)
+            cmapp = True
+        else:
+            cmapp = cpt
+        fig.grdimage(grid=line['grid'], cmap=cmapp)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
                  style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
         if colorbar:
-            fig.colorbar(position="JMR+o0.7c/0c+w5c/0.3c+ebf", frame=['xag+l"{}"'.format(label)])
+            fig.colorbar(position="JMR+o0.7c/0c+w4c+ebf", frame=['xag+l"{}"'.format(label)])
         fig.savefig('{}/{}_{:.1f}_{:.1f}_{:.1f}_{:.1f}.png'.format(
                     outpath, self.fname, *line['pos']))
     
@@ -146,27 +152,37 @@ def main():
     parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',
                         metavar='data_structure_file', required=True)
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures')
-    parser.add_argument('-s', help='Path to STATIONS, defaults to src_rec/STATIONS_1', default='DATA/STATIONS')
+    parser.add_argument('-s', help='Path to STATIONS, defaults to DATA/STATIONS', default='DATA/STATIONS')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
-    parser.add_argument('-n', help='Bounds of values', default=None, metavar='vmin/vmax')
-    parser.add_argument('-C', help='Cmap name', default=join(dirname(dirname(__file__)), 'cpt/vel_norm.cpt'), metavar='cpt_name')
+    parser.add_argument('-n', help='Normalize the colors with upper/lower bounds, defaults to None, add \'a\' for auto normalization', default=None, metavar='vmin/vmax')
+    parser.add_argument('-C', help='Cmap name', default='vel_norm', metavar='cpt_name')
     parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
     parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
+    parser.add_argument('-a', help='Horizental and vertical spacing in km', default='1/1', metavar='hx/hz')
     args = parser.parse_args()
+    val = [ float(v) for v in args.a.split('/')]
+    
     plotsec =  Pltvel(args.i, stafile=args.s, key=args.k)
     if exists(args.sections):
         lines = np.loadtxt(args.sections)
         for line in lines:
-            plotsec.append_lines(*list(line), utm=args.u)
+            plotsec.append_lines(plotsec.data, *list(line), utm=args.u,
+                                 hval=val[0], vval=val[1])
     else:
         line = [float(v) for v in args.sections.split('/')]
-        plotsec.append_lines(*line, utm=args.u)
-    if args.n is not None:
-        norm = [float(v) for v in args.n.split('/')]
-    else:
+        plotsec.append_lines(plotsec.data, *line, utm=args.u, hval=val[0], vval=val[1])
+    if args.n is None:
+        norm = False
+    elif args.n == 'a':
         norm = None
-    plotsec.plot_all(outpath=args.o, colorbar=args.c, cpt=args.C, reverse=args.I, norm=norm)
+    else:
+        norm = [float(v) for v in args.n.split('/')]
+    cpt_path = parse_cpt_name(args.C)
+    if not exists(cpt_path):
+        cpt_path = args.C
+    plotsec.plot_all(outpath=args.o, colorbar=args.c,
+                     cpt=cpt_path, reverse=args.I, norm=norm,)
 
 
 if __name__ == '__main__':

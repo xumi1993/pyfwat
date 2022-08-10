@@ -1,3 +1,4 @@
+from posixpath import dirname
 import numpy as np
 import subprocess
 from os.path import join, basename, abspath
@@ -59,6 +60,10 @@ def read_interface(fname='DATA/meshfem3D_files/interfaces.dat', inter_num=1):
     interfs = re.findall(r'(\d+)\s+(\d+)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\n', cont)
     return [float(value) for value in interfs[inter_num-1]]
 
+
+def parse_cpt_name(cpt_name):
+    cpt_path = join(dirname(abspath(__file__)), 'cpt', cpt_name+'.cpt')
+    return cpt_path
 
 if __name__ == "__main__":
     interf = read_interface('/share/home/goxu/xu_mijian/workspace/semfk/slop_1/DATA/meshfem3D_files/interfaces.dat')

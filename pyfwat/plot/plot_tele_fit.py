@@ -22,7 +22,7 @@ def pre_plot(modelname, evtid, comp):
     subp = subprocess.Popen(['bash'], stdin=subprocess.PIPE)
     subp.communicate(s.encode())
     xlim_all = np.loadtxt('saclst_dat', usecols=[3,4])
-    xlim = [np.max(xlim_all[:, 0]), np.max(xlim_all[:, 1])]
+    xlim = [0, np.max(xlim_all[:, 1])]
     num_sta = xlim_all.shape[0]
     return num_sta, xlim
 
@@ -49,15 +49,15 @@ def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',
                  MAP_GRID_PEN='0.3p,gray')
-    fig.basemap(region=[*xlim, -1, num_sta+2], projection='x0.4c/0.6c',
-                frame=['xa5f1g5+l"Time after P (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
+    fig.basemap(region=[*xlim, -1, num_sta+2], projection='x0.2c/0.3c',
+                frame=['xa5f1g5+l"Time (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
     with Session() as lib:
-        lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1.3p".format(enf))
-        lib.call_module("sac", "saclst_syn -En1 -M{} -W1.3p,255/25/25".format(enf))
+        lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1p".format(enf))
+        lib.call_module("sac", "saclst_syn -En1 -M{} -W1p,255/25/25".format(enf))
     for i, fktime in enumerate(fktimes):
-        fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
-        fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.8p,0/105/167')
-        fig.plot(x=fktime, y=i+1, style='y0.5c', pen='1.8p,green3')
+        fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.2p,0/105/167')
+        fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.2p,0/105/167')
+        fig.plot(x=fktime, y=i+1, style='y0.5c', pen='1.2p,green3')
     fig.savefig('{}/{}.set{}_tele_{}_fit.png'.format(outpath, modelname, evtid, comp))
     post_plot()
 
@@ -70,7 +70,7 @@ def main():
     parser.add_argument('-s', help='Evt id', metavar='evtid')
     parser.add_argument('-c', help='Component name to plot R or Z avaliable, defaults to Z', default='Z', metavar='component')
     parser.add_argument('-x', help='x-axis limits, defaults to read b and e from sac files, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
-    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.05, metavar='coef')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.015', type=float, default=0.015, metavar='coef')
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
 
