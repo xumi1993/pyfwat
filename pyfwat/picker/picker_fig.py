@@ -4,7 +4,7 @@ import obspy
 import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor
 from os.path import join, basename
-from mccc import mccc
+from .mccc import mccc
 from obspy.io.sac import SACTrace
 import glob
 import os

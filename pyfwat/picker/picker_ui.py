@@ -1,4 +1,3 @@
-from cProfile import label
 import sys
 import os
 import argparse
@@ -13,7 +12,7 @@ from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject
 from os.path import exists, dirname, join
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
-from picker_fig import PickFig
+from .picker_fig import PickFig
 import glob
 
 
