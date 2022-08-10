@@ -18,7 +18,7 @@ import glob
 
 
 class MyMplCanvas(FigureCanvas):
-    def __init__(self, parent=None, path='', marker='t0',xlim=[-20, 120]):
+    def __init__(self, parent=None, path='', marker='a',xlim=[-20, 120]):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
@@ -37,7 +37,7 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
-    def __init__(self, path, marker='t0', xlim=[-20, 120], parent=None):
+    def __init__(self, path, marker='a', xlim=[-20, 120], parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.initUi(path, marker)
@@ -399,10 +399,8 @@ class MatplotlibWidget(QMainWindow):
 def main():
     parser = argparse.ArgumentParser(description="User interface for picking PRFs")
     parser.add_argument('path', type=str, help='Path to PRFs')
-    parser.add_argument('-a', help='Arrangement of RFs, defaults to \'baz\'', dest='order',
-                        default='baz', type=str, metavar='baz|dis')
-    parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
-                        dest='xlim', default=None, type=float, metavar='xmax')
+    # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
+    #                     dest='xlim', default=None, type=float, metavar='xmax')
     arg = parser.parse_args()
     path = arg.path
     if not exists(path):

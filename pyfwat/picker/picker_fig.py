@@ -18,8 +18,8 @@ class Para():
         self.freqmin = None
         self.freqmax = None
         self.xlim = [-20, 100]
-        self.marker = 't0'
-        self.align = 't0'
+        self.marker = 'a'
+        self.align = 'a'
         self.path = ''
         self.enf = 1
         self.resample_dt = 0.025
