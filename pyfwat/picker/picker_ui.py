@@ -17,7 +17,8 @@ import glob
 
 
 class MyMplCanvas(FigureCanvas):
-    def __init__(self, parent=None, path='', marker='a',xlim=[-20, 120]):
+    def __init__(self, parent=None, path='', marker='a',
+                 xlim=[-20, 120]):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
@@ -36,16 +37,19 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
-    def __init__(self, path, marker='a', xlim=[-20, 120], parent=None):
+    def __init__(self, path, marker='a', xlim=[-20, 120], 
+                 pre_flt=None, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
+        self.pre_flt = pre_flt
         self.initUi(path, marker)
         QMetaObject.connectSlotsByName(self)
 
     def initUi(self, path, marker):
         self.layout = QHBoxLayout()
         self._set_geom_center()
-        self.mpl = MyMplCanvas(self, path=path, marker=marker, xlim=self.xlim)
+        self.mpl = MyMplCanvas(self, path=path, marker=marker,
+                               xlim=self.xlim)
 
         self.main_frame = QWidget()
         self.setCentralWidget(self.main_frame)
@@ -322,6 +326,10 @@ class MatplotlibWidget(QMainWindow):
         QApplication.quit()
 
     def plot_ui(self):
+        if self.pre_flt is not None:
+            self.mpl.pf.para.freqmin = self.pre_flt[0]
+            self.mpl.pf.para.freqmax = self.pre_flt[1]
+        self.mpl.pf.filter()
         self.mpl.pf.plot_seis()
         self.mpl.pf.setup_figure()
 
@@ -398,14 +406,19 @@ class MatplotlibWidget(QMainWindow):
 def main():
     parser = argparse.ArgumentParser(description="User interface for picking PRFs")
     parser.add_argument('path', type=str, help='Path to PRFs')
+    parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
     #                     dest='xlim', default=None, type=float, metavar='xmax')
     arg = parser.parse_args()
     path = arg.path
+    if arg.f is None:
+        pre_flt = arg.f
+    else:
+        pre_flt = [float(v) for v in arg.f.split('/')]
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path)
+    ui = MatplotlibWidget(path, pre_flt=pre_flt)
     ui.show()
     sys.exit(app.exec_())
 

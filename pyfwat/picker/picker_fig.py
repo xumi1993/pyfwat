@@ -27,7 +27,7 @@ class Para():
 
 
 class PickFig(object):
-    def __init__(self, path, marker='t0') -> None:
+    def __init__(self, path, marker='t0', pre_flt=None) -> None:
         self.para = Para()
         self.para.path = path
         self.para.marker = marker
@@ -170,10 +170,8 @@ class PickFig(object):
     def get_tref(self, idx):
         if self.para.align == 'mccc':
             tref = self.tmccc[idx]
-        elif self.para.align == 't0':
-            tref = self.t0[idx]
         else:
-            pass
+            tref = self.t0[idx]
         return tref
 
     def trim(self):
