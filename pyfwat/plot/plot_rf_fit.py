@@ -33,7 +33,7 @@ def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.0
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',
                  MAP_GRID_PEN='0.3p,gray')
-    fig.basemap(region=[*xlim, 0, num_sta+3], projection='x0.2c/0.3c',
+    fig.basemap(region=[*xlim, 0, num_sta+3], projection='X8c/10c',
                 frame=['xa5f1g5+l"Time after P (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
     with Session() as lib:
         lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1p".format(enf))
@@ -49,7 +49,7 @@ def main():
     parser.add_argument('-s', help='Event id', metavar='evtid')
     parser.add_argument('-g', help='Gaussian factor, should be the same as in filename', metavar='gauss')
     parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
-    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.015, metavar='coef')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 0.05', type=float, default=0.4, metavar='coef')
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
 

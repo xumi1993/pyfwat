@@ -8,6 +8,7 @@ from scipy.interpolate import interpn
 import pygmt
 import argparse
 from ..utils import parse_cpt_name
+from pyproj import Geod
 
 
 def vs2vprho(vs):
@@ -17,23 +18,30 @@ def vs2vprho(vs):
 
 
 
-def proj_sta(stafile, lat1, lon1, lat2, lon2, utm=False):
+def proj_sta(stafile, lat1, lon1, lat2, lon2, xunit=None, utm=False):
     st, net, stla, stlo, stel = np.loadtxt(stafile, usecols=[0,1,2,3,4],
                                            dtype = {'names': ('station', 'net','stla', 'stlo', 'stel'),
                                                         'formats': ('U20', 'U20', 'f4', 'f4', 'f2')},
                                            unpack=True, ndmin=1)
     sta = ['{}.{}'.format(net[i], st[i]) for i in range(st.size)]
+    if xunit == 'la':
+        convention = 's'
+    elif xunit == 'lo':
+        convention = 'r'
+    else:
+        convention = 'p'
     if utm:
         pos = np.vstack((stlo, stla)).T
-        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention='p', unit=True)
+        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention=convention, unit=True)
     else:
         pos = np.vstack((stlo/1000, stla/1000)).T
-        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention='p', flat_earth=True)
+        st_pos = pygmt.project(pos, center=[lon1, lat1], endpoint=[lon2, lat2], convention=convention, flat_earth=True)
     # dimension need to be checked
     return sta, st_pos.values[:,0], stel
 
 
-def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs', utm=False, unit_trans=True, enf=1):
+def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs',
+               xunit=None, utm=False, unit_trans=True, enf=1):
     """
     hval = horizantal interval in km
     vval = vertical interval in km
@@ -54,17 +62,31 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs', utm=Fals
     for i, x in enumerate(points.values):
         for j,d in enumerate(depth):
             points2d = np.vstack((points2d, np.append(x, d)))
-    # inter_dep, inter_y, inter_x = np.meshgrid(data['z'], data['y'], data['x'], indexing='ij')
     if unit_trans:
         datap = data[name]/1000 * enf
     else:
         datap = data[name] * enf
     points_value = interpn((xx, yy, zz), datap, points2d[:, [0, 1, 3]],
                            bounds_error=False, fill_value=None)
-    grid = pygmt.surface(x=points2d[:, 2], y=-points2d[:, 3], z=points_value,
-                         region=[points.values[0, -1], points.values[-1, -1], 0, -depth[0]],
-                         spacing='{}/{}'.format(hval, vval))
-    return points, depth, grid
+    if xunit == 'la':
+        x = points2d[:, 1]
+        r1 = points.values[0, 1]
+        r2 = points.values[-1, 1]
+        inval = hval/111.19
+    elif xunit == 'lo':
+        x = points2d[:, 0]
+        r1 = points.values[0, 0]
+        r2 = points.values[-1, 0]
+        inval = hval/111.19
+    else:
+        x = points2d[:, 2]
+        r1 = points.values[0, 2]
+        r2 = points.values[-1, 2]
+        inval = hval
+    grid = pygmt.surface(x=x, y=-points2d[:, 3], z=points_value,
+                         region=[r1, r2, 0, -depth[0]],
+                         spacing='{}/{}'.format(inval, vval))
+    return r1, r2, depth, grid
 
 class Pltvel():
     def __init__(self, velfile, stafile='DATA/STATIONS', key='vs'):
@@ -92,24 +114,40 @@ class Pltvel():
         self.lines = []
 
     def append_lines(self, data, lat1, lon1, lat2, lon2, utm=False, 
-                     hval=1, vval=0.5, unit_trans=True):
-        sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2, utm=utm)
-
-        points, depth, grid = interp_sec(data, lat1, lon1, lat2, lon2, hval=hval,
+                     hval=1, vval=0.5, unit_trans=True, xunit=None):
+        self.xunit = xunit
+        self.utm = utm
+        sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2,
+                                    xunit=xunit, utm=utm)
+        r1, r2, depth, grid = interp_sec(data, lat1, lon1, lat2, lon2, hval=hval,
                                          vval=vval, name=self.dataname, utm=utm, 
-                                         unit_trans=unit_trans)
-        region = [points.values[0, 2], points.values[-1, 2], 0, -depth[0]]
+                                         xunit=xunit, unit_trans=unit_trans)
+        region = [r1, r2, 0, -depth[0]]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
 
     #  cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt')
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
-             reverse=False, outpath='./figures', colorbar=True, norm=None):
+             reverse=False, outpath='./figures', colorbar=True, norm=None, img_scale=25):
         fig = pygmt.Figure()
-        enf_x = (5/line['region'][-1])*(line['region'][1]-line['region'][0])
+        if self.utm:
+            g = Geod(ellps="WGS84")
+            _,_,dist = g.inv(line['pos'][1], line['pos'][0], line['pos'][3], line['pos'][2])
+            dist /= 1000
+        else:
+            dist = line['region'][1]
+        yscale = line['region'][-1]/img_scale
+        xscale = dist/img_scale
+        if self.xunit == 'la':
+            xlabel = 'Latitude (\\260)'
+        if self.xunit == 'lo':
+            xlabel = 'longitude (\\260)'
+        else:
+            xlabel = 'Distance (km)'
         fig.basemap(region=line['region'],
-                    projection="x0.04c/-0.04c",
-                    frame=['WSrt', 'xaf+l"Distance (km)"', 'yaf+l"Depth (km)"'])
+                    # projection="x0.04c/-0.04c",
+                    projection="X{}c/-{}c".format(xscale, yscale),
+                    frame=['WSrt', 'xaf+l"{}"'.format(xlabel), 'yaf+l"Depth (km)"'])
         # vmin = np.min(line['grid'].values)-0.05
         # vmax = np.max(line['grid'].values)+0.05
         if self.dataname == 'vs':
@@ -157,21 +195,21 @@ def main():
     parser.add_argument('-n', help='Normalize the colors with upper/lower bounds, defaults to None, add \'a\' for auto normalization', default=None, metavar='vmin/vmax')
     parser.add_argument('-C', help='Cmap name', default='vel_norm', metavar='cpt_name')
     parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
-    parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
+    parser.add_argument('-x', help='Unit of x-axis as la, lo or distance, defaults to distance', default=None, metavar='[la|lo]')
     parser.add_argument('-a', help='Horizental and vertical spacing in km', default='1/1', metavar='hx/hz')
     args = parser.parse_args()
     val = [ float(v) for v in args.a.split('/')]
-    
-    plotsec =  Pltvel(args.i, stafile=args.s, key=args.k)
+    plotsec =  Pltvel(args.i, stafile=args.s)
     if exists(args.sections):
         lines = np.loadtxt(args.sections)
         for line in lines:
             plotsec.append_lines(plotsec.data, *list(line), utm=args.u,
-                                 hval=val[0], vval=val[1])
+                                 xunit=args.x, hval=val[0], vval=val[1])
     else:
         line = [float(v) for v in args.sections.split('/')]
-        plotsec.append_lines(plotsec.data, *line, utm=args.u, hval=val[0], vval=val[1])
+        plotsec.append_lines(plotsec.data, *line, utm=args.u,
+                             xunit=args.x, hval=val[0], vval=val[1])
     if args.n is None:
         norm = False
     elif args.n == 'a':
