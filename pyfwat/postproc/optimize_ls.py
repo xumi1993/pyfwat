@@ -6,7 +6,7 @@ import argparse
 
 def optimize(modname, filterstr):
     nextmod = 'M{:02d}'.format(int(modname[1:])+1)
-    pm = PlotMisfit(modname, filterstr)
+    pm = PlotMisfit(modname, filterstr, 28)
     idx = np.argmin(pm.chi)
     misname = pm.files[idx]
     suffix = re.findall(r'(step.+?).ls', misname)[0]

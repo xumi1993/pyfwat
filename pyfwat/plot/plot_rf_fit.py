@@ -8,7 +8,7 @@ import argparse
 
 def pre_plot(modelname, evtid, gauss):
     s = ''
-    s += 'saclst knetwk kstnm f fwat_data/{}/*.F{}.rf.sac > saclst_dat\n'.format(evtid, gauss)
+    s += 'saclst knetwk kstnm f solver/{}.*/{}/OUTPUT_FILES/dat.*.F{} > saclst_dat\n'.format(modelname, evtid, gauss)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
     s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
     s += 'ls solver/{}.*/{}/OUTPUT_FILES/syn.*.F{} > saclst_syn\n'.format(modelname, evtid, gauss)

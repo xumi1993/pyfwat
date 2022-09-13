@@ -77,7 +77,7 @@ def main():
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-s', help='Path to STATIONS, defaults to DATA/STATIONS', default='DATA/STATIONS')
     parser.add_argument('-c', help='Whether plot color bar, defaults to False', action='store_true', default=False)
-    parser.add_argument('-C', help='Cmap name', default='vel_norm', metavar='cpt_name')
+    parser.add_argument('-C', help='Cmap name', default='kernel_avg', metavar='cpt_name')
     parser.add_argument('-x', help='Unit of x-axis as la, lo or distance, defaults to distance', default=None, metavar='[la|lo]')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
     args = parser.parse_args()
