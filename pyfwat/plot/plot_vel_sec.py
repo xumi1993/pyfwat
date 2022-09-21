@@ -89,7 +89,7 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs',
     return r1, r2, depth, grid
 
 class Pltvel():
-    def __init__(self, velfile, stafile='DATA/STATIONS', key='vs'):
+    def __init__(self, velfile, stafile='DATA/STATIONS'):
         self.velfile = velfile
         self.stafile = stafile
         try:
@@ -100,21 +100,14 @@ class Pltvel():
         if not exists(self.stafile):
             print('Error: No such file of {}'.format(stafile))
             sys.exit(1)
-        if 'vs' in velfile:
-            self.dataname = 'vs'
-        elif 'vp' in velfile:
-            self.dataname = 'vp'
-        elif 'rho' in velfile:
-            self.dataname = 'rho'
-        else:
-            self.dataname = key
+        self.dataname = self.data.__dict__['files'][-1]
             # print('Error: vs, vp or rho should be included in the filename')
             # sys.exit(1)
         self.fname = basename(velfile).split('.')[0]
         self.lines = []
 
     def append_lines(self, data, lat1, lon1, lat2, lon2, utm=False, 
-                     hval=1, vval=0.5, unit_trans=True, xunit=None):
+                     hval=1, vval=0.5, unit_trans=True, xunit=None, maxdep=None):
         self.xunit = xunit
         self.utm = utm
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2,
@@ -122,7 +115,9 @@ class Pltvel():
         r1, r2, depth, grid = interp_sec(data, lat1, lon1, lat2, lon2, hval=hval,
                                          vval=vval, name=self.dataname, utm=utm, 
                                          xunit=xunit, unit_trans=unit_trans)
-        region = [r1, r2, 0, -depth[0]]
+        if maxdep is None:
+            maxdep = -depth[0]
+        region = [r1, r2, 0, maxdep]
         self.lines.append({'pos':[lat1, lon1, lat2, lon2], 'sta':sta,
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
 
@@ -197,6 +192,7 @@ def main():
     parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
     parser.add_argument('-x', help='Unit of x-axis as la, lo or distance, defaults to distance', default=None, metavar='[la|lo]')
+    parser.add_argument('-d', help='Max depth to plot', type=float, metavar='max_depth', default=None)
     parser.add_argument('-a', help='Horizental and vertical spacing in km', default='1/1', metavar='hx/hz')
     args = parser.parse_args()
     val = [ float(v) for v in args.a.split('/')]
@@ -205,11 +201,13 @@ def main():
         lines = np.loadtxt(args.sections)
         for line in lines:
             plotsec.append_lines(plotsec.data, *list(line), utm=args.u,
-                                 xunit=args.x, hval=val[0], vval=val[1])
+                                 xunit=args.x, hval=val[0], vval=val[1],
+                                 maxdep=args.d)
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(plotsec.data, *line, utm=args.u,
-                             xunit=args.x, hval=val[0], vval=val[1])
+                             xunit=args.x, hval=val[0], vval=val[1],
+                             maxdep=args.d)
     if args.n is None:
         norm = False
     elif args.n == 'a':

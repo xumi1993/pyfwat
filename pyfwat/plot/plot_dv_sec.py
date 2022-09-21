@@ -10,8 +10,8 @@ from ..utils import parse_cpt_name
 from .plot_vel_sec import Pltvel
 
 class PltDv(Pltvel):
-    def __init__(self, velfile, stafile='DATA/STATIONS', key='vs', initial=None) -> None:
-        Pltvel.__init__(self, velfile, stafile=stafile, key=key)
+    def __init__(self, velfile, stafile='DATA/STATIONS', initial=None) -> None:
+        Pltvel.__init__(self, velfile, stafile=stafile)
         self.initial = initial
 
     def get_dv(self):
@@ -60,23 +60,25 @@ def main():
     parser.add_argument('-n', help='Normalize the colors with upper/lower bounds, defaults to None, add \'a\' for auto normalization', default=None, metavar='vmin/vmax')
     parser.add_argument('-C', help='Cmap name', default='dvp', metavar='cpt_name')
     parser.add_argument('-I', help='Whether invert the color map ', default=False, action='store_true')
-    parser.add_argument('-k', help='Key name of the volume data, default to assosiate with in file name', default='vs')
+    parser.add_argument('-d', help='Max depth to plot', type=float, metavar='max_depth', default=None)
     parser.add_argument('-u', help='Use UTM coordinates', action='store_true', default=False)
     parser.add_argument('-a', help='Horizental and vertical spacing in km', default='1/1', metavar='hx/hz')
     args = parser.parse_args()
     val = [ float(v) for v in args.a.split('/')]
     
-    plotsec =  PltDv(args.i, stafile=args.s, key=args.k, initial=args.r)
+    plotsec =  PltDv(args.i, stafile=args.s, initial=args.r)
     plotsec.get_dv()
     if exists(args.sections):
         lines = np.loadtxt(args.sections)
         for line in lines:
             plotsec.append_lines(plotsec.data_dv, *list(line), utm=args.u,
-                                 hval=val[0], vval=val[1], unit_trans=False)
+                                 hval=val[0], vval=val[1], unit_trans=False,
+                                 maxdep=args.d)
     else:
         line = [float(v) for v in args.sections.split('/')]
         plotsec.append_lines(plotsec.data_dv, *line, utm=args.u, 
-                             hval=val[0], vval=val[1], unit_trans=False)    
+                             hval=val[0], vval=val[1], unit_trans=False,
+                             maxdep=args.d)    
     if args.n is None:
         norm = None
     else:
@@ -86,4 +88,5 @@ def main():
     else:
         cpt_path = parse_cpt_name(args.C)
     plotsec.plot_all(outpath=args.o, colorbar=args.c,
-                     cpt=cpt_path, reverse=args.I, norm=norm,)
+                     cpt=cpt_path, reverse=args.I,
+                     norm=norm,)

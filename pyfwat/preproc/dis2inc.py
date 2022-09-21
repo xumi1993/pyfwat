@@ -2,17 +2,16 @@
 import numpy as np
 from seispy.geo import *
 from obspy.taup import TauPyModel
-import inspect
-from os.path import dirname, join, abspath
 from scipy.interpolate import interp1d
 import sys
-model = TauPyModel(model="iasp91")
+model = TauPyModel(model="ak135")
 
 
-def interp_vp(inc_dep, model=join(dirname(abspath(inspect.getfile(skm2sdeg))), 'data', 'iasp91.vel')):
-    depth, vp = np.loadtxt(model, usecols=[0, 1], unpack=True)
-    inc_vp = interp1d(depth, vp)(inc_dep)
-    return inc_vp
+def interp_vp(dep=100):
+    v_mod = model.model.s_mod.v_mod.layers
+    v = np.array([[lay[0], lay[2]] for lay in v_mod])
+    vbot = interp1d(v[:, 0], v[:, 1])(dep)
+    return vbot
 
 
 def get_rayp(evdp, dis):
@@ -23,9 +22,7 @@ def get_rayp(evdp, dis):
 def dis2inc(dep, evdp, dis):
     rayp = get_rayp(evdp, dis)
     inc_vp = interp_vp(dep)
-    inc_vp = interp_vp(dep)
     inc_angle = asind(rayp*inc_vp)
-    rayp = get_rayp(evdp, dis)
     return inc_angle
 
 
