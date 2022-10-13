@@ -81,10 +81,10 @@ class FKEvts():
                     with open('{}/FKmodel_{}'.format(basepath, evtid), 'w') as f:
                         f.write(self.fkpar)
                     with open('{}/sources_{}.dat'.format(basepath, setid), 'w') as f:
-                        f.write('{} {:.4f} {:.4f} 0.0 0.0\n'.format(evtid, evla, evlo))
+                        f.write('{} {:.4f} {:.4f} 0.0 0.0 1.0\n'.format(evtid, evla, evlo))
                     with open('{}/STATIONS_{}'.format(basepath, evtid), 'w') as f:
                         f.write(self.stations)
-                    fls.write('{} {:.4f} {:.4f} 0.0 0.0\n'.format(evtid, evla, evlo))
+                    fls.write('{} {:.4f} {:.4f} 0.0 0.0 1.0\n'.format(evtid, evla, evlo))
             
 
 

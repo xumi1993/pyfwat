@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from audioop import reverse
 import numpy as np
 import sys
 from os.path import basename, dirname, join, exists
@@ -8,7 +7,8 @@ from scipy.interpolate import interpn
 import pygmt
 import argparse
 from ..utils import parse_cpt_name
-from pyproj import Geod
+from ..pario import readpar
+from pyproj import Geod, Proj
 
 
 def vs2vprho(vs):
@@ -123,7 +123,8 @@ class Pltvel():
 
     #  cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt')
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
-             reverse=False, outpath='./figures', colorbar=True, norm=None, img_scale=25):
+             reverse=False, outpath='./figures', colorbar=True, norm=None,
+             img_scale=25, smooth=10):
         fig = pygmt.Figure()
         if self.utm:
             g = Geod(ellps="WGS84")
@@ -166,7 +167,11 @@ class Pltvel():
             cmapp = True
         else:
             cmapp = cpt
-        fig.grdimage(grid=line['grid'], cmap=cmapp)
+        if smooth is None:
+            smgrid = line['grid']
+        else:
+            smgrid = pygmt.grdfilter(grid=line['grid'], filter='g{}'.format(smooth), distance='0')
+        fig.grdimage(grid=smgrid, cmap=cmapp)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
                  style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
         if colorbar:
@@ -194,6 +199,7 @@ def main():
     parser.add_argument('-x', help='Unit of x-axis as la, lo or distance, defaults to distance', default=None, metavar='[la|lo]')
     parser.add_argument('-d', help='Max depth to plot', type=float, metavar='max_depth', default=None)
     parser.add_argument('-a', help='Horizental and vertical spacing in km', default='1/1', metavar='hx/hz')
+    parser.add_argument('-m', help='Smoothing scale in km', default=None, metavar='smoothing_scale')
     args = parser.parse_args()
     val = [ float(v) for v in args.a.split('/')]
     plotsec =  Pltvel(args.i, stafile=args.s)
@@ -218,7 +224,8 @@ def main():
     if not exists(cpt_path):
         cpt_path = args.C
     plotsec.plot_all(outpath=args.o, colorbar=args.c,
-                     cpt=cpt_path, reverse=args.I, norm=norm,)
+                     cpt=cpt_path, reverse=args.I, 
+                     norm=norm, smooth=args.m)
 
 
 if __name__ == '__main__':
