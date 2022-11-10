@@ -14,9 +14,9 @@ def read_fortran_external_mesh(filename, ngllx=5, nglly=5, ngllz=5):
         nbool = ngllx*nglly*ngllz*data['nspec_ab']
         data['ibool'] = np.fromfile(file, dtype="int32", offset=8, count=nbool).reshape(
             ngllx,nglly,ngllz,data['nspec_ab'], order='F')
-        data['xstore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nspec_ab'])
-        data['ystore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nspec_ab'])
-        data['zstore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nspec_ab'])
+        data['xstore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nglob_ab'])
+        data['ystore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nglob_ab'])
+        data['zstore'] = np.fromfile(file, dtype="float32", offset=8, count=data['nglob_ab'])
     return data
 
 
@@ -39,11 +39,20 @@ class GllModel:
                       'nglly': nglly,
                       'ngllz': ngllz}
         self.read_external_mesh()
+        self.get_minmax()
+
+    def get_minmax(self):
+        self.xmin = np.min([np.min(ex['xstore']) for ex in self.external_meshs])
+        self.xmax = np.max([np.max(ex['xstore']) for ex in self.external_meshs])
+        self.ymin = np.min([np.min(ex['ystore']) for ex in self.external_meshs])
+        self.ymax = np.max([np.max(ex['ystore']) for ex in self.external_meshs])
+        self.zmin = np.min([np.min(ex['zstore']) for ex in self.external_meshs])
+        self.zmax = np.max([np.max(ex['zstore']) for ex in self.external_meshs])
 
     def read_external_mesh(self):
         self.external_meshs = []
         extbins = glob(os.path.join(
-            self.inpath, 'proc*{}.bin'.format(self.parameters))
+            self.inpath, 'proc*_external_mesh.bin')
         )
         self.nproc = len(extbins)
         for _, extbin in enumerate(extbins):
@@ -81,7 +90,7 @@ class GllModel:
     def _get_gll_point(self, idx):
         external_mesh = self.external_meshs[idx]
         data = [self.model_data[para][idx] for para in self.parameters]
-        points = np.zeros([self.external_meshs['nspec_ab']* \
+        points = np.zeros([external_mesh['nspec_ab']* \
             self.nglls['ngllx']*self.nglls['nglly']*self.nglls['ngllz'],
             3+len(self.parameters)]
         )
@@ -90,12 +99,12 @@ class GllModel:
             for k in range(self.nglls['ngllz']):
                 for j in range(self.nglls['nglly']):
                     for i in range(self.nglls['ngllx']):
-                        iglob = external_mesh['ibool'](i,j,k,ispec)
+                        iglob = external_mesh['ibool'][i,j,k,ispec]
                         points[n, 0] = external_mesh['xstore'][iglob-1]
                         points[n, 1] = external_mesh['ystore'][iglob-1]
                         points[n, 2] = external_mesh['zstore'][iglob-1]
                         for m, _ in enumerate(self.parameters):
-                            points[n, m+1] = data[m][i, j, k, ispec]
+                            points[n, m+3] = data[m][i, j, k, ispec]
                         n += 1
         return points
 
