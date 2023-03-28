@@ -153,8 +153,8 @@ def create_fktimes(evtid, is_utm=False, shift=0):
         # print(H, p, vp_fk_input, vs_fk_input, nlayer, x0, y0, z0-z_ref_fk, xi, yi, zi-z_ref_fk, phi_FK)
         # print(phi_FK)
         tdelay=traveltime(H, p, vp_fk_input, vs_fk_input, nlayer, x0, y0, z0-z_ref_fk, xi, yi, zi-z_ref_fk, phi_FK)
-      elif kpsv==2:
-        tdelay=p*(xi-x0)*np.cos(phi_FK/180.*np.pi)+p*(yi-y0)*np.sin(phi_FK/180*np.pi)+eta_s*(0-z0)
+      # elif kpsv==2:
+      #   tdelay=p*(xi-x0)*np.cos(phi_FK/180.*np.pi)+p*(yi-y0)*np.sin(phi_FK/180*np.pi)+eta_s*(0-z0)
       # print('net.stnm xi yi tdelay %s %s %f %f %f\n' %(netwk,stnm,xi,yi,tdelay[0]))
       # fp1.write('%s %s %f %f %f %f %f %f %f %f\n' %(netwk,stnm,dist,tdelay[0],tdelay[1],tdelay[2],tdelay[3],tdelay[4],tdelay[5],tdelay[6]))
       fp1.write('%s %s %f 0.0 0.0\n' %(netwk,stnm,tdelay[0]-shift))
@@ -163,8 +163,11 @@ def create_fktimes(evtid, is_utm=False, shift=0):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser('generate FKtimes (FKmodel and STATIONS should be in preparation)')
-  parser.add_argument('-e', help="Event id", metavar='evt_id')
+  parser.add_argument('-s', help="Set name", metavar='set_name')
   parser.add_argument('-u', help='Use utm zone, default to false', action='store_true', default=False)
   parser.add_argument('-t', help='Add a time shift, defaults to 0', default=0, type=float)
   args = parser.parse_args()
-  create_fktimes(args.e, is_utm=args.u, shift=args.t)
+  with open('src_rec/sources_{}.dat'.format(args.s)) as f:
+    eid = [v.strip().split()[0] for v in f.readlines()]
+  for id in eid:
+    create_fktimes(id, is_utm=args.u, shift=args.t)
