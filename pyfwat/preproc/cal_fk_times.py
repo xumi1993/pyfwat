@@ -72,10 +72,13 @@ def create_fktimes(evtid, is_utm=False, shift=0):
   fkfile = 'src_rec/STATIONS_{}'.format(evtid)
   f=open(fkmodel,'r')
   for line in f:
-    if len(line)<0 or line[0]=='#':
+    line = line.strip()
+    if len(line)<=0:
+      continue
+    elif line[0]=='#':
       continue
     data=line.split()
-    print(data)
+    # print(data)
     if data[0]=='NLAYER':
       nlayer=int(data[1])
       ilayer_fk_input=np.zeros(nlayer,dtype=int)
@@ -161,7 +164,8 @@ def create_fktimes(evtid, is_utm=False, shift=0):
   fp.close()
   fp1.close()
 
-if __name__ == '__main__':
+
+def main():
   parser = argparse.ArgumentParser('generate FKtimes (FKmodel and STATIONS should be in preparation)')
   parser.add_argument('-s', help="Set name", metavar='set_name')
   parser.add_argument('-u', help='Use utm zone, default to false', action='store_true', default=False)
@@ -171,3 +175,6 @@ if __name__ == '__main__':
     eid = [v.strip().split()[0] for v in f.readlines()]
   for id in eid:
     create_fktimes(id, is_utm=args.u, shift=args.t)
+
+if __name__ == '__main__':
+  main()
