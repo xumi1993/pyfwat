@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 setup(name='pyfwat',
       version=VERSION,
       author='Mijian Xu',
@@ -38,6 +38,7 @@ setup(name='pyfwat',
                                         'plot_rf_evts=pyfwat.plot.plot_rf_evts:main',
                                         'gen_virt_fkevts=pyfwat.preproc.gen_virt_fkevts:main',
                                         'plot_rf_fit=pyfwat.plot.plot_rf_fit:main',
+                                        'plot_noise_fit=pyfwat.plot.plot_noise_fit:main',
                                         'plot_surf_data=pyfwat.plot.plot_surf_data:main',
                                         'plot_tele_fit=pyfwat.plot.plot_tele_fit:main',
                                         'gen_gauss_stf=pyfwat.preproc.gen_gauss_stf:main',

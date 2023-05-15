@@ -10,10 +10,11 @@ def _read_misfit(it, filtstr, col=28):
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
         misfit = np.append(misfit, chi)
+    misfit = misfit[misfit != 0.0]
     return misfit
 
 class PlotRes():
-    def __init__(self, iter_start, iter_end, filtstr, col=28):
+    def __init__(self, iter_start, filtstr, iter_end=None, col=28):
         self.iter_start = iter_start
         self.iter_end = iter_end
         self.col = col
@@ -23,25 +24,33 @@ class PlotRes():
     
     def read_misfit(self):
         self.misfit_start = _read_misfit(self.iter_start, self.filtstr, col=self.col)
-        self.misfit_end = _read_misfit(self.iter_end, self.filtstr, col=self.col)
+        if self.iter_end is not None:
+            self.misfit_end = _read_misfit(self.iter_end, self.filtstr, col=self.col)
 
-    def plot(self, outpath='./figures', region=None, bar_scale=70):
+    def plot(self, outpath='./figures', bar_scale=70):
         fig = pygmt.Figure()
-        mismax = np.max(self.misfit_start)
-        if region is None:
-            fig.histogram(data=self.misfit_start,
+        mismax = np.max(np.abs(self.misfit_start))
+        nummax = 2*self.misfit_start.size/bar_scale
+        fig.histogram(
+            data=self.misfit_start,
+            series = mismax/bar_scale,
+            fill='red',
+            projection='X6c/4c',
+            histtype=0,
+            transparency=60,
+            region=[-int(mismax+0.5), int(mismax+0.5), 0, nummax]
+        )
+        if self.iter_end is not None:
+            fig.histogram(data=self.misfit_end, 
                         series = mismax/bar_scale,
-                        fill='red',
-                        projection='X6c/4c',
-                        histtype=1,
+                        fill='blue',
+                        histtype=0,
                         transparency=60)
-        fig.histogram(data=self.misfit_end, 
-                      series = mismax/bar_scale,
-                      fill='blue',
-                      histtype=1,
-                      transparency=60)
         fig.basemap(frame=['WSne', 'xaf+l"Residual"', 'yaf+l"Number"'])
-        fig.savefig('{}/residual_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
+        if self.iter_end is not None:
+            fig.savefig('{}/residual_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
+        else:
+            fig.savefig('{}/residual_M{:02d}_{}.png'.format(outpath, self.iter_start, self.filtstr))
 
 
 def main():
@@ -50,9 +59,14 @@ def main():
     parser.add_argument('-f', help='Filter info in the filename, e.g., T005_T050', default='*')
     parser.add_argument('-n', help='number of bars', default=40, type=int)
     # parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/25/25')
-    parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
+    parser.add_argument('-l', help='Column in misfit to plot, defaults to 12', metavar='col_num', type=int, default=12)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
-    its = [int(v) for v in args.m.split('/')]
-    pm = PlotRes(its[0], its[1], args.f, args.l)
+    try:
+        its = [int(v) for v in args.m.split('/')]
+        pm = PlotRes(its[0], args.f, its[1], col=args.l)
+    except:
+        its = [int(args.m)]
+        pm = PlotRes(its[0], args.f, col=args.l)
+    
     pm.plot(args.o, bar_scale=args.n)

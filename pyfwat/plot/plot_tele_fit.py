@@ -42,8 +42,8 @@ def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
     fktimes = read_time_window(evtid)
     if not exists(par_file):
         raise FileNotFoundError('No such file of {}'.format(par_file))
-    time_before = readfwatpar(par_file, 'TW_BEFORE')
-    time_after = readfwatpar(par_file, 'TW_AFTER')
+    time_before = readfwatpar(par_file, 'TELE_TW_BEFORE')
+    time_after = readfwatpar(par_file, 'TELE_TW_AFTER')
     if xlim is None:
         xlim = xlim_auto
     fig = pygmt.Figure()
@@ -58,7 +58,7 @@ def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
         fig.plot(x=fktime-time_before, y=i+1, style='y0.5c', pen='1.2p,0/105/167')
         fig.plot(x=fktime+time_after, y=i+1, style='y0.5c', pen='1.2p,0/105/167')
         fig.plot(x=fktime, y=i+1, style='y0.5c', pen='1.2p,green3')
-    fig.savefig('{}/{}.set{}_tele_{}_fit.png'.format(outpath, modelname, evtid, comp))
+    fig.savefig('{}/{}.evt{}_tele_{}_fit.png'.format(outpath, modelname, evtid, comp))
     post_plot()
 
 

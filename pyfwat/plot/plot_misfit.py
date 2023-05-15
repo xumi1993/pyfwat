@@ -7,9 +7,13 @@ import argparse
 def read_misfit(it, filtstr, col=28):
     fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
     misfit = 0
+    count = 0
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
+        chi = chi[chi!=0.0]
+        count += chi.size
         misfit += np.mean(chi)
+    print('A total of {} traces for {}th iter'.format(count, it))
     return misfit/len(fs)
 
 class PlotMisfit():
@@ -30,7 +34,7 @@ class PlotMisfit():
                     projection="X10c/5c",
                     frame=['WSrt', 'xa1f1+l"Iteration"', 'yaf+l"Misfit"'])
         fig.plot(x=self.iters, y=self.misfits, pen='0.5p')
-        fig.plot(x=self.iters, y=self.misfits, style='c0.25c', color=color, pen='0.1p')
+        fig.plot(x=self.iters, y=self.misfits, style='c0.25c', fill=color, pen='0.1p')
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
 
 

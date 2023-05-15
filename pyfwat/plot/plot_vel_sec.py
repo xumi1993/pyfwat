@@ -173,7 +173,7 @@ class Pltvel():
             smgrid = pygmt.grdfilter(grid=line['grid'], filter='g{}'.format(smooth), distance='0')
         fig.grdimage(grid=smgrid, cmap=cmapp)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
-                 style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
+                 style='t0.3c', pen='0.5p', fill='gray40', no_clip=True)
         if colorbar:
             fig.colorbar(position="JMR+o0.7c/0c+w4c+ebf", frame=['xag+l"{}"'.format(label)])
         fig.savefig('{}/{}_{:.1f}_{:.1f}_{:.1f}_{:.1f}.png'.format(

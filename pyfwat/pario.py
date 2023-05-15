@@ -50,16 +50,16 @@ def readfwatpar(par_file, key):
     array_str = ['SHORT_P', 'LONG_P', 'GROUPVEL_MIN', 'GROUPVEL_MAX', 'STEP_LENS', 'F0']
     with open(par_file) as f:
         par = f.read()
-    outstr = re.findall(r'{}:\s+(.+?)\n'.format(key), par)[0]
-    if key.upper() in array_str:
+    outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
+    if '_'.join(key.upper().split('_')[1:]) in array_str:
         return np.array([float(v) for v in outstr.split()])
-    elif key.upper() in ['SCOMPS', 'RCOMPS']:
+    elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS']:
         return [v for v in outstr.split()]
     elif outstr.lower() == '.true.':
         return True
     elif outstr.lower() == '.false.':
         return False
-    elif key.upper() in int_str:
+    elif '_'.join(key.upper().split('_')[1:]) in int_str:
         return int(outstr)
     else:
         try:
