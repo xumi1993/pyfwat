@@ -25,7 +25,7 @@ class PlotMisfit():
             self.norm = False
         else:
             self.norm = norm
-        self.colors = ['47/127/193', '150/195/125', '196/151/178', '73/108/136']
+        self.colors = ['47/127/193', '150/195/125', '196/151/178', '73/108/136', 'olivedrab', 'burlywood', 'thistle']
         if rf:
             self.read_gaus()
         else:
