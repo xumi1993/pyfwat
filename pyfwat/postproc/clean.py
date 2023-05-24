@@ -5,9 +5,12 @@ import argparse
 
 
 def clean_proj():
-    shutil.rmtree('./solver')
-    shutil.rmtree('./optimize')
-    shutil.rmtree('./misfits')
+    try:
+        shutil.rmtree('./solver')
+        shutil.rmtree('./optimize')
+        shutil.rmtree('./misfits')
+    except Exception as e:
+        print('Warning: {}'.format(e))
     for fname in glob.glob('./output_fwat*.txt'):
         os.remove(fname)
 
