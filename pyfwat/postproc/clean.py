@@ -7,7 +7,13 @@ import argparse
 def clean_proj():
     try:
         shutil.rmtree('./solver')
+    except Exception as e:
+        print('Warning: {}'.format(e))
+    try:
         shutil.rmtree('./optimize')
+    except Exception as e:
+        print('Warning: {}'.format(e))
+    try:
         shutil.rmtree('./misfits')
     except Exception as e:
         print('Warning: {}'.format(e))
