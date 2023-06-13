@@ -28,11 +28,12 @@ def read_flts(simu_type, parfile='fwat_params/FWAT.PAR'):
 
 
 class PlotMisfit():
-    def __init__(self, modname, filtstr, col=26) -> None:
+    def __init__(self, modname, filtstr, setname='ls', col=28) -> None:
         self.modname = modname
         self.col = col
         self.filtstr = filtstr
-        self.files = sorted(glob.glob('misfits/{}_step*{}*'.format(modname, filtstr)))
+        self.files = sorted(glob.glob('misfits/{}_step*.{}_{}*'.format(modname, setname, filtstr)))
+        # print(self.files)
         self.read_misfit()        
     
     def read_misfit(self):
@@ -57,13 +58,13 @@ class PlotMisfit():
         fig.savefig('{}/misfit_{}_{}_linesearch.png'.format(outpath, self.modname, self.filtstr))
 
 
-def plot_all(model, simu_type, col=28, outpath='./figures'):
+def plot_all(model, simu_type, setname='ls', col=28, outpath='./figures'):
     flts = read_flts(simu_type)
     chi =  []
     h = plt.figure(figsize=(6,4))
     ax = h.add_subplot()
     for i, flt in enumerate(flts):
-        pm = PlotMisfit(model, flt, col=col)
+        pm = PlotMisfit(model, flt, setname=setname, col=col)
         chi.append(pm.chi)
         ax.scatter(pm.steplen, pm.chi, label=flt)
     mean_chi = np.mean(np.array(chi), axis=0)
@@ -79,11 +80,12 @@ def plot_all(model, simu_type, col=28, outpath='./figures'):
 def main():
     parser = argparse.ArgumentParser('Plot Misfit with iterations')
     parser.add_argument('-m', help='start and end iteration nunbers e.g.,M01', metavar='M??', required=True)
-    parser.add_argument('-s', help='simulation type in noise, tele, rf and leq', metavar='simu_type', required=True)
+    parser.add_argument('-t', help='simulation type in noise, tele, rf and leq', metavar='simu_type', required=True)
+    parser.add_argument('-s', help='Source set name, defaults to "ls"', metavar='setname', default='ls')
     parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
-    plot_all(args.m, args.s, args.l, args.o)
+    plot_all(args.m, args.t, args.s, args.l, args.o)
     # pm = PlotMisfit(args.m, args.f, args.l)
     # pm.plot(args.o, args.c)
 
