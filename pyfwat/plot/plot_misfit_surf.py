@@ -40,7 +40,7 @@ class PlotMisfit():
         # self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
 
     def read_gaus(self):
-        self.gaus = readfwatpar('fwat_params/FWAT.PAR', 'F0')
+        self.gaus = readfwatpar('fwat_params/FWAT.PAR', 'RF_F0')
         self.bandname = ['F{:.1f}'.format(ff) for ff in self.gaus]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
 
