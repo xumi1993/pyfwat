@@ -6,7 +6,7 @@ import re
 from ..pario import readfwatpar
 import matplotlib.pyplot as plt
 
-colors = ['218/56/58', '47/127/193', '150/195/125', '196/151/178']
+colors = ['47/127/193', '150/195/125', '196/151/178', '218/56/58']
 
 def read_flts(simu_type, parfile='fwat_params/FWAT.PAR'):
     if simu_type != 'rf':
@@ -27,7 +27,7 @@ def read_flts(simu_type, parfile='fwat_params/FWAT.PAR'):
     return flt_str
 
 
-class PlotMisfit():
+class PlotMisfitLS():
     def __init__(self, modname, filtstr, setname='ls', col=28) -> None:
         self.modname = modname
         self.col = col
@@ -61,20 +61,31 @@ class PlotMisfit():
 def plot_all(model, simu_type, setname='ls', col=28, outpath='./figures'):
     flts = read_flts(simu_type)
     chi =  []
-    h = plt.figure(figsize=(6,4))
-    ax = h.add_subplot()
+    steplen = []
+    fig = pygmt.Figure()
     for i, flt in enumerate(flts):
-        pm = PlotMisfit(model, flt, setname=setname, col=col)
+        pm = PlotMisfitLS(model, flt, setname=setname, col=col)
         chi.append(pm.chi)
-        ax.scatter(pm.steplen, pm.chi, label=flt)
+        steplen.append(pm.steplen)
+    boundx = (pm.steplen[-1]-pm.steplen[0])*0.1
+    ymax = np.max(np.array(chi))
+    ymin = np.min(np.array(chi))
+    boundy = (ymax-ymin)*0.1
+    fig.basemap(
+        region=[pm.steplen[0]-boundx, pm.steplen[-1]+boundx, ymin-boundy, ymax+boundy],
+        projection='X6c/4c',
+        frame=['WSrt', 'xa+l"Step length"', 'yaf+l"Misfit"'],
+    )
+    for i, flt in enumerate(flts):
+        fig.plot(x=steplen[i], y=chi[i], style='c0.2c', fill=colors[i])
     mean_chi = np.mean(np.array(chi), axis=0)
-    ax.plot(pm.steplen, mean_chi, color='k')
-    ax.scatter(pm.steplen, mean_chi)
+    fig.plot(x=pm.steplen, y=mean_chi, pen='1p')
+    fig.plot(x=pm.steplen, y=mean_chi, style='c0.2c', fill='255/50/50')
     # ax.set_xlim(pm.steplen[0]-0.01, pm.steplen[-1]+0.01)
-    ax.legend()
-    ax.set_xlabel('Step length')
-    ax.set_ylabel('Misfit')
-    plt.savefig('{}/misfit_{}_{}_linesearch.png'.format(outpath, model, simu_type))
+    # fig.legend()
+    # ax.set_xlabel('Step length')
+    # ax.set_ylabel('Misfit')
+    fig.savefig('{}/misfit_{}_{}_linesearch.png'.format(outpath, model, simu_type))
 
 
 def main():
