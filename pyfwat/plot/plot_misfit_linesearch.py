@@ -73,18 +73,16 @@ def plot_all(model, simu_type, setname='ls', col=28, outpath='./figures'):
     boundy = (ymax-ymin)*0.1
     fig.basemap(
         region=[pm.steplen[0]-boundx, pm.steplen[-1]+boundx, ymin-boundy, ymax+boundy],
-        projection='X6c/4c',
+        projection='X8c/6c',
         frame=['WSrt', 'xa+l"Step length"', 'yaf+l"Misfit"'],
     )
     for i, flt in enumerate(flts):
-        fig.plot(x=steplen[i], y=chi[i], style='c0.2c', fill=colors[i])
+        fig.plot(x=steplen[i], y=chi[i], style='c0.2c', fill=colors[i], label=flt)
     mean_chi = np.mean(np.array(chi), axis=0)
     fig.plot(x=pm.steplen, y=mean_chi, pen='1p')
     fig.plot(x=pm.steplen, y=mean_chi, style='c0.2c', fill='255/50/50')
-    # ax.set_xlim(pm.steplen[0]-0.01, pm.steplen[-1]+0.01)
-    # fig.legend()
-    # ax.set_xlabel('Step length')
-    # ax.set_ylabel('Misfit')
+    if len(flts) > 1:
+        fig.legend()
     fig.savefig('{}/misfit_{}_{}_linesearch.png'.format(outpath, model, simu_type))
 
 

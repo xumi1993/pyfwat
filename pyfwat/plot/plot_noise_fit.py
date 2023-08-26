@@ -43,7 +43,7 @@ def plot_noise_fit(modelname, evtid, fltstr, comp='Z', xlim=None, outpath='./fig
                  MAP_GRID_PEN='0.3p,gray')
     # fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',
     #             frame=['xafg+l"Time (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
-    fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',frame=['xafg+l"Time (s)"', 'yaf'])
+    fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',frame=['xafg+l"Time (s)"', 'yaf+l"Distance (km)"'])
     with Session() as lib:
         lib.call_module("sac", "saclst_dat_plot -Ek -M{} -W1p".format(enf))
         lib.call_module("sac", "saclst_syn -Ek -M{} -W1p,255/25/25".format(enf))
