@@ -16,4 +16,4 @@ class GridModel():
         self.x = self.x[nsup:self.x.size-nsup]
         nsup = int(sup_m/self.dy)
         self.y = self.y[nsup:self.y.size-nsup]
-        self.model= self.model[nsup:self.x.size-nsup, nsup:self.y.size-nsup, :]    
+        self.model= self.model[nsup:-nsup, nsup:-nsup, :]    
