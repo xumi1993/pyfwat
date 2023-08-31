@@ -30,7 +30,7 @@ class PlotRes():
     def plot(self, outpath='./figures', bar_scale=70):
         fig = pygmt.Figure()
         mismax = np.max(np.abs(self.misfit_start))
-        nummax = 2*self.misfit_start.size/bar_scale
+        nummax = 3*self.misfit_start.size/bar_scale
         fig.histogram(
             data=self.misfit_start,
             series = mismax/bar_scale,
@@ -38,15 +38,18 @@ class PlotRes():
             projection='X6c/4c',
             histtype=0,
             transparency=60,
-            region=[-int(mismax+0.5), int(mismax+0.5), 0, nummax]
+            region=[-int(mismax+0.5), int(mismax+0.5), 0, nummax],
+            label='M{:02d}'.format(self.iter_start)
         )
         if self.iter_end is not None:
             fig.histogram(data=self.misfit_end, 
                         series = mismax/bar_scale,
                         fill='blue',
                         histtype=0,
-                        transparency=60)
-        fig.basemap(frame=['WSne', 'xaf+l"Residual"', 'yaf+l"Number"'])
+                        transparency=60,
+                        label='M{:02d}'.format(self.iter_end))
+            fig.legend()
+        fig.basemap(frame=['WSne', 'xaf+l"Residual (s)"', 'yaf+l"Number"'])
         if self.iter_end is not None:
             fig.savefig('{}/residual_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
         else:

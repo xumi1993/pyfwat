@@ -63,6 +63,11 @@ class GllModel:
                 fname = os.path.join(self.inpath, 'proc{}_{}.bin'.format(pname, para))
                 self.model_data[para].append(read_fortran_model(fname, mesh_data['nspec_ab'], **self.nglls))
 
+    def get_points_data(self):
+        self.points = np.empty([0, 3+len(self.parameters)])
+        for i in range(self.nproc):
+            self.points = np.vstack((self.points, self._get_gll_point(i)))
+
     def griddata(self, x, y, z, method='linear'):
         """ grid data with given series of x, y, z.
 
@@ -77,13 +82,13 @@ class GllModel:
         method : str, optional
             method for interpolation, by default 'linear'
         """
-        points = np.empty([0, 3+len(self.parameters)])
+        # points = np.empty([0, 3+len(self.parameters)])
         x_inter, y_inter, z_inter = np.meshgrid(x, y, z)
-        for i in range(self.nproc):
-            points = np.vstack((points, self._get_gll_point(i)))
+        # for i in range(self.nproc):
+        #     points = np.vstack((points, self._get_gll_point(i)))
         grid_data = {}
         for i, para in enumerate(self.parameters):
-            grid_data[para] = griddata(points[:, 0:3], points[:, i+3],
+            grid_data[para] = griddata(self.points[:, 0:3], self.points[:, i+3],
                 (x_inter, y_inter, z_inter), method=method)
         return grid_data
 
