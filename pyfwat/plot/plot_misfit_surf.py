@@ -12,6 +12,7 @@ def read_misfit(it, filtstr, col=28):
     misfit = 0
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
+        chi = chi[chi!=0]
         misfit += np.mean(chi)
     return misfit/len(fs)
 
