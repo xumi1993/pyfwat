@@ -3,6 +3,7 @@ import subprocess
 from os import remove
 from pygmt.clib import Session
 from ..pario import readfwatpar
+from .. import DATA_PATH
 import argparse
 
 
@@ -27,8 +28,8 @@ def post_plot():
 def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.05):
     num_sta = pre_plot(modelname, evtid, gauss)
     if xlim is None:
-        xmin = -1 * readfwatpar('fwat_params/FWAT.PAR', 'TELE_TW_BEFORE')
-        xmax = readfwatpar('fwat_params/FWAT.PAR', 'TELE_TW_AFTER')
+        xmin = -1 * readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'TELE_TW_BEFORE')
+        xmax = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'TELE_TW_AFTER')
         xlim = [xmin, xmax]
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',
