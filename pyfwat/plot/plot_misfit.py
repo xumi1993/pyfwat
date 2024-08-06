@@ -32,7 +32,7 @@ class PlotMisfit():
         bound_ms = (np.max(self.misfits)-np.min(self.misfits))*0.1
         fig.basemap(region=[self.iter_start-bound, self.iter_end+bound, np.min(self.misfits)-bound_ms, 1+bound_ms],
                     projection="X10c/5c",
-                    frame=['WSrt', 'xa1f1+l"Iteration"', 'yaf+l"Misfit"'])
+                    frame=['WSrt', 'xa1f1+lIteration', 'yaf+lMisfit'])
         fig.plot(x=self.iters, y=self.misfits, pen='0.5p')
         fig.plot(x=self.iters, y=self.misfits, style='c0.25c', fill=color, pen='0.1p')
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
