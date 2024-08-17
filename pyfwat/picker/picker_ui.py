@@ -2,13 +2,16 @@ import sys
 import os
 import argparse
 # matplotlib.use("Qt5Agg")
-from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, \
-                            QSizePolicy, QWidget, QDesktopWidget, \
-                            QPushButton, QHBoxLayout, QFileDialog, \
-                            QAction, QShortcut, QLabel, QLineEdit, \
-                            QGroupBox, QRadioButton
-from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject
+try:
+    from PyQt5.QtGui import QIcon, QKeySequence, QWheelEvent
+    from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, \
+                                QSizePolicy, QWidget, QDesktopWidget, \
+                                QPushButton, QHBoxLayout, QFileDialog, \
+                                QAction, QShortcut, QLabel, QLineEdit, \
+                                QGroupBox, QRadioButton
+    from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject 
+except:
+    raise("Please install PyQt5 first: pip install PyQt5")
 from os.path import exists, dirname, join
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -57,6 +60,8 @@ class MatplotlibWidget(QMainWindow):
         self.plot_ui()
         self.mpl.mpl_connect('button_press_event', self.on_click)
         self.main_frame.setLayout(self.layout)
+        self._define_global_shortcuts()
+        self.setWindowTitle('Pick Teleseismic waveforms')
 
         # saveAction = QAction('&Save', self)        
         # saveAction.setShortcut('Ctrl+S')
@@ -68,7 +73,7 @@ class MatplotlibWidget(QMainWindow):
         # fileMenu.addAction(saveAction)
 
         # self._define_global_shortcuts()
-        # self.setWindowTitle('PickRF')
+        
         # self.setWindowIcon(QIcon(join(dirname(__file__), 'data', 'seispy.png')))
     
     def add_layout(self):
@@ -76,8 +81,10 @@ class MatplotlibWidget(QMainWindow):
         self.add_align_box()
         self.add_plotting_box()
         self.add_saving_box()
+        self.add_control_layout()
         # self.layout.addStretch(1)
         ctrlbox = QVBoxLayout()
+        ctrlbox.addLayout(self.control_layout)
         ctrlbox.addWidget(self.plotting_box)
         ctrlbox.addWidget(self.filter_box)
         ctrlbox.addWidget(self.align_box)
@@ -217,6 +224,41 @@ class MatplotlibWidget(QMainWindow):
         self.fltButton.setText(_translate("Dialog", "Confirm"))
         self.filter_box.setLayout(self.Filter)
 
+    def add_control_layout(self):
+        self.control_layout = QHBoxLayout()
+        self.pagedown = QPushButton('Page Down (z)')
+        self.pageup = QPushButton('Page Up (c)')
+        self.pagedown.clicked.connect(self.previous_connect)
+        self.pageup.clicked.connect(self.next_connect)
+        self.control_layout.addWidget(self.pagedown)
+        self.control_layout.addWidget(self.pageup)
+
+    def _define_global_shortcuts(self):
+        self.key_c = QShortcut(QKeySequence('c'), self)
+        self.key_c.activated.connect(self.next_connect)
+        self.key_z = QShortcut(QKeySequence('z'), self)
+        self.key_z.activated.connect(self.previous_connect)
+        # self.key_space = QShortcut(QKeySequence('Space'), self)
+        # self.key_space.activated.connect(self.plot_ui)
+    
+    def wheelEvent(self, event: QWheelEvent):
+        if event.angleDelta().y() > 0:
+            self.mpl.pf.page_up()
+        else:
+            self.mpl.pf.page_down()
+        self.mpl.pf.setup_figure()
+        self.mpl.draw()
+
+    def previous_connect(self):
+        self.mpl.pf.page_down()
+        self.mpl.pf.setup_figure()
+        self.mpl.draw()
+    
+    def next_connect(self):
+        self.mpl.pf.page_up()
+        self.mpl.pf.setup_figure()
+        self.mpl.draw()
+
     def on_click(self, event):
         self.mpl.pf.onclick(event)
         self.mpl.draw_idle()
@@ -305,25 +347,17 @@ class MatplotlibWidget(QMainWindow):
         self.replot_fig()
         self.mpl.draw_idle()
 
-    def previous_connect(self):
-        self.mpl.rffig.butprevious()
-        self.mpl.draw()
+    # def enlarge(self):
+    #     self.mpl.rffig.enlarge()
+    #     self.mpl.draw()
 
-    def next_connect(self):
-        self.mpl.rffig.butnext()
-        self.mpl.draw()
+    # def reduce(self):
+    #     self.mpl.rffig.reduce()
+    #     self.mpl.draw()
 
-    def enlarge(self):
-        self.mpl.rffig.enlarge()
-        self.mpl.draw()
-
-    def reduce(self):
-        self.mpl.rffig.reduce()
-        self.mpl.draw()
-
-    def finish(self):
-        self.mpl.rffig.finish()
-        QApplication.quit()
+    # def finish(self):
+    #     self.mpl.rffig.finish()
+    #     QApplication.quit()
 
     def plot_ui(self):
         if self.pre_flt is not None:
@@ -364,14 +398,6 @@ class MatplotlibWidget(QMainWindow):
         self.move(int((screen_width / 2) - (self.frameSize().width() / 2)),
                   int((screen_height / 2) - (self.frameSize().height() / 2)))
 
-    def _define_global_shortcuts(self):
-        self.key_c = QShortcut(QKeySequence('c'), self)
-        self.key_c.activated.connect(self.next_connect)
-        self.key_z = QShortcut(QKeySequence('z'), self)
-        self.key_z.activated.connect(self.previous_connect)
-        self.key_space = QShortcut(QKeySequence('Space'), self)
-        self.key_space.activated.connect(self.plot_ui)
-
     def add_btn(self):
         pre_btn = QPushButton("Back (z)")
         pre_btn.clicked.connect(self.previous_connect)
@@ -405,7 +431,7 @@ class MatplotlibWidget(QMainWindow):
 
 def main():
     parser = argparse.ArgumentParser(description="User interface for picking PRFs")
-    parser.add_argument('path', type=str, help='Path to PRFs')
+    parser.add_argument('path', type=str, help='Path to data directory')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
     #                     dest='xlim', default=None, type=float, metavar='xmax')

@@ -24,6 +24,7 @@ class Para():
         self.enf = 1
         self.resample_dt = 0.025
         self.cut_win = [-5, 100]
+        self.num_per_page = 30
 
 
 class PickFig(object):
@@ -31,8 +32,14 @@ class PickFig(object):
         self.para = Para()
         self.para.path = path
         self.para.marker = marker
+        self.current_page = 0
         self.read_sac(self.para.resample_dt)
         self.init_figure()
+
+    def _get_y_limit(self):
+        self.low_lim = np.arange(1, self.stnum+1, self.para.num_per_page)
+        self.up_lim = np.append(self.low_lim[1:]-1, self.low_lim[-1]+self.para.num_per_page-1)
+        self.npage = self.low_lim.size
 
     def init_figure(self, figsize=(18,10)):
         self.fig, self.axes = plt.subplots(1, 2, sharey=True, figsize=figsize, tight_layout=True)
@@ -46,10 +53,12 @@ class PickFig(object):
             ax.set_title('{} Component'.format(st[0].stats.channel[-1]))
             ax.set_xlim(*self.para.xlim)
             ax.set_xlabel('Time (s)')
-            ax.set_ylim(0, self.stnum+1)
+            # ax.set_ylim(0, self.stnum+1)
             y_range = np.arange(self.stnum) + 1
             ax.set_yticks(y_range)
+            # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
             ax.set_yticklabels([tr.stats.network+'.'+tr.stats.station for tr in st])
+            ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
     def read_sac(self, resample_dt=0.025):
         self.dt = resample_dt
@@ -67,6 +76,7 @@ class PickFig(object):
         self.str_cp = self.str.copy()
         self.stz_cp = self.stz.copy()
         self.good_seis = np.ones(self.stnum)
+        self._get_y_limit()
         self.wvfillpos = [[[], []] for i in range(self.stnum)]
         self.wvfillnag = [[[], []] for i in range(self.stnum)]
     
@@ -132,6 +142,18 @@ class PickFig(object):
                                 alpha=0.5)
                 ax.plot([tt0, tt0], [i+1-0.3, i+1+0.3], color='blue')
                 ax.plot([ttal, ttal], [i+1-0.3, i+1+0.3], color='red')
+    
+    def page_up(self):
+        if self.current_page < self.npage-1:
+            self.current_page += 1
+            # for ax in self.axes:
+                # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
+    
+    def page_down(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            # for ax in self.axes:
+                # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
     def sort(self, key='gcarc'):
         values = np.array([tr.stats.sac[key] for tr in self.stz])
