@@ -311,6 +311,10 @@ class MatplotlibWidget(QMainWindow):
     
     def on_save(self):
         self.mpl.pf.save()
+        self.mpl.pf.reset()
+        self.mpl.pf.plot_seis()
+        self.mpl.pf.setup_figure()
+        self.mpl.draw()
 
     def on_plot(self):
         if self.mpl.pf.para.xlim[1] < self.mpl.pf.para.xlim[0]:

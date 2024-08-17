@@ -56,7 +56,6 @@ class PickFig(object):
             # ax.set_ylim(0, self.stnum+1)
             y_range = np.arange(self.stnum) + 1
             ax.set_yticks(y_range)
-            # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
             ax.set_yticklabels([tr.stats.network+'.'+tr.stats.station for tr in st])
             ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
@@ -87,9 +86,9 @@ class PickFig(object):
             self.str_cp = self.str.copy()
             self.stz_cp = self.stz.copy()
         self.str_cp.filter(type='bandpass', freqmin=self.para.freqmin, 
-                           freqmax=self.para.freqmax, corners=4, zerophase=True)
+                           freqmax=self.para.freqmax, corners=4, zerophase=False)
         self.stz_cp.filter(type='bandpass', freqmin=self.para.freqmin,
-                           freqmax=self.para.freqmax, corners=4, zerophase=True)
+                           freqmax=self.para.freqmax, corners=4, zerophase=False)
 
     def tdelta_mccc(self, tb=5, te=20):
         dataz = np.zeros((len(self.stz_cp), int((tb+te)/self.dt)))
@@ -214,10 +213,14 @@ class PickFig(object):
         if not (None in self.para.cut_win):
             self.trim()
         else:
-            self.str_trim = self.str_cp.copy()
-            self.stz_trim = self.stz_cp.copy()
+            self.str_trim = self.str.copy()
+            self.stz_trim = self.stz.copy()
         for i in range(self.stnum):
             if self.good_seis[i] == 0:
+                self.str_cp.remove(self.str_cp[i])
+                self.stz_cp.remove(self.stz_cp[i])
+                self.str.remove(self.str[i])
+                self.stz.remove(self.stz[i])
                 files = glob.glob(join(self.para.path,'{}.{}.*'.format(
                                   self.stz_trim[i].stats.sac.knetwk,
                                   self.stz_trim[i].stats.sac.kstnm)))
@@ -228,9 +231,20 @@ class PickFig(object):
                 for tr in [self.str_trim[i], self.stz_trim[i]]:
                     sac = SACTrace.from_obspy_trace(tr)
                     # sac.b = tref+self.para.cut_win[0]
-                    # sac.t0 = tref
+                    sac.t0 = tref + sac.b
                     sac.write(join(self.para.path, '{}.{}.{}.sac'.format(
                                 sac.knetwk, sac.kstnm, sac.kcmpnm)))
+        delete_idx = np.where(self.good_seis == 0)[0]
+        self.t0 = np.delete(self.t0, delete_idx)
+        self.tmccc = np.delete(self.tmccc, delete_idx)
+        self.tdelta = np.delete(self.tdelta, delete_idx)
+        self.stnum = len(self.stz_cp)
+        self.good_seis = np.ones(self.stnum)
+        
+    def reset(self):
+        for ax in self.axes:
+            ax.cla()
+        self._get_y_limit()
 
 
 if __name__ == '__main__':
