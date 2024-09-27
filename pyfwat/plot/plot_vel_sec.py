@@ -56,7 +56,7 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs',
         points = pygmt.project(center='{}/{}'.format(lon1, lat1),
                        endpoint='{}/{}'.format(lon2, lat2),
                        generate=hval, flat_earth=True)
-        xx, yy, zz = data['x']/1000, data['y']/1000, data['z']
+        xx, yy, zz = data['x']/1000, data['y']/1000, data['z']/1000
     depth = np.arange(zz[0], 0+vval, vval)
     points2d = np.empty([0, 4])
     for i, x in enumerate(points.values):
