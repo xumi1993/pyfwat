@@ -28,6 +28,7 @@ def traveltime(H,p,al,be,nlayer,x0,y0,z0,xi,yi,z,phi_FK):
     h=np.zeros(nlayer)
     ilayer=nlayer-1
     for j in range(nlayer-2,-1,-1):
+      print(j, z, np.sum(H[j:nlayer-1]))
       if z <= np.sum(H[j:nlayer-1]):
         ilayer = j
         break
@@ -67,7 +68,7 @@ def traveltime(H,p,al,be,nlayer,x0,y0,z0,xi,yi,z,phi_FK):
 ########################################################
 
 ###### read FKmodel ##########
-def create_fktimes(evtid, is_utm=False, shift=0):
+def create_fktimes(evtid, utmzone=None, shift=0):
   fkmodel = 'src_rec/FKmodel_{}'.format(evtid)
   fkfile = 'src_rec/STATIONS_{}'.format(evtid)
   f=open(fkmodel,'r')
@@ -128,7 +129,6 @@ def create_fktimes(evtid, is_utm=False, shift=0):
   elif kpsv==2:
     p=np.sin(theta_FK/180*np.pi)/vs_fk_input[nlayer-1]
     eta_p=np.cos(theta_FK/180*np.pi)/vs_fk_input[nlayer-1]
-  utm2latlon = Proj(proj='utm', ellps='WGS84', zone='46')
   fp=open(fkfile,'r')
   fp1=open('src_rec/FKtimes_{}'.format(fkmodel.split('_')[-1]),'w')
   for i, line in enumerate(fp):
@@ -143,7 +143,8 @@ def create_fktimes(evtid, is_utm=False, shift=0):
       stla=data[2]  # Lat
       stlo=data[3]  # Lon
       stel=data[4]  # Elevation: m
-      if is_utm:
+      if utmzone is not None:
+        utm2latlon = Proj(proj='utm', ellps='WGS84', zone=utmzone)
         xi,yi=utm2latlon(stlo,stla)
         zi=float(stel)
       else:
@@ -168,7 +169,7 @@ def create_fktimes(evtid, is_utm=False, shift=0):
 def main():
   parser = argparse.ArgumentParser('generate FKtimes (FKmodel and STATIONS should be in preparation)')
   parser.add_argument('-s', help="Set name", metavar='set_name')
-  parser.add_argument('-u', help='Use utm zone, default to false', action='store_true', default=False)
+  parser.add_argument('-u', help='Use utm zone, default to None', default=None, type=int)
   parser.add_argument('-t', help='Add a time shift, defaults to 0', default=0, type=float)
   args = parser.parse_args()
   with open('src_rec/sources_{}.dat'.format(args.s)) as f:
