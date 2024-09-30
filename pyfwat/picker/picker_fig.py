@@ -215,12 +215,12 @@ class PickFig(object):
         else:
             self.str_trim = self.str.copy()
             self.stz_trim = self.stz.copy()
+        self.str_cp = [ self.str_cp[i] for i in range(self.stnum) if self.good_seis[i] == 1]
+        self.stz_cp = [ self.stz_cp[i] for i in range(self.stnum) if self.good_seis[i] == 1]
+        self.str = [ self.str[i] for i in range(self.stnum) if self.good_seis[i] == 1]
+        self.stz = [ self.stz[i] for i in range(self.stnum) if self.good_seis[i] == 1]
         for i in range(self.stnum):
             if self.good_seis[i] == 0:
-                self.str_cp.remove(self.str_cp[i])
-                self.stz_cp.remove(self.stz_cp[i])
-                self.str.remove(self.str[i])
-                self.stz.remove(self.stz[i])
                 files = glob.glob(join(self.para.path,'{}.{}.*'.format(
                                   self.stz_trim[i].stats.sac.knetwk,
                                   self.stz_trim[i].stats.sac.kstnm)))
@@ -240,6 +240,8 @@ class PickFig(object):
         self.tdelta = np.delete(self.tdelta, delete_idx)
         self.stnum = len(self.stz_cp)
         self.good_seis = np.ones(self.stnum)
+        self._get_y_limit()
+        self.current_page = 0
         
     def reset(self):
         for ax in self.axes:

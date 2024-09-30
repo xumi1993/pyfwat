@@ -20,13 +20,14 @@ import glob
 
 
 class MyMplCanvas(FigureCanvas):
-    def __init__(self, parent=None, path='', marker='a',
+    def __init__(self, parent=None, path='', marker='a', enf=1,
                  xlim=[-20, 120]):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
         self.pf = PickFig(path, marker=marker)
         self.pf.para.xlim = xlim
+        self.pf.para.enf = enf
         # self.pf.read_sac()
         self.pf.tdelta_mccc()
 
@@ -40,18 +41,19 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
-    def __init__(self, path, marker='a', xlim=[-20, 120], 
+    def __init__(self, path, marker='a', xlim=[-20, 120], enf=1,
                  pre_flt=None, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.pre_flt = pre_flt
+        self.enf = enf
         self.initUi(path, marker)
         QMetaObject.connectSlotsByName(self)
 
     def initUi(self, path, marker):
         self.layout = QHBoxLayout()
         self._set_geom_center()
-        self.mpl = MyMplCanvas(self, path=path, marker=marker,
+        self.mpl = MyMplCanvas(self, path=path, marker=marker, enf=self.enf,
                                xlim=self.xlim)
 
         self.main_frame = QWidget()
@@ -173,9 +175,10 @@ class MatplotlibWidget(QMainWindow):
         align_layout.addWidget(self.fkButton)
         self.t0Radio = QRadioButton("Align with T0")
         self.t0Radio.setObjectName('t0')
-        self.t0Radio.setChecked(True)
         self.mcccRadio = QRadioButton("Align with MCCC")
         self.mcccRadio.setObjectName('mccc')
+        self.mcccRadio.setChecked(True)
+        self.mpl.pf.para.align = 'mccc'
         self.t0Radio.toggled.connect(self.on_align)
         self.mcccRadio.toggled.connect(self.on_align)
         align_layout.addWidget(self.t0Radio)
@@ -436,6 +439,7 @@ class MatplotlibWidget(QMainWindow):
 def main():
     parser = argparse.ArgumentParser(description="User interface for picking PRFs")
     parser.add_argument('path', type=str, help='Path to data directory')
+    parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
     #                     dest='xlim', default=None, type=float, metavar='xmax')
@@ -448,7 +452,7 @@ def main():
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path, pre_flt=pre_flt)
+    ui = MatplotlibWidget(path, pre_flt=pre_flt, enf=arg.e)
     ui.show()
     sys.exit(app.exec_())
 
