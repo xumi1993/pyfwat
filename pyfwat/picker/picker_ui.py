@@ -441,6 +441,7 @@ def main():
     parser.add_argument('path', type=str, help='Path to data directory')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
+    parser.add_argument('-m', help='marker for picking', default='a', metavar='marker')
     # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
     #                     dest='xlim', default=None, type=float, metavar='xmax')
     arg = parser.parse_args()
@@ -452,7 +453,7 @@ def main():
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path, pre_flt=pre_flt, enf=arg.e)
+    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e)
     ui.show()
     sys.exit(app.exec_())
 

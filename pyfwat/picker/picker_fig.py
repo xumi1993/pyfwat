@@ -6,6 +6,7 @@ from matplotlib.widgets import MultiCursor
 from os.path import join, basename
 from .mccc import mccc
 from obspy.io.sac import SACTrace
+from obspy.geodetics import gps2dist_azimuth, kilometer2degrees
 import glob
 import os
 
@@ -23,7 +24,7 @@ class Para():
         self.path = ''
         self.enf = 1
         self.resample_dt = 0.025
-        self.cut_win = [-5, 100]
+        self.cut_win = [None, None]
         self.num_per_page = 30
 
 
@@ -43,9 +44,10 @@ class PickFig(object):
 
     def init_figure(self, figsize=(18,10)):
         self.fig, self.axes = plt.subplots(1, 2, sharey=True, figsize=figsize, tight_layout=True)
-        self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\circ$, Longitude: {:.3f}$^\circ$, Depth: {:.1f}, Mag: {:.1f}'.format(
+        self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\circ$, Longitude: {:.3f}$^\circ$, Depth: {:.1f}, Mag: {:.1f}\n'
+                          'Averaged distance: {:.2f}$^\circ$, Averaged back-azimuth: {:.2f}$^\circ$'.format(
                           basename(self.para.path), self.stz[0].stats.sac.evla, self.stz[0].stats.sac.evlo,
-                          self.stz[0].stats.sac.evdp, self.stz[0].stats.sac.mag), fontweight="bold")
+                          self.stz[0].stats.sac.evdp, self.stz[0].stats.sac.mag, np.mean(self.dist), np.mean(self.baz)), fontweight="bold")
     
     def setup_figure(self):
         for st, icomp in zip([self.str_cp, self.stz_cp], [0, 1]):
@@ -71,6 +73,7 @@ class PickFig(object):
         for i, str in enumerate(self.str):
             str.resample(sample_rate)
             self.stz[i].resample(sample_rate)
+        self._calc_distaz()
         self.sort()
         self.str_cp = self.str.copy()
         self.stz_cp = self.stz.copy()
@@ -79,6 +82,15 @@ class PickFig(object):
         self.wvfillpos = [[[], []] for i in range(self.stnum)]
         self.wvfillnag = [[[], []] for i in range(self.stnum)]
     
+    def _calc_distaz(self):
+        self.dist = np.zeros(self.stnum)
+        self.baz = np.zeros(self.stnum)
+        for i, tr in enumerate(self.stz):
+            distaz = gps2dist_azimuth(tr.stats.sac.evla, tr.stats.sac.evlo,
+                                    tr.stats.sac.stla, tr.stats.sac.stlo)
+            self.dist[i] = kilometer2degrees(distaz[0]/1000)
+            self.baz[i] = distaz[2]
+
     def filter(self, renew=True):
         if self.para.freqmin is None or self.para.freqmax is None:
             return
@@ -155,8 +167,12 @@ class PickFig(object):
                 # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
     def sort(self, key='gcarc'):
-        values = np.array([tr.stats.sac[key] for tr in self.stz])
-        idx = np.argsort(values)
+        if key == 'gcarc':
+            idx = np.argsort(self.dist)
+        elif key == 'baz':
+            idx = np.argsort(self.baz)
+        self.dist = self.dist[idx]
+        self.baz = self.baz[idx]
         self.stz = obspy.Stream([self.stz[i] for i in idx])
         self.str = obspy.Stream([self.str[i] for i in idx])
 
@@ -196,8 +212,6 @@ class PickFig(object):
         return tref
 
     def trim(self):
-        self.str_trim = self.str_cp.copy()
-        self.stz_trim = self.stz_cp.copy()
         for i in np.where(self.good_seis == 0)[0]:
             tref = self.get_tref(i)
             self.str_trim[i].trim(self.str_trim[i].stats.starttime+tref+self.para.cut_win[0],
@@ -210,11 +224,10 @@ class PickFig(object):
         self.stz_cp = self.stz.copy()
 
     def save(self):
+        self.str_trim = self.str.copy()
+        self.stz_trim = self.stz.copy()
         if not (None in self.para.cut_win):
             self.trim()
-        else:
-            self.str_trim = self.str.copy()
-            self.stz_trim = self.stz.copy()
         self.str_cp = [ self.str_cp[i] for i in range(self.stnum) if self.good_seis[i] == 1]
         self.stz_cp = [ self.stz_cp[i] for i in range(self.stnum) if self.good_seis[i] == 1]
         self.str = [ self.str[i] for i in range(self.stnum) if self.good_seis[i] == 1]
@@ -241,6 +254,7 @@ class PickFig(object):
         self.stnum = len(self.stz_cp)
         self.good_seis = np.ones(self.stnum)
         self._get_y_limit()
+        self.get_avg_amp()
         self.current_page = 0
         
     def reset(self):
