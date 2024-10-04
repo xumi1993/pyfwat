@@ -21,13 +21,15 @@ import glob
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self, parent=None, path='', marker='a', enf=1,
-                 xlim=[-20, 120]):
+                 xlim=[-20, 120], num=30):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
         self.pf = PickFig(path, marker=marker)
         self.pf.para.xlim = xlim
         self.pf.para.enf = enf
+        self.pf.para.num_per_page = num
+        self.pf.init_figure()
         # self.pf.read_sac()
         self.pf.tdelta_mccc()
 
@@ -42,11 +44,12 @@ class MyMplCanvas(FigureCanvas):
 
 class MatplotlibWidget(QMainWindow):
     def __init__(self, path, marker='a', xlim=[-20, 120], enf=1,
-                 pre_flt=None, parent=None):
+                 pre_flt=None, num=30, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.pre_flt = pre_flt
         self.enf = enf
+        self.num = num
         self.initUi(path, marker)
         QMetaObject.connectSlotsByName(self)
 
@@ -54,7 +57,7 @@ class MatplotlibWidget(QMainWindow):
         self.layout = QHBoxLayout()
         self._set_geom_center()
         self.mpl = MyMplCanvas(self, path=path, marker=marker, enf=self.enf,
-                               xlim=self.xlim)
+                               xlim=self.xlim, num=self.num)
 
         self.main_frame = QWidget()
         self.setCentralWidget(self.main_frame)
@@ -442,6 +445,7 @@ def main():
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     parser.add_argument('-m', help='marker for picking', default='a', metavar='marker')
+    parser.add_argument('-n', help='number of traces per page', default=30, type=int, metavar='num')
     # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
     #                     dest='xlim', default=None, type=float, metavar='xmax')
     arg = parser.parse_args()
@@ -453,7 +457,7 @@ def main():
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e)
+    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e, num=arg.n)
     ui.show()
     sys.exit(app.exec_())
 

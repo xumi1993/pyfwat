@@ -35,7 +35,6 @@ class PickFig(object):
         self.para.marker = marker
         self.current_page = 0
         self.read_sac(self.para.resample_dt)
-        self.init_figure()
 
     def _get_y_limit(self):
         self.low_lim = np.arange(1, self.stnum+1, self.para.num_per_page)
@@ -48,6 +47,7 @@ class PickFig(object):
                           'Averaged distance: {:.2f}$^\circ$, Averaged back-azimuth: {:.2f}$^\circ$'.format(
                           basename(self.para.path), self.stz[0].stats.sac.evla, self.stz[0].stats.sac.evlo,
                           self.stz[0].stats.sac.evdp, self.stz[0].stats.sac.mag, np.mean(self.dist), np.mean(self.baz)), fontweight="bold")
+        self._get_y_limit()
     
     def setup_figure(self):
         for st, icomp in zip([self.str_cp, self.stz_cp], [0, 1]):
@@ -78,7 +78,6 @@ class PickFig(object):
         self.str_cp = self.str.copy()
         self.stz_cp = self.stz.copy()
         self.good_seis = np.ones(self.stnum)
-        self._get_y_limit()
         self.wvfillpos = [[[], []] for i in range(self.stnum)]
         self.wvfillnag = [[[], []] for i in range(self.stnum)]
     
