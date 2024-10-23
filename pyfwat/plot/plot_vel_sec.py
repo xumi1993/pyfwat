@@ -6,7 +6,7 @@ from os.path import basename, dirname, join, exists
 from scipy.interpolate import interpn
 import pygmt
 import argparse
-from ..utils import parse_cpt_name
+from ..utils.utils import parse_cpt_name
 from ..pario import readpar
 from pyproj import Geod, Proj
 

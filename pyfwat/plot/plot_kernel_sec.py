@@ -6,7 +6,7 @@ import pygmt
 import argparse
 from .plot_vel_sec import proj_sta, interp_sec
 from pyproj import Geod
-from ..utils import parse_cpt_name
+from ..utils.utils import parse_cpt_name
 
 
 class Pltvel():

@@ -3,20 +3,22 @@ import h5py
 
 class GridModel():
     def __init__(self, fname:str) -> None:
-        # npdata = np.load(fname)
-        # self.model = npdata[npdata.__dict__['files'][-1]]
-        # self.x = npdata['x']
-        # self.y = npdata['y']
-        # self.z = npdata['z']
-        with h5py.File(fname, 'r') as f:
-            key_list = list(f.keys())
-            for tname in ['x', 'y', 'z']:
-                key_list.remove(tname)
-            self.key_name = key_list[0]
-            self.model = f[self.key_name][:]
-            self.x = f['x'][:]
-            self.y = f['y'][:]
-            self.z = f['z'][:]
+        try:
+            npdata = np.load(fname)
+            self.model = npdata[npdata.__dict__['files'][-1]]
+            self.x = npdata['x']
+            self.y = npdata['y']
+            self.z = npdata['z']
+        except:
+            with h5py.File(fname, 'r') as f:
+                key_list = list(f.keys())
+                for tname in ['x', 'y', 'z']:
+                    key_list.remove(tname)
+                self.key_name = key_list[0]
+                self.model = f[self.key_name][:]
+                self.x = f['x'][:]
+                self.y = f['y'][:]
+                self.z = f['z'][:]
         self.dx = np.mean(np.diff(self.x))
         self.dy = np.mean(np.diff(self.y))
         self.dz = np.mean(np.diff(self.z))
