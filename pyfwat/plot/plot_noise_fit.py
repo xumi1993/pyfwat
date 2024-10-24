@@ -27,15 +27,19 @@ def pre_plot(modelname, evtid, comp, fltstr):
     num_sta = xlim_all.shape[0]
     return xlim, ylim
 
+def read_time_windows(modelname, evtid, comp, fltstr):
+    st = obspy.read(f'solver/{modelname}.set*/{evtid}/OUTPUT_FILES/*{comp}.obs.sac.{fltstr}')
+    output = np.zeros([len(st), 3])
+    for i, tr in enumerate(st):
+        output[i, 0] = tr.stats.sac.dist
+        output[i, 1] = tr.stats.sac.t1
+        output[i, 2] = tr.stats.sac.t2
+    return output
 
 def plot_noise_fit(modelname, evtid, fltstr, comp='Z', xlim=None, outpath='./figures',
                   enf=0.001):
     xlim_auto, ylim = pre_plot(modelname, evtid, comp, fltstr)
-    # fktimes = read_time_window(evtid)
-    # if not exists(par_file):
-    #     raise FileNotFoundError('No such file of {}'.format(par_file))
-    # time_before = readfwatpar(par_file, 'TW_BEFORE')
-    # time_after = readfwatpar(par_file, 'TW_AFTER')
+    time_win = read_time_windows(modelname, evtid, comp, fltstr)
     if xlim is None:
         xlim = xlim_auto
     fig = pygmt.Figure()
@@ -43,10 +47,12 @@ def plot_noise_fit(modelname, evtid, fltstr, comp='Z', xlim=None, outpath='./fig
                  MAP_GRID_PEN='0.3p,gray')
     # fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',
     #             frame=['xafg+l"Time (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
-    fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',frame=['xafg+l"Time (s)"', 'yaf+l"Distance (km)"'])
+    fig.basemap(region=[*xlim, *ylim], projection='X10c/10c',frame=['xafg+lTime (s)', 'yaf+lDistance (km)'])
     with Session() as lib:
         lib.call_module("sac", "saclst_dat_plot -Ek -M{} -W0.6p".format(enf))
         lib.call_module("sac", "saclst_syn -Ek -M{} -W0.6p,255/25/25".format(enf))
+    fig.plot(x=time_win[:, 1], y=time_win[:, 0], style='y0.2c', pen='1p,deepskyblue3')
+    fig.plot(x=time_win[:, 2], y=time_win[:, 0], style='y0.2c', pen='1p,deepskyblue3')
     fig.savefig('{}/{}.set{}_noise_{}_{}_fit.png'.format(outpath, modelname, evtid, comp, fltstr))
     post_plot()
 

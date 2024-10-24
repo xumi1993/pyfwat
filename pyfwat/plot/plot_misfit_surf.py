@@ -3,11 +3,15 @@ import glob
 import numpy as np
 import argparse
 from ..pario import readfwatpar
+from pyfwat import DATA_PATH
+import os
 
 
 def read_misfit(it, filtstr, col=28):
-    fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
+    misfit_file = 'misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr)
+    fs = glob.glob(misfit_file)
     if len(fs) == 0:
+        print(f'No misfit files found for iteration {misfit_file}')
         return np.nan
     misfit = 0
     for f in fs:
@@ -34,14 +38,14 @@ class PlotMisfit():
         self.read_misfit_all()
 
     def read_freq(self):
-        self.periodmin = readfwatpar('fwat_params/FWAT.PAR', 'NOISE_SHORT_P')
-        self.periodmax = readfwatpar('fwat_params/FWAT.PAR', 'NOISE_LONG_P')
+        self.periodmin = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'NOISE_SHORT_P')
+        self.periodmax = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'NOISE_LONG_P')
         self.bandname = ['T{:03.0f}_T{:03.0f}'.format(pmin, pmax) for pmin, pmax in zip(self.periodmin, self.periodmax)]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
         # self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
 
     def read_gaus(self):
-        self.gaus = readfwatpar('fwat_params/FWAT.PAR', 'RF_F0')
+        self.gaus = readfwatpar('{DATA_PATH}/FWAT.PAR', 'RF_F0')
         self.bandname = ['F{:.1f}'.format(ff) for ff in self.gaus]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
 
@@ -67,7 +71,7 @@ class PlotMisfit():
             ylim = [np.min(self.misfit_mean)-bound_ms, np.max(self.misfit_mean)+bound_ms]
         fig.basemap(region=[self.iter_start-bound, self.iter_end+bound, *ylim],
                     projection="X10c/7c",
-                    frame=['WSrt', 'xaf+l"Iteration"', 'yaf+l"Misfit"'])
+                    frame=['WSrt', 'xaf1+lIteration', 'yaf+lMisfit'])
         if self.all_band:
             for i, band in enumerate(self.bandname):
                 if not avg:
@@ -77,6 +81,7 @@ class PlotMisfit():
         if avg:
             fig.plot(x=self.iters, y=self.misfit_mean, pen='0.5p')
             fig.plot(x=self.iters, y=self.misfit_mean, style='c0.25c', fill=color, pen='0.1p')
+        os.makedirs(outpath, exist_ok=True)
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multifreq.png'.format(outpath, self.iter_start, self.iter_end))
 
 
