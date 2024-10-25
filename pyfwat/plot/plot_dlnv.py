@@ -1,7 +1,6 @@
 import numpy as np
 import pygmt
 from scipy.interpolate import interpn
-from seispy.geo import km2deg, deg2km
 import sys
 
 
