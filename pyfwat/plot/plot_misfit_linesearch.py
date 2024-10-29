@@ -5,10 +5,11 @@ import argparse
 import re
 from ..pario import readfwatpar
 import matplotlib.pyplot as plt
+from pyfwat import DATA_PATH
 
 colors = ['47/127/193', '150/195/125', '196/151/178', '218/56/58']
 
-def read_flts(simu_type, parfile='fwat_params/FWAT.PAR'):
+def read_flts(simu_type, parfile=f'{DATA_PATH}/FWAT.PAR'):
     if simu_type != 'rf':
         nflt = readfwatpar(parfile, '{}_NUM_FILTER'.format(simu_type.upper()))
         shortp = readfwatpar(parfile, '{}_SHORT_P'.format(simu_type.upper()))
@@ -32,9 +33,11 @@ class PlotMisfitLS():
         self.modname = modname
         self.col = col
         self.filtstr = filtstr
+        self.setname = setname
         self.files = sorted(glob.glob('misfits/{}_step*.{}_{}*'.format(modname, setname, filtstr)))
         # print(self.files)
-        self.read_misfit()        
+        self.read_misfit()
+        print(self.steplen, self.chi)
     
     def read_misfit(self):
         self.chi = np.zeros(len(self.files))
@@ -43,7 +46,7 @@ class PlotMisfitLS():
             chi = np.loadtxt(step_file, usecols=[self.col], unpack=True)
             chi = chi[chi!=0.0]
             self.chi[i] = np.mean(chi)
-            self.steplen[i] = float(re.findall(r'step(.+?).ls', step_file)[0])
+            self.steplen[i] = float(re.findall(r'step(.+?)\.{}'.format(self.setname), step_file)[0])
 
     def plot(self, outpath='./figures', color='255/50/50'):
         fig = pygmt.Figure()
@@ -74,7 +77,7 @@ def plot_all(model, simu_type, setname='ls', col=28, outpath='./figures'):
     fig.basemap(
         region=[pm.steplen[0]-boundx, pm.steplen[-1]+boundx, ymin-boundy, ymax+boundy],
         projection='X8c/6c',
-        frame=['WSrt', 'xa+l"Step length"', 'yaf+l"Misfit"'],
+        frame=['WSrt', 'xa+lStep length', 'yaf+lMisfit'],
     )
     for i, flt in enumerate(flts):
         fig.plot(x=steplen[i], y=chi[i], style='c0.2c', fill=colors[i], label=flt)
