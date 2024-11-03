@@ -21,8 +21,9 @@ class PlotMulMisfit():
         for i, stage in enumerate(self.stages):
             self.stages[i].append(np.array([read_misfit(iter, '*', col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
         if norm:
+            maxchi = np.concatenate([st[-1] for st in self.stages]).max()
             for i, stage in enumerate(self.stages):
-                stage[-1] /= np.max(stage[-1])
+                stage[-1] /= maxchi
         self.max_misfit = max([np.max(st[-1]) for st in self.stages])
         self.min_misfit = min([np.min(st[-1]) for st in self.stages])
 
@@ -34,11 +35,11 @@ class PlotMulMisfit():
             bound = 0.95
         bound_ms = ((self.max_misfit-self.min_misfit)/self.max_misfit)*0.1
         fig.basemap(region=[self.stages[0][0]-bound, self.stages[-1][1]+bound, self.min_misfit-bound_ms, self.max_misfit+bound_ms],
-                    projection="x0.5c/3c",
-                    frame=['WSrt', 'xaf+l"Iteration"', 'yaf+l"Misfit"'])
+                    projection="x0.6c/7c",
+                    frame=['WSrt', 'xaf+lIteration', 'yaf+lMisfit'])
         for i, stage in enumerate(self.stages):
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], pen='0.5p')
-            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', color=self.colors[i], pen='0.1p')
+            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=self.colors[i], pen='0.1p')
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multistages.png'.format(outpath, self.stages[0][0], self.stages[-1][1]))
 
 
@@ -48,8 +49,8 @@ def main():
                         metavar='it1_start/it1_end,it2_start/it2_end')
     parser.add_argument('-l', help='Columns in misfit files with iterations, defaults to 28,28,28',
                         metavar='col_num', default=None)
-    parser.add_argument('-n', help='normlization with stages or iterations, defaults to iterations',
-                        action='store_true')
+    # parser.add_argument('-n', help='normlization with stages or iterations, defaults to iterations',
+                        # action='store_true')
     parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/25/25')
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
@@ -59,7 +60,7 @@ def main():
     else:
         cols = [int(v) for v in args.l.split(',')]
     stages = [[int(st[0]), int(st[1]), col] for st, col in zip(its, cols)]
-    pm = PlotMulMisfit(stages, norm=args.n)
+    pm = PlotMulMisfit(stages, norm=True)
     pm.plot(args.o)
         
             
