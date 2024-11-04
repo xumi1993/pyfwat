@@ -46,8 +46,9 @@ def readfkpar(par_file, key):
 
 
 def readfwatpar(par_file, key):
-    int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX']
-    array_str = ['SHORT_P', 'LONG_P', 'GROUPVEL_MIN', 'GROUPVEL_MAX', 'STEP_LENS', 'F0']
+    int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX', 'ITER_START']
+    array_str = ['NOISE_SHORT_P', 'NOISE_LONG_P', 'NOISE_GROUPVEL_MIN', 'NOISE_GROUPVEL_MAX',
+                 'STEP_LENS', 'F0', 'JOINT_WEIGHT']
     with open(par_file) as f:
         par = f.read()
     outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
