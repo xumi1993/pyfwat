@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+from scipy.interpolate import interpn
 
 class GridModel():
     def __init__(self, fname:str) -> None:
@@ -47,3 +48,56 @@ class GridModel():
         with h5py.File(ref_model_fname, 'r') as f:
             ref_model = f[self.key_name][:]
         self.dv = 100 * (self.model - ref_model) / ref_model
+
+    def interp_sec(self, start_point, end_point, is_geo=True, val=5, is_pert=False):
+        """ Interpolate the section between two points.
+
+        :param start_point: The start point.
+        :type start_point: tuple
+        :param end_point: The end point.
+        :type end_point: tuple
+        :param val: The interval value.
+        :type val: float
+        """
+        from pyproj import Geod
+
+        # Initialize a profile
+        if is_geo:
+            g = Geod(ellps='WGS84')
+            az, _, dist = g.inv(start_point[0],start_point[1],end_point[0],end_point[1])
+            sec_range = np.arange(0, dist/1000, val)
+            r = g.fwd_intermediate(start_point[0],start_point[1], az, npts=sec_range.size, del_s=val*1000)
+            lat = r.lats
+            lon = r.lons
+        else:
+            az = np.arctan2(end_point[1]-start_point[1], end_point[0]-start_point[0])
+            dist = np.sqrt((end_point[0]-start_point[0])**2+(end_point[1]-start_point[1])**2)
+            sec_range = np.arange(0, dist, val)
+            lat = np.zeros(sec_range.size)
+            lon = np.zeros(sec_range.size)
+            for i, r in enumerate(sec_range):
+                lon[i] = start_point[0]+r*np.cos(az)
+                lat[i] = start_point[1]+r*np.sin(az)
+
+        # create points array
+        points = np.zeros([sec_range.size*self.z.size, 5])
+        offset = 0
+        for i, lola in enumerate(zip(lon, lat)):
+            for _, dep in enumerate(self.z):
+                points[offset] = [lola[0], lola[1], dep, sec_range[i], 0.]
+                offset += 1
+
+        # Interpolation
+        if is_pert:
+            model = self.dv
+        else:
+            model = self.model
+        points[:, 4] = interpn(
+            (self.x, 
+             self.y, 
+             self.z),
+            model,
+            points[:, 0:3],
+            bounds_error=False
+        )
+        return points
