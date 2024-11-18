@@ -18,7 +18,7 @@ class Para():
     def __init__(self):
         self.freqmin = None
         self.freqmax = None
-        self.xlim = [-20, 100]
+        self.xlim = [-50, 100]
         self.marker = 'a'
         self.align = 'a'
         self.path = ''
@@ -90,16 +90,16 @@ class PickFig(object):
             self.dist[i] = kilometer2degrees(distaz[0]/1000)
             self.baz[i] = distaz[2]
 
-    def filter(self, renew=True):
+    def filter(self, renew=True, zerosphase=True):
         if self.para.freqmin is None or self.para.freqmax is None:
             return
         if renew:
             self.str_cp = self.str.copy()
             self.stz_cp = self.stz.copy()
         self.str_cp.filter(type='bandpass', freqmin=self.para.freqmin, 
-                           freqmax=self.para.freqmax, corners=4, zerophase=False)
+                           freqmax=self.para.freqmax, corners=4, zerophase=zerosphase)
         self.stz_cp.filter(type='bandpass', freqmin=self.para.freqmin,
-                           freqmax=self.para.freqmax, corners=4, zerophase=False)
+                           freqmax=self.para.freqmax, corners=4, zerophase=zerosphase)
 
     def tdelta_mccc(self, tb=5, te=20):
         dataz = np.zeros((len(self.stz_cp), int((tb+te)/self.dt)))

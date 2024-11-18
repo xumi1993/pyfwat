@@ -21,7 +21,7 @@ import glob
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self, parent=None, path='', marker='a', enf=1,
-                 xlim=[-20, 120], num=30):
+                 xlim=[-50, 120], num=30):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
@@ -43,7 +43,7 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
-    def __init__(self, path, marker='a', xlim=[-20, 120], enf=1,
+    def __init__(self, path, marker='a', xlim=[-50, 120], enf=1,
                  pre_flt=None, num=30, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
@@ -204,6 +204,7 @@ class MatplotlibWidget(QMainWindow):
         self.horizontalLayout_2.addWidget(self.label)
         self.lineEdit_freqmin = QLineEdit()
         # self.lineEdit_freqmin.setObjectName("freqmin")
+        self.lineEdit_freqmin.setText('{}'.format(self.pre_flt[0] if self.pre_flt is not None else None))
         self.lineEdit_freqmin.textChanged.connect(self.on_freqmin_changed)
         self.horizontalLayout_2.addWidget(self.lineEdit_freqmin)
         self.Filter.addLayout(self.horizontalLayout_2)
@@ -213,6 +214,7 @@ class MatplotlibWidget(QMainWindow):
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_3.addWidget(self.label_2)
         self.lineEdit_freqmax = QLineEdit()
+        self.lineEdit_freqmax.setText('{}'.format(self.pre_flt[1] if self.pre_flt is not None else None))
         # self.lineEdit_freqmax.setObjectName("freqmax")
         self.lineEdit_freqmax.textChanged.connect(self.on_freqmax_changed)
         self.horizontalLayout_3.addWidget(self.lineEdit_freqmax)
@@ -446,8 +448,8 @@ def main():
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     parser.add_argument('-m', help='marker for picking', default='a', metavar='marker')
     parser.add_argument('-n', help='number of traces per page', default=30, type=int, metavar='num')
-    # parser.add_argument('-x', help="Set x limits of the current axes, defaults to 30s for RT, 85s for R.",
-    #                     dest='xlim', default=None, type=float, metavar='xmax')
+    parser.add_argument('-x', help="Set x limits of the current axes, defaults to [-20, 120]",
+                        dest='xlim', default=None, type=float, metavar='xmin/xmax')
     arg = parser.parse_args()
     path = arg.path
     if arg.f is None:
