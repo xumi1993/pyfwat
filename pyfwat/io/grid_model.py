@@ -3,19 +3,26 @@ import h5py
 from scipy.interpolate import interpn
 
 class GridModel():
-    def __init__(self, fname:str) -> None:
+    def __init__(self, fname:str, key=None) -> None:
         try:
             npdata = np.load(fname)
-            self.model = npdata[npdata.__dict__['files'][-1]]
+            if key is not None:
+                self.key_name = key
+            else:
+                self.key_name = npdata.__dict__['files'][-1]
+            self.model = npdata[self.key_name]
             self.x = npdata['x']
             self.y = npdata['y']
             self.z = npdata['z']
         except:
             with h5py.File(fname, 'r') as f:
-                key_list = list(f.keys())
-                for tname in ['x', 'y', 'z']:
-                    key_list.remove(tname)
-                self.key_name = key_list[0]
+                if key is None:
+                    key_list = list(f.keys())
+                    for tname in ['x', 'y', 'z']:
+                        key_list.remove(tname)
+                    self.key_name = key_list[0]
+                else:
+                    self.key_name = key
                 self.model = f[self.key_name][:]
                 self.x = f['x'][:]
                 self.y = f['y'][:]
