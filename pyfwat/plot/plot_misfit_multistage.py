@@ -5,21 +5,24 @@ import argparse
 
 
 class PlotMulMisfit():
-    def __init__(self, stages, norm=True):
+    def __init__(self, stages, fltlst, norm=True):
         """Plot misfit with multi stages.
 
         Parameters
         ----------
         stages : list
             Stages information with 3 columns: start iteration, end iteration, column in misfit file to plot.
+        fltlst : list
+            List of band names.
         """
         self.stages = stages
+        self.fltlst = fltlst
         self.read_stage_misfit(norm)
         self.colors = ['218/56/58', '47/127/193', '150/195/125', '196/151/178']
 
     def read_stage_misfit(self, norm=True):
         for i, stage in enumerate(self.stages):
-            self.stages[i].append(np.array([read_misfit(iter, '*', col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
+            self.stages[i].append(np.array([read_misfit(iter, self.fltlst[i], col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
         if norm:
             maxchi = np.concatenate([st[-1] for st in self.stages]).max()
             for i, stage in enumerate(self.stages):
@@ -35,16 +38,18 @@ class PlotMulMisfit():
             bound = 0.95
         bound_ms = ((self.max_misfit-self.min_misfit)/self.max_misfit)*0.1
         fig.basemap(region=[self.stages[0][0]-bound, self.stages[-1][1]+bound, self.min_misfit-bound_ms, self.max_misfit+bound_ms],
-                    projection="x0.6c/7c",
+                    projection="x0.6c/10c",
                     frame=['WSrt', 'xaf+lIteration', 'yaf+lMisfit'])
         for i, stage in enumerate(self.stages):
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], pen='0.5p')
-            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=self.colors[i], pen='0.1p')
+            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=self.colors[i], pen='0.1p', label=self.fltlst[i])
+        fig.legend(position='JTR+jTR+o0.2c', box='+gwhite+p1p')
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multistages.png'.format(outpath, self.stages[0][0], self.stages[-1][1]))
 
 
 def main():
     parser = argparse.ArgumentParser('Plot Misfit with multi stages')
+    parser.add_argument('-f', help='band name of misfit files', metavar='band_name1/band_name2', default='*')
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/5,6/9,10/15',
                         metavar='it1_start/it1_end,it2_start/it2_end')
     parser.add_argument('-l', help='Columns in misfit files with iterations, defaults to 28,28,28',
@@ -55,12 +60,16 @@ def main():
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
     its = [v.split('/') for v in args.m.split(',')]
+    if args.f != '*':
+        fltlst = [v for v in args.f.split('/')]
+    else:
+        fltlst = ['*']*len(its)
     if args.l is None:
         cols = [28]*len(its)
     else:
         cols = [int(v) for v in args.l.split(',')]
     stages = [[int(st[0]), int(st[1]), col] for st, col in zip(its, cols)]
-    pm = PlotMulMisfit(stages, norm=True)
+    pm = PlotMulMisfit(stages, fltlst=fltlst, norm=True)
     pm.plot(args.o)
         
             
