@@ -52,9 +52,9 @@ def readfwatpar(par_file, key):
     with open(par_file) as f:
         par = f.read()
     outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
-    if '_'.join(key.upper().split('_')[1:]) in array_str:
+    if key.upper() in array_str:
         return np.array([float(v) for v in outstr.split()])
-    elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS']:
+    elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS', 'SET_RANGE']:
         return [v for v in outstr.split()]
     elif outstr.lower() == '.true.':
         return True
