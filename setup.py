@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 setup(name='pyfwat',
       version=VERSION,
       author='Mijian Xu',
@@ -49,7 +49,9 @@ setup(name='pyfwat',
                                         'optimize_ls=pyfwat.postproc.optimize_ls:main',
                                         'cal_fk_times=pyfwat.preproc.cal_fk_times:main',
                                         'fwat_clean=pyfwat.postproc.clean:main',
-                                        'create_xmf=pyfwat.io.xdmf:create_xmf',]},
+                                        'create_xmf=pyfwat.io.xdmf:create_xmf',
+                                        'fwat_joint_kernel=pyfwat.postproc.joint_kernel:main',
+                                        'fwat_model_update=pyfwat.postproc.model_update:main',]},
       #  include_package_data=True,
       zip_safe=False,
       classifiers=['Programming Language :: Python',
