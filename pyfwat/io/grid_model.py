@@ -55,6 +55,11 @@ class GridModel():
         with h5py.File(ref_model_fname, 'r') as f:
             ref_model = f[self.key_name][:]
         self.dv = 100 * (self.model - ref_model) / ref_model
+    
+    def calc_dv_avg(self):
+        self.dv = np.zeros_like(self.model)
+        for i in range(self.z.size):
+            self.dv[:, :, i] = 100 * (self.model[:, :, i] - np.mean(self.model[:, :, i])) / np.mean(self.model[:, :, i])
 
     def interp_sec(self, start_point, end_point, is_geo=True, val=5, is_pert=False):
         """ Interpolate the section between two points.
