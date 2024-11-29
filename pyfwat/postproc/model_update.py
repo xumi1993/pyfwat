@@ -18,6 +18,7 @@ class ModUpdate():
         self.iter_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
         self.m_store = int(readfwatpar('DATA/FWAT.PAR', 'LBFGS_M_STORE'))
         self.do_ls = readfwatpar('DATA/FWAT.PAR', 'DO_LS')
+        self.optim_method = readfwatpar('DATA/FWAT.PAR', 'OPT_METHOD')
         self.read_coord()
 
     def lbfgs(self):
@@ -62,7 +63,8 @@ class ModUpdate():
             self.r_vector += (a[i] - b) * model_diff
     
     def model_update(self):
-        if self.iter_current == self.iter_start:
+        print(self.optim_method)
+        if self.iter_current == self.iter_start or self.optim_method == 'SD':
             self.r_vector = self.read_gradient(self.iter_current)
         else:
             self.lbfgs()

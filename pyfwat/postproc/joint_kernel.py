@@ -42,14 +42,21 @@ class JointKernel():
             data[simu] = np.stack(grad_all)
         return data
 
+    def read_misfit(self):
+        self.misfit = {}
+        self.misfit['noise'] = read_misfit(self.model_start, self.setname['noise'])
+        self.misfit['tele'] = read_misfit(self.model_start, self.setname['tele'])
+
     def sum(self):
-        data0 = self.read(self.model_start)
+        # data0 = self.read(self.model_start)
+        self.read_misfit()
         self.grad = {}
         for kernel in kernel_name:
             self.grad[kernel] = np.zeros(self.data['noise'][0].shape)
         for i, simu in enumerate(simu_type):
             # misfit = read_misfit(self.model_start, self.setname[simu])
-            self.data[simu] /= np.max(np.abs(data0[simu]))
+            # self.data[simu] /= np.max(np.abs(data0[simu]))
+            self.data[simu] /= self.misfit[simu]
             self.data[simu] *=  self.weight[i]
             # self.data[simu] /= misfit
             print(f'max {simu} grad: {np.max(np.abs(self.data[simu]))}')

@@ -65,9 +65,8 @@ def readfwatpar(par_file, key):
     else:
         try:
             return float(outstr)
-        except Exception:
-            raise ValueError('Error format in {}'.format(key))
-
+        except:
+            return outstr
 
 def bool2str(condition):
     if not isinstance(condition, bool):
