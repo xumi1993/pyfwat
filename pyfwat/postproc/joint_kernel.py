@@ -47,18 +47,21 @@ class JointKernel():
         self.misfit['noise'] = read_misfit(self.model_start, self.setname['noise'])
         self.misfit['tele'] = read_misfit(self.model_start, self.setname['tele'])
 
-    def sum(self):
-        # data0 = self.read(self.model_start)
+    def sum(self, misfit_norm=False):
+        normval = {}
+        if misfit_norm:
+            for simu in simu_type:
+                normval[simu] = read_misfit(self.model_start, self.setname[simu])
+        else:
+            data0 = self.read(self.model_start)
+            for simu in simu_type:
+                normval[simu] = np.max(np.abs(data0[simu]))
         self.read_misfit()
         self.grad = {}
         for kernel in kernel_name:
             self.grad[kernel] = np.zeros(self.data['noise'][0].shape)
         for i, simu in enumerate(simu_type):
-            # misfit = read_misfit(self.model_start, self.setname[simu])
-            # self.data[simu] /= np.max(np.abs(data0[simu]))
-            self.data[simu] /= self.misfit[simu]
-            self.data[simu] *=  self.weight[i]
-            # self.data[simu] /= misfit
+            self.data[simu] /= normval[simu] * self.weight[i]
             print(f'max {simu} grad: {np.max(np.abs(self.data[simu]))}')
             for j, kernel in enumerate(kernel_name):
                 self.grad[kernel] += self.data[simu][j]
@@ -80,9 +83,10 @@ class JointKernel():
 def main():
     parser = argparse.ArgumentParser('Joint kernel of different data sets')
     parser.add_argument('-m', help='Model name e.g.,M01', metavar='M??', required=True)
+    parser.add_argument('-n', help='Normalize the gradient by misfit', action='store_true', default=False)
     args = parser.parse_args()
     joint = JointKernel(args.m)
-    joint.sum()
+    joint.sum(misfit_norm=args.n)
     joint.write()
 
 if __name__ == '__main__':
