@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-VERSION = "0.1.5"
+VERSION = "0.2.0"
 setup(name='pyfwat',
       version=VERSION,
       author='Mijian Xu',
@@ -26,7 +26,8 @@ setup(name='pyfwat',
                 'matplotlib>=3.2.0',
                 'h5py',
                 'pygmt',
-                'pyproj'],
+                'pyproj',
+                'ruamel.yaml',],
       entry_points={'console_scripts': ['plot_vel_sec=pyfwat.plot.plot_vel_sec:main',
                                         'plot_dv_sec=pyfwat.plot.plot_dv_sec:main',
                                         'plot_kernel_sec=pyfwat.plot.plot_kernel_sec:main',

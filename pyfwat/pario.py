@@ -104,7 +104,7 @@ def chpar(parstr, key, value, type='sem'):
         patten = r'^({}\s+=\s+)(.*?)$'.format(key)
         # value = str(value)
     # print(re.findall(patten,parstr, flags=re.MULTILINE))
-    parstr, repl_num = re.subn(patten, '\g<1>{}'.format(str(value)), parstr, flags=re.MULTILINE)
+    parstr, repl_num = re.subn(patten, r'\g<1>{}'.format(str(value)), parstr, flags=re.MULTILINE)
     if repl_num > 1:
         raise ValueError('More than one parameter will be changed. Please check.')
     else:
