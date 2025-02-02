@@ -7,7 +7,7 @@ class SetupLog(object):
         1: logging.INFO,
     }
     
-    def __init__(self, filename='pyfwat.log', action='a', level=1):
+    def __init__(self, filename='pyfwat.log', action='w', level=1):
         """
         use default_logs to gen loggers
         change default_logs for future changes if needed,
@@ -21,6 +21,7 @@ class SetupLog(object):
             "adjoint": ("adjoint", self.default_level[level], "file_handler", "stream_handler"),
             "postproc": ("postproc", self.default_level[level], "file_handler", "stream_handler"),
             "optimize": ("optimize", self.default_level[level], "file_handler", "stream_handler"),
+            "monitor": ("monitor", self.default_level[level], "file_handler", "stream_handler"),
         }
         self.filename = filename
         fh = logging.FileHandler(filename, mode=action)

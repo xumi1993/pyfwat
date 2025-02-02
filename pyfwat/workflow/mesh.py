@@ -27,18 +27,7 @@ class Mesh():
         """
         Submit the meshing job to the system
         """
-        job_depend = f"--dependency=afterok:{self.para.jobids[-1]}" if self.para.jobids else ""
-        _call = self.runner.submit_header(tasktime)
-        _call = f"{_call} {job_depend} " \
-                f"{self.para.exec} -n {self.cluster['ntasks']} {self.commanddir}/xmeshfem3D " \
-                f"&& {self.para.exec} -n {self.cluster['ntasks']} {self.commanddir}/xgenerate_databases "
-        logger.mesh.debug(f"{_call}")
-        try:
-            stdout = subprocess.run(_call, shell=True, check=True, text=True, stdout=subprocess.PIPE)
-            self.para.jobids.append(stdout.stdout.strip())
-            logger.mesh.info(f"Meshing job submitted with jobid: {self.para.jobids[-1]}")
-        except subprocess.CalledProcessError as e:
-            logger.mesh.error(f"Error submitting meshing job: {e}")
-            sys.exit(1)          
-        
-        return _call
+        # job_depend = f"--dependency=afterok:{self.para.jobids[-1]}" if self.para.jobids else ""
+        executable = f"{self.para.exec} -n {self.cluster['ntasks']} {self.commanddir}/xmeshfem3D " \
+                     f"&& {self.para.exec} -n {self.cluster['ntasks']} {self.commanddir}/xgenerate_databases "
+        self.runner.submit(executable, tasktime)

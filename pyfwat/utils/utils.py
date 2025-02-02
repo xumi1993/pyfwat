@@ -41,3 +41,14 @@ class Dict(dict):
     def __setattr__(self, key, val):
         """Setting attributes can only be performed one time"""
         self.__dict__[key] = val
+
+
+def walltime2sec(walltime):
+    """
+    Convert walltime in the format of HH:MM:SS to seconds
+    """
+    try:
+        hh, mm, ss = walltime.split(':')
+        return int(hh)*3600 + int(mm)*60 + int(ss)
+    except ValueError:
+        raise ValueError(f"Walltime {walltime} not in the format of HH:MM:SS")

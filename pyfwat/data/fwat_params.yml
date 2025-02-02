@@ -1,10 +1,11 @@
 slurm:
-  partition_cpu: debug
+  partition_cpu: cpusx
   partition_gpu: debug
   nnodes: 1
-  ntasks: 1
-  ngpus:
+  ntasks: 4
+  ngpus: 1
   walltime: None # Maximum walltime
+  max_array_size: 2 # Maximum number of jobs in the array
   args:
 
 path:
@@ -12,10 +13,11 @@ path:
   datadir: ./DATA/
   meshdir: ./DATA/meshfem3D_files/
   modeldir: ./DATA/model_initial/
-  specfemdir: /path/to/specfem3d
+  specfemdir: /HOME/scw6ez6/run/Codes/specfem3d
 
 noise:
   mesh_file: DATA/meshfem3D_files/Mesh_Par_file # Mesh file
+  set_name: set0
   scomps: ['Z'] # Components of the source
   rcomps: ['Z'] # Components of the receiver
   ch_code: BX # Channel code
@@ -32,6 +34,7 @@ noise:
 
 tele:
   mesh_file: DATA/meshfem3D_files/Mesh_Par_file # Mesh file
+  set_name: set1
   rcomps: ['Z', 'R'] # Components of the receiver
   ch_code: BX # Channel code
   nstep: 2500 # Number of time steps

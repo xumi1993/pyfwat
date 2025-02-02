@@ -140,3 +140,4 @@ if __name__ == '__main__':
     para = FWATPara.read(os.path.dirname(__file__) + '/data/fwat_params.yml')
     para.update_param('slurm.ntasks', 10)
     print(para.path['workdir'])
+    print(getattr(para, 'noise')['set_name'])

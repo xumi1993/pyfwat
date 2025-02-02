@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from setuptools import setup,find_packages
-packages = find_packages()
+from setuptools import find_packages
+from skbuild import setup
+import os
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -15,8 +16,10 @@ setup(name='pyfwat',
       author_email='mijian.xu@ntu.edu.sg',
       license='GPLv3',
       packages=find_packages(),
+      setup_requires=['scikit-build', 'cmake'],
+      cmake_install_dir='.',
       package_dir={'pyfwat': 'pyfwat'},
-      package_data={'': ['cpt/*']},
+      package_data={'pyfwat': ['cpt/*', 'compute_fk_injection_field']},
       install_requires=[
                 # 'netcdf4>=1.5.2',
                 'obspy>=1.2.0',
