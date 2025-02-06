@@ -61,7 +61,7 @@ class JointKernel():
         for kernel in kernel_name:
             self.grad[kernel] = np.zeros(self.data['noise'][0].shape)
         for i, simu in enumerate(simu_type):
-            self.data[simu] /= normval[simu] * self.weight[i]
+            self.data[simu] /= normval[simu] / self.weight[i]
             print(f'max {simu} grad: {np.max(np.abs(self.data[simu]))}')
             for j, kernel in enumerate(kernel_name):
                 self.grad[kernel] += self.data[simu][j]
