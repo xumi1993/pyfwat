@@ -87,9 +87,9 @@ class ModUpdate():
 
     def read_model(self, imod:int):
         with h5py.File(f'optimize/model_M{imod:02d}.h5') as f:
-            vp = f['vp'][:]
-            vs = f['vs'][:]
-            rho = f['rho'][:]
+            vp = np.log(f['vp'][:])
+            vs = np.log(f['vs'][:])
+            rho = np.log(f['rho'][:])
         model = np.stack((vp, vs, rho))
         return model
 
