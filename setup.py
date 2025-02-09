@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from setuptools import find_packages
 from skbuild import setup
-import os
 
 with open("README.md", "r") as fh:
     long_description = fh.read()

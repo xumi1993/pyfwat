@@ -14,7 +14,7 @@ class Slurm():
         self.walltime = para.slurm['walltime']
         self.slurm_args = para.slurm['args']
         self.ngpus = para.slurm['ngpus']
-        self.log_path = os.path.join(os.path.abspath(self.para.path['workdir']), 'logs')
+        self.log_path = os.path.join(self.para.abs_workdir, 'logs')
         self._completed_states = ["COMPLETED"]
         self._failed_states = ["TIMEOUT", "FAILED", "NODE_FAIL", 
                                "OUT_OF_MEMORY", "CANCELLED"]
@@ -69,7 +69,7 @@ class Slurm():
         """
         Submit a job to the system
         """
-        if array:
+        if array is not None:
             _call = self.submit_array_header(array, use_gpu, tasktime)
         else:
             _call = self.submit_header(use_gpu, tasktime)

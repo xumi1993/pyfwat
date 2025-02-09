@@ -4,8 +4,8 @@ program write_injection_field
   implicit none
   integer, parameter :: THREE = 3
   integer, parameter :: NGLLMID = (NGLLSQUARE + 1) / 2
-  integer :: ier, ip, ib, igll, ilayer,nlines, nb, np
-  character(len=256) :: fn, line
+  integer :: ier, ip, ib, igll, ilayer,nlines, nb, np, nargs
+  character(len=256) :: fn, line, local_path='DATABASES_MPI'
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: xp, yp, zp
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: xb, yb, zb, nxb, nyb, nzb
   !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: displ, accel
@@ -25,8 +25,13 @@ program write_injection_field
   if (ier /= 0 ) stop 'Error initializing MPI'
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
 
-  write(fn, "('DATABASES_MPI/proc',i6.6,'_wavefield_discontinuity_points')")&
-      myrank
+  ! get num of arguments
+  nargs = iargc()
+  ! read local_path from command line
+  if (nargs == 1)  call getarg(1, local_path)
+
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity_points')")&
+      trim(local_path), myrank
   open(77, file=trim(fn), action="read")
   ier = 0
   nlines = 0
@@ -45,8 +50,8 @@ program write_injection_field
     read(77, *) xp(ip), yp(ip), zp(ip)
   enddo
   close(77)
-  write(fn, "('DATABASES_MPI/proc',i6.6,'_wavefield_discontinuity_faces')")&
-    myrank
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity_faces')")&
+      trim(local_path), myrank
   open(77, file=trim(fn), action="read")
   ier = 0
   nlines = 0
@@ -135,7 +140,8 @@ program write_injection_field
       print *,'       increase FK window length larger than ',(NSTEP/NP_RESAMP - NP_RESAMP) * NP_RESAMP * deltat
       print *,'       to have a NF for storing  larger than ',(NSTEP/NP_RESAMP - NP_RESAMP)
     endif
-    stop 'Invalid FK setting'
+    write(0, *) 'Invalid FK setting'
+    stop 1
   endif
 
   ! safety check
@@ -147,7 +153,9 @@ program write_injection_field
       print *,'       you could use a higher frequency sampling rate>',1./(deltat)
       print *,'       (or increase the time stepping size DT if possible)'
     endif
-    stop 'Invalid FK setting'
+    write(0, *) 'Invalid FK setting'
+    stop 1
+
   endif
 
   ! limits resampling sizes
@@ -159,7 +167,8 @@ program write_injection_field
       print *,'       you could use a higher frequency sampling rate>',1./(10000*deltat)
       print *,'       (or increase the time stepping size DT if possible)'
     endif
-    stop 'Invalid FK setting'
+    write(0, *) 'Invalid FK setting'
+    stop 1
   endif
 
   allocate(displ(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP), &
@@ -204,8 +213,8 @@ program write_injection_field
           type_kpsv_fk, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK, &
           .true.)
   deallocate(xx, yy, zz)
-  write(fn, "('DATABASES_MPI/proc',i6.6,'_wavefield_discontinuity.bin')")&
-      myrank
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity.bin')")&
+      trim(local_path), myrank
   open(88, file=trim(fn), form="unformatted", action="write")
   if (myrank == 0) open(99, file='injection_displ', form='formatted', action='write')
   ! data

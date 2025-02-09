@@ -1392,7 +1392,7 @@ end module fk_injection
      case('NSTEP')
          read(line,*) keyword_tmp, NSTEP
 
-     case('deltat')
+     case('DELTAT')
          read(line,*) keyword_tmp, deltat
 
      case('FREQUENCY_MAX')

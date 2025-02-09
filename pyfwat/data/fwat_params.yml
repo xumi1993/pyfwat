@@ -35,6 +35,7 @@ noise:
 tele:
   mesh_file: DATA/meshfem3D_files/Mesh_Par_file # Mesh file
   set_name: set1
+  wavefield_discontinuity : False # Set to .true. if the wavefield is discontinuous
   rcomps: ['Z', 'R'] # Components of the receiver
   ch_code: BX # Channel code
   nstep: 2500 # Number of time steps

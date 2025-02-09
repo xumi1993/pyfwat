@@ -63,6 +63,7 @@ class FWATPara(object):
     
     def _setup_force(self):
         self.path['logdir'] = os.path.join(self.path.workdir, "logs")
+        self.abs_workdir = os.path.abspath(self.path.workdir)
 
     @classmethod
     def read(cls, para_file):
