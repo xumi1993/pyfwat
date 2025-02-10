@@ -153,6 +153,8 @@ _skbuild/
 
 compute_fk_injection_field
 
+*.mod
+
 .DS_Store
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

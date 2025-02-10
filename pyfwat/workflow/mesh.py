@@ -23,7 +23,7 @@ class Mesh():
         Initialize path for the meshing job
         """
         logger.mesh.info("Initialize path for the meshing job")
-        unix.mkdir(self.para.abs_workdir, 'OUTPUT_FILES')
+        unix.mkdir(os.path.join(self.para.abs_workdir, 'OUTPUT_FILES'))
         local_path = readpar(self.par_file, 'LOCAL_PATH')
         unix.mkdir(local_path)
         is_force_solution = readpar(self.par_file, 'USE_FORCE_POINT_SOURCE')

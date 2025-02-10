@@ -7,7 +7,7 @@ module fk_injection
   integer :: myrank
   integer :: NSTEP
   real(kind=CUSTOM_REAL) :: deltat
-  character(len=100) :: FKMODEL_FILE = 'fk_model'
+  character(len=256) :: FKMODEL_FILE = 'fk_model', local_path='DATABASES_MPI'
   ! FK elastic
   integer :: nlayer
   integer :: NF_FOR_STORING, NF_FOR_FFT, NPOW_FOR_FFT, NP_RESAMP, NPOW_FOR_INTERP
@@ -25,8 +25,8 @@ module fk_injection
   ! model
   real(kind=CUSTOM_REAL),dimension(:),allocatable :: alpha_FK,beta_FK,rho_FK,mu_FK,h_FK
   !complex(kind=8), dimension(:,:), allocatable :: VX_f, VY_f, VZ_f, TX_f, TY_f, TZ_f
-  real(kind=CUSTOM_REAL),dimension(:,:,:),allocatable :: displ, accel, traction
-
+  real(kind=CUSTOM_REAL),dimension(:,:,:),allocatable :: displ, accel, traction, Veloc_FK, Tract_FK
+  real(kind=CUSTOM_REAL),dimension(:,:),allocatable :: v_FK, t_FK
   !complex(kind=8), dimension(:), allocatable :: WKS_CMPLX_FOR_FFT
   !real(kind=CUSTOM_REAL), dimension(:), allocatable :: WKS_REAL_FOR_FFT
 
@@ -39,15 +39,14 @@ end module fk_injection
   subroutine FK(al, be, mu, H, nlayer, &
                 Tg, ray_p, phi, x0, y0, z0, &
                 t0, dt, npts, npt, &
-                kpsv, NF_FOR_STORING, NPOW_FOR_FFT, NP_RESAMP, DF_FK, &
-                compute_traction)
+                kpsv, NF_FOR_STORING, NPOW_FOR_FFT, NP_RESAMP, DF_FK)
 
   use fk_injection, only: myrank,CUSTOM_REAL,IMAIN,PI,TINYVAL, &
                                   NGLLSQUARE, &
-                                  displ, accel, traction, &
+                                  Veloc_FK, Tract_FK, &
                                   xx, yy, zz, xi1, xim, bdlambdamu, &
                                   nmx, nmy, nmz, NPTS_STORED, NPTS_INTERP, &
-                                  amplitude_fk
+                                  amplitude_fk, CUSTOM_REAL
 
   implicit none
 
@@ -99,15 +98,15 @@ end module fk_injection
   real(kind=CUSTOM_REAL) :: taper
 
   ! fixed parameters
-  !integer, parameter     :: nvar = 5
-  logical :: compute_traction
-  integer :: nvar
+  integer, parameter     :: nvar = 5
+  logical :: compute_traction = .true.
+  ! integer :: nvar
 
-  if (compute_traction) then
-    nvar = 3
-  else
-    nvar = 4
-  endif
+  ! if (compute_traction) then
+  !   nvar = 3
+  ! else
+  !   nvar = 4
+  ! endif
 
   ! initializations
   !! new way to do time domain resampling
@@ -278,13 +277,16 @@ end module fk_injection
 
           dx_f = N_mat(1,2)*coeff(1,ii) + N_mat(1,4)*coeff(2,ii) + N_mat(1,3)*C_3  ! y_1
           dz_f = N_mat(2,2)*coeff(1,ii) + N_mat(2,4)*coeff(2,ii) + N_mat(2,3)*C_3  ! y_3
-          if (.not. compute_traction) then
+          ! if (.not. compute_traction) then
           ! for the Stacey boundary contribution, we need velocity = (i om) displacement (in frequency domain)
-            field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1)              ! u_x
-            field_f(ii,2) = stf_coeff * dz_f                            ! u_z
+            ! field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1)              ! u_x
+            ! field_f(ii,2) = stf_coeff * dz_f                            ! u_z
 
-            field_f(ii,3) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(-om*om,0)     ! (-om^2)u_x
-            field_f(ii,4) = stf_coeff * dz_f * cmplx(-om*om,0) ! (-om^2)u_z
+          field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(0,om)             ! (i om)u_x
+          field_f(ii,2) = stf_coeff * dz_f * cmplx(0,om)                           ! (i om)u_z
+
+            ! field_f(ii,3) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(-om*om,0)     ! (-om^2)u_x
+            ! field_f(ii,4) = stf_coeff * dz_f * cmplx(-om*om,0) ! (-om^2)u_z
           ! acoustic boundary point
           ! note: instead of velocity as in the elastic case, in acoustic domains we would need potentials.
           !       the velocity potential would be defined as: v = 1/rho grad(potential_dot)
@@ -300,13 +302,13 @@ end module fk_injection
           !endif
 
           ! stress
-          else
+          if (compute_traction) then
             txz_f = N_mat(3,2)*coeff(1,ii) + N_mat(3,4)*coeff(2,ii) + N_mat(3,3)*C_3      ! tilde{y}_4
             tzz_f = N_mat(4,2)*coeff(1,ii) + N_mat(4,4)*coeff(2,ii) + N_mat(4,3)*C_3      ! tilde{y}_6
 
-            field_f(ii,1) = stf_coeff * om * ray_p * (xi1(ipt)*tzz_f - 4.0*xim(ipt)*dx_f) ! T_xx
-            field_f(ii,2) = stf_coeff * om * ray_p * txz_f * cmplx(0,-1)                  ! T_xz
-            field_f(ii,3) = stf_coeff * om * ray_p * tzz_f                                ! T_zz
+            field_f(ii,3) = stf_coeff * om * ray_p * (xi1(ipt)*tzz_f - 4.0*xim(ipt)*dx_f) ! T_xx
+            field_f(ii,4) = stf_coeff * om * ray_p * txz_f * cmplx(0,-1)                  ! T_xz
+            field_f(ii,5) = stf_coeff * om * ray_p * tzz_f                                ! T_zz
           endif
 
           !debug
@@ -338,39 +340,51 @@ end module fk_injection
           endif
         enddo
 
-        if (.not. compute_traction) then
+        !! store undersampled version of velocity  FK solution
+        tmp_t1(:) = field(:,1) * cos(phi)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+
+        tmp_t1(:) = field(:,1) * sin(phi)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+
+        tmp_t1(:) = field(:,2)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+        ! if (.not. compute_traction) then
           !! store undersampled version of velocity  FK solution
-          tmp_t1(:) = field(:,1) * cos(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,1) * cos(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,1) * sin(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,1) * sin(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,2)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,2)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,3) * cos(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,3) * cos(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,3) * sin(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,3) * sin(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,4)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,4)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-        else
+        if (compute_traction) then
           !! compute traction
           do lpts = 1, NF_FOR_STORING
-            sigma_rr = field(lpts,1)
+            sigma_rr = field(lpts,3)
             sigma_rt = 0.0
-            sigma_rz = field(lpts,2)
-            sigma_zz = field(lpts,3)
+            sigma_rz = field(lpts,4)
+            sigma_zz = field(lpts,5)
             sigma_tt = bdlambdamu(ipt)*(sigma_rr+sigma_zz)
             sigma_tz = 0.0
 
@@ -382,23 +396,23 @@ end module fk_injection
             Tzz_tmp = sigma_zz
 
             !! store directly the traction
-            traction(1,ipt,lpts) = Txx_tmp*nmx(ipt) +  Txy_tmp*nmy(ipt) +  Txz_tmp*nmz(ipt)
-            traction(2,ipt,lpts) = Txy_tmp*nmx(ipt) +  Tyy_tmp*nmy(ipt) +  Tyz_tmp*nmz(ipt)
-            traction(3,ipt,lpts) = Txz_tmp*nmx(ipt) +  Tyz_tmp*nmy(ipt) +  Tzz_tmp*nmz(ipt)
+            Tract_FK(1,ipt,lpts) = Txx_tmp*nmx(ipt) +  Txy_tmp*nmy(ipt) +  Txz_tmp*nmz(ipt)
+            Tract_FK(2,ipt,lpts) = Txy_tmp*nmx(ipt) +  Tyy_tmp*nmy(ipt) +  Tyz_tmp*nmz(ipt)
+            Tract_FK(3,ipt,lpts) = Txz_tmp*nmx(ipt) +  Tyz_tmp*nmy(ipt) +  Tzz_tmp*nmz(ipt)
           enddo
 
           !! store undersamped version of tractions FK solution
-          tmp_t1(1:NF_FOR_STORING) = traction(1,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(1,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(1:NF_FOR_STORING) = traction(2,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(2,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(1:NF_FOR_STORING) = traction(3,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(3,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
         endif
 
         ! user output
@@ -466,12 +480,14 @@ end module fk_injection
 
           dx_f = N_mat(1,2)*coeff(1,ii) + N_mat(1,4)*coeff(2,ii) + N_mat(1,1)*C_1  ! y_1
           dz_f = N_mat(2,2)*coeff(1,ii) + N_mat(2,4)*coeff(2,ii) + N_mat(2,1)*C_1  ! y_3
-          if (compute_traction) then
+          ! if (compute_traction) then
           ! for the Stacey boundary contribution, we need velocity = (i om) displacement (in frequency domain)
-            field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1) ! u_x(1.20)
-            field_f(ii,2) = stf_coeff * dz_f ! u_z
-            field_f(ii,3) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(-om*om,0) ! (-om^2)u_x(1.20)
-            field_f(ii,4) = stf_coeff * dz_f * cmplx(-om*om,0) ! (-om^2)u_z
+            ! field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1) ! u_x(1.20)
+            ! field_f(ii,2) = stf_coeff * dz_f ! u_z
+          field_f(ii,1) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(0,om)  ! (i om)u_x(1.20)
+          field_f(ii,2) = stf_coeff * dz_f * cmplx(0,om)                ! (i om)u_z
+            ! field_f(ii,3) = stf_coeff * dx_f * cmplx(0,-1) * cmplx(-om*om,0) ! (-om^2)u_x(1.20)
+            ! field_f(ii,4) = stf_coeff * dz_f * cmplx(-om*om,0) ! (-om^2)u_z
 
           ! acoustic boundary point
           ! note: instead of velocity as in the elastic case, in acoustic domains we would need potentials.
@@ -487,13 +503,13 @@ end module fk_injection
           !  field_f(ii,2) = stf_coeff * dz_f                           ! u_z =     y_3
           !endif
 
-          else
+          if (compute_traction) then
             txz_f = N_mat(3,2)*coeff(1,ii) + N_mat(3,4)*coeff(2,ii) + N_mat(3,1)*C_1 ! tilde{y}_4
             tzz_f = N_mat(4,2)*coeff(1,ii) + N_mat(4,4)*coeff(2,ii) + N_mat(4,1)*C_1 ! tilde{y}_6
 
-            field_f(ii,1) = stf_coeff * om * ray_p * (xi1(ipt)*tzz_f - 4.0*xim(ipt)*dx_f) ! T_xx
-            field_f(ii,2) = stf_coeff * om * ray_p * txz_f * cmplx(0,-1)                ! T_xz
-            field_f(ii,3) = stf_coeff * om * ray_p * tzz_f                              ! T_zz
+            field_f(ii,3) = stf_coeff * om * ray_p * (xi1(ipt)*tzz_f - 4.0*xim(ipt)*dx_f) ! T_xx
+            field_f(ii,4) = stf_coeff * om * ray_p * txz_f * cmplx(0,-1)                ! T_xz
+            field_f(ii,5) = stf_coeff * om * ray_p * tzz_f                              ! T_zz
           endif
         enddo
 
@@ -521,39 +537,51 @@ end module fk_injection
           endif
         enddo
 
-        if (.not. compute_traction) then
-          !! store undersampled version of velocity  FK solution
-          tmp_t1(:) = field(:,1)*cos(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+        !! store undersampled version of velocity  FK solution
+        tmp_t1(:) = field(:,1)*cos(phi)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,1)*sin(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+        tmp_t1(:) = field(:,1)*sin(phi)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,2)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          displ(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+        tmp_t1(:) = field(:,2)
+        call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+        Veloc_FK(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+        ! if (.not. compute_traction) then
+          ! !! store undersampled version of velocity  FK solution
+          ! tmp_t1(:) = field(:,1)*cos(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,3)*cos(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,1)*sin(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,3)*sin(phi)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,2)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! displ(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(:) = field(:,4)
-          call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          accel(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          ! tmp_t1(:) = field(:,3)*cos(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-        else
+          ! tmp_t1(:) = field(:,3)*sin(phi)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+
+          ! tmp_t1(:) = field(:,4)
+          ! call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
+          ! accel(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+
+        if (compute_traction) then
           !! compute traction
           do lpts = 1, NF_FOR_STORING
-            sigma_rr = field(lpts,1)
+            sigma_rr = field(lpts,3)
             sigma_rt = 0.0
-            sigma_rz = field(lpts,2)
-            sigma_zz = field(lpts,3)
+            sigma_rz = field(lpts,4)
+            sigma_zz = field(lpts,5)
             sigma_tt = bdlambdamu(ipt)*(sigma_rr+sigma_zz)
             sigma_tz = 0.0
 
@@ -565,23 +593,23 @@ end module fk_injection
             Tzz_tmp = sigma_zz
 
             !! store directly the traction
-            traction(1,ipt,lpts) = Txx_tmp*nmx(ipt) +  Txy_tmp*nmy(ipt) +  Txz_tmp*nmz(ipt)
-            traction(2,ipt,lpts) = Txy_tmp*nmx(ipt) +  Tyy_tmp*nmy(ipt) +  Tyz_tmp*nmz(ipt)
-            traction(3,ipt,lpts) = Txz_tmp*nmx(ipt) +  Tyz_tmp*nmy(ipt) +  Tzz_tmp*nmz(ipt)
+            Tract_FK(1,ipt,lpts) = Txx_tmp*nmx(ipt) +  Txy_tmp*nmy(ipt) +  Txz_tmp*nmz(ipt)
+            Tract_FK(2,ipt,lpts) = Txy_tmp*nmx(ipt) +  Tyy_tmp*nmy(ipt) +  Tyz_tmp*nmz(ipt)
+            Tract_FK(3,ipt,lpts) = Txz_tmp*nmx(ipt) +  Tyz_tmp*nmy(ipt) +  Tzz_tmp*nmz(ipt)
           enddo
 
           !! store undersamped version of tractions FK solution
-          tmp_t1(1:NF_FOR_STORING) = traction(1,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(1,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(1,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(1:NF_FOR_STORING) = traction(2,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(2,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(2,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
 
-          tmp_t1(1:NF_FOR_STORING) = traction(3,ipt,1:NF_FOR_STORING)
+          tmp_t1(1:NF_FOR_STORING) = Tract_FK(3,ipt,1:NF_FOR_STORING)
           call compute_spline_coef_to_store(tmp_t1, npts2, tmp_t2, tmp_c)
-          traction(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
+          Tract_FK(3,ipt,1:NF_FOR_STORING) = tmp_t2(1:NF_FOR_STORING)
         endif
 
         ! user output
@@ -602,12 +630,14 @@ end module fk_injection
       do i = 1,taper_nlength
         ! cosine taper, otherwise using a constant (1.0) instead
         taper = (1.0 - cos(PI*(i-1)/taper_nlength)) * 0.5        ! between [0,1[
-        if (.not. compute_traction) then
+        ! if (.not. compute_traction) then
           ! tapers traces
-          displ(:,:,i) = taper * displ(:,:,i)
-          accel(:,:,i) = taper * accel(:,:,i)
-        else
-          traction(:,:,i) = taper * traction(:,:,i)
+           Veloc_FK(:,:,i) = taper * Veloc_FK(:,:,i)
+
+          ! displ(:,:,i) = taper * displ(:,:,i)
+          ! accel(:,:,i) = taper * accel(:,:,i)
+        if (compute_traction) then
+          Tract_FK(:,:,i) = taper * Tract_FK(:,:,i)
         endif
       enddo
     endif
@@ -1283,7 +1313,7 @@ end module fk_injection
   real(kind=CUSTOM_REAL), dimension(:), allocatable  :: rho_fk_input, vp_fk_input, vs_fk_input, ztop_fk_input
   integer,  dimension(:), allocatable  :: ilayer_fk_input
   integer  :: ilayer,ier
-  !logical  :: position_of_wavefront_not_read
+  logical  :: position_of_wavefront_not_read
 
   !!--------------------------------------------------------------
   ! # model description :
@@ -1315,7 +1345,7 @@ end module fk_injection
 
   type_kpsv_fk = 1  ! 1 == P-wave / 2 == SV-wave
 
-  !position_of_wavefront_not_read = .true.
+  position_of_wavefront_not_read = .true.
 
   !! READING input file
   open(85,file=trim(FKMODEL_FILE))
@@ -1384,7 +1414,7 @@ end module fk_injection
 
      case('ORIGIN_WAVEFRONT')
          read(line,*)  keyword_tmp, xx0, yy0, zz0
-         !position_of_wavefront_not_read = .false.
+         position_of_wavefront_not_read = .false.
 
      case('ORIGIN_TIME')
          read(line,*)  keyword_tmp, tt0
@@ -1464,8 +1494,9 @@ end module fk_injection
 
   endif
 
-  !! compute position of wave front
-  !if (position_of_wavefront_not_read) then
+  ! compute position of wave front
+  if (position_of_wavefront_not_read) then
+    error stop 'Error: origin of wavefront must be in FK input file'
   !  ! sets center point of box
   !  xx0 = 0.5*(Xmin_box + Xmax_box)
   !  yy0 = 0.5*(Ymin_box + Ymax_box)
@@ -1483,7 +1514,7 @@ end module fk_injection
   !  ! depth position below bottom
   !  zz0 = Zmin_box - Radius_box * sin ( abs(theta_FK) * (PI / 180.d0) )  &
   !         - 3.0 * wave_length_at_bottom * cos ( abs(theta_FK) * (PI / 180.d0) )
-  !endif
+  endif
 
   ! user output
   if (myrank == 0) then
@@ -1527,3 +1558,45 @@ end module fk_injection
   endif
 
   end subroutine ReadFKModelInput
+
+  subroutine read_abs_normal(h_FK, rho_FK, alpha_FK, beta_FK, xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu)
+    use fk_injection, only: CUSTOM_REAL, local_path, myrank
+    real(kind=CUSTOM_REAL), dimension(:), allocatable, intent(out) :: xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu
+    real(kind=CUSTOM_REAL), dimension(:), intent(in) :: h_FK, rho_FK, alpha_FK, beta_FK
+    real(kind=CUSTOM_REAL) :: rho_tmp, keppa_tmp, mu_tmp, xi
+    character(len=256) :: fname, line, junk
+
+    integer :: i, j, k, nlayer, ilayer, npt, FID=991
+
+    nlayer = size(h_FK)
+
+    ! read abs boundary from file
+    write(fn, "(a,'/proc',i6.6,'_normal.txt')")&
+      trim(local_path), myrank
+    open(FID, file=trim(fname), status='unknown')
+    read(FID, *) line
+    read(line, '(a,I)'), junk, npt
+    allocate(xx(npt), yy(npt), zz(npt), nmx(npt), nmy(npt), nmz(npt), xi1(npt), xim(npt), bdlambdamu(npt))
+    do i = 1, npt
+      read(FID, *) xx(i), yy(i), zz(i), nmx(i), nmy(i), nmz(i)
+    enddo
+    close(FID)
+
+    ! compute normal vectors
+    do i = 1, npt
+      ztop = 0.0_CUSTOM_REAL
+      do ilayer = 1, nlayer-1
+        ztop = ztop - h_FK(ilayer)
+        if (ztop < zz(i)) exit
+      enddo
+      rho_tmp = rho_FK(ilayer)
+      keppa_tmp = rho_tmp*(alpha_FK(ilayer)*2-4.0/3.0*beta_FK(ilayer)**2)
+      mu_tmp = rho_tmp*beta_FK(ilayer)**2
+      xi = mu_tmp/(kappa_tmp + 4.0/3.0 * mu_tmp)
+      xi1(i) = 1.0_CUSTOM_REAL - 2.0_CUSTOM_REAL * xi
+      xim(i) = (1.0_CUSTOM_REAL - xi) * mu_tmp
+      bdlambdamu(i) = (3.0 * kappa_tmp - 2.0 * mu_tmp) / (6.0 * kappa_tmp + 2.0 * mu_tmp)  ! Poisson's ratio 3K-2G/[2(3K+G)]
+    enddo
+
+    
+  end subroutine read_abs_normal

@@ -20,25 +20,26 @@ class Slurm():
                                "OUT_OF_MEMORY", "CANCELLED"]
         self._pending_states = ["PENDING", "RUNNING"]
 
-    def get_optional_args(self, use_gpu=False, tasktime=None):
+    def get_optional_args(self, use_gpu=False, tasktime=None, log_fname=None):
         self.partition = self.para.slurm.partition_gpu if use_gpu else self.para.slurm.partition_cpu
         tasktime = tasktime or self.walltime
         self.time_arg = f"--time={tasktime}" if tasktime is None else ""
         self.gpu_arg = f"--gpus={self.ngpus:d}" if use_gpu else ""
+        self.log_arg = f"--output={self.log_path}/{log_fname}.log" if log_fname is None else f"--output={log_fname}"
     
-    def submit_header(self, use_gpu=False, tasktime=None):
+    def submit_header(self, use_gpu=False, tasktime=None, log_fname=None):
         """
         The submit call defines the SBATCH header which is used to submit a
         workflow task list to the system. It is usually dictated by the
         system's job scheduler. This is the header for BSCC.
         """
-        self.get_optional_args(use_gpu, tasktime)
+        self.get_optional_args(use_gpu, tasktime, log_fname)
         _call = " ".join([
             f"sbatch",
             f"--job-name={self.title}",
             f"--ntasks={self.ntasks:d}",
             f"{self.gpu_arg}",
-            f"--output={self.log_path}/fwat_{self.title}.log",
+            f"{self.log_arg}",
             f"--partition={self.partition}",
             f"{self.time_arg}",
             f"--parsable",

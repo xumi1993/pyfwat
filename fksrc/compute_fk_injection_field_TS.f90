@@ -28,10 +28,54 @@ program write_injection_field
   ! get num of arguments
   nargs = iargc()
   ! read local_path from command line
-  if (nargs == 2) then
-   call getarg(1, local_path)
-   call getarg(2, FKMODEL_FILE)
-  endif
+  if (nargs == 1)  call getarg(1, local_path)
+
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity_points')")&
+      trim(local_path), myrank
+  open(77, file=trim(fn), action="read")
+  ier = 0
+  nlines = 0
+  do while (ier == 0)
+    read(77, '(a)', iostat=ier) line
+    if (ier == 0) nlines = nlines + 1
+  enddo
+  close(77)
+  np = nlines
+  allocate(xp(np), yp(np), zp(np))
+  !allocate(displ(THREE, np), accel(THREE, np))
+  !displ(:,:) = 0.0
+  !accel(:,:) = 0.0
+  open(77, file=trim(fn), action="read")
+  do ip = 1, np
+    read(77, *) xp(ip), yp(ip), zp(ip)
+  enddo
+  close(77)
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity_faces')")&
+      trim(local_path), myrank
+  open(77, file=trim(fn), action="read")
+  ier = 0
+  nlines = 0
+  do while (ier == 0)
+    read(77, '(a)', iostat=ier) line
+    if (ier == 0) nlines = nlines + 1
+  enddo
+  close(77)
+  nb = nlines / NGLLSQUARE
+  allocate(xb(nb*NGLLSQUARE), yb(nb*NGLLSQUARE), &
+           zb(nb*NGLLSQUARE), nxb(nb*NGLLSQUARE), nyb(nb*NGLLSQUARE), &
+           nzb(nb*NGLLSQUARE), xi1(nb*NGLLSQUARE), xim(nb*NGLLSQUARE), &
+           bdlambdamu(nb*NGLLSQUARE))
+  !allocate(traction(THREE, NGLLSQUARE, nb))
+  !traction(:,:,:) = 0.0
+  open(77, file=trim(fn), action="read")
+  do ip = 1, nb*NGLLSQUARE
+  !  do igll = 1, NGLLSQUARE
+    read(77, *) xb(ip), yb(ip), zb(ip), &
+                  nxb(ip), nyb(ip), nzb(ip)
+  !  enddo
+  enddo
+  close(77)
+
 
   call ReadFKModelInput()
 
@@ -127,27 +171,53 @@ program write_injection_field
     stop 1
   endif
 
-  call read_abs_normal(h_FK, rho_FK, alpha_FK, beta_FK, xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu)
-  np = size(xx)
+  allocate(displ(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP), &
+           accel(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP), &
+           traction(THREE, NGLLSQUARE*nb, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP))
 
-  allocate(Veloc_FK(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP), &
-           Tract_FK(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP))
-  Veloc_FK = 0.0_CUSTOM_REAL
-  Tract_FK = 0.0_CUSTOM_REAL
-  ! allocate(xx(np), yy(np), zz(np))
-  ! xx(:) = xp(:); yy(:) = yp(:); zz(:) = zp(:) - Z_REF_for_FK
+  do ib = 1, nb
+    zmid = zb((ib-1)*NGLLSQUARE+NGLLMID)
+    ztop = 0.0
+    do ilayer = 1, nlayer-1
+      ztop = ztop - h_FK(ilayer)
+      if (ztop < zmid) exit
+    enddo
+    if (ztop > zmid) ilayer = nlayer
+    rho_tmp = rho_FK(ilayer)
+    alpha_tmp = alpha_FK(ilayer)
+    beta_tmp = beta_FK(ilayer)
+    kappa_tmp = rho_tmp*(alpha_tmp*alpha_tmp-4.0/3.0*beta_tmp*beta_tmp)
+    mu_tmp = rho_tmp*beta_tmp*beta_tmp
+    xi = mu_tmp/(kappa_tmp + 4.0/3.0 * mu_tmp)
+    xi1((ib-1)*NGLLSQUARE+1:ib*NGLLSQUARE) = 1.0 - 2.0 * xi
+    xim((ib-1)*NGLLSQUARE+1:ib*NGLLSQUARE) = (1.0 - xi) * mu_tmp
+    bdlambdamu((ib-1)*NGLLSQUARE+1:ib*NGLLSQUARE) = &
+        (3.0 * kappa_tmp - 2.0 * mu_tmp) / (6.0 * kappa_tmp + 2.0 * mu_tmp)  ! Poisson's ratio 3K-2G/[2(3K+G)]
+  enddo
 
+  allocate(xx(np), yy(np), zz(np))
+  xx(:) = xp(:); yy(:) = yp(:); zz(:) = zp(:) - Z_REF_for_FK
   call FK(alpha_FK, beta_FK, mu_FK, h_FK, nlayer, &
           Tg, ray_p, phi_FK, xx0, yy0, zz0, &
-          tt0, deltat, NSTEP, np, &
-          type_kpsv_fk, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK)
-
-  write(fn, "(a,'/proc',i6.6,'_sol_axisem.bin')")&
+          tt0, deltat, nstep, np, &
+          type_kpsv_fk, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK, &
+          .false.)
+  deallocate(xx, yy, zz)
+  allocate(xx(nb*NGLLSQUARE), yy(nb*NGLLSQUARE), zz(nb*NGLLSQUARE), &
+           nmx(nb*NGLLSQUARE), nmy(nb*NGLLSQUARE), nmz(nb*NGLLSQUARE))
+  xx(:) = xb(:); yy(:) = yb(:); zz(:) = zb(:) - Z_REF_for_FK
+  nmx(:) = nxb(:); nmy(:) = nyb(:); nmz(:) = nzb(:)
+  call FK(alpha_FK, beta_FK, mu_FK, h_FK, nlayer, &
+          Tg, ray_p, phi_FK, xx0, yy0, zz0, &
+          tt0, deltat, nstep, nb*NGLLSQUARE, &
+          type_kpsv_fk, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK, &
+          .true.)
+  deallocate(xx, yy, zz)
+  write(fn, "(a,'/proc',i6.6,'_wavefield_discontinuity.bin')")&
       trim(local_path), myrank
   open(88, file=trim(fn), form="unformatted", action="write")
-  ! if (myrank == 0) open(99, file='injection_displ', form='formatted', action='write')
+  if (myrank == 0) open(99, file='injection_displ', form='formatted', action='write')
   ! data
-  ! allocate(v_fk(THREE, np), t_fk(THREE, np))
   do it_tmp = 1,NSTEP
         ! FK coupling
         !! find indices
@@ -175,18 +245,19 @@ program write_injection_field
     iip1 = ii+1        ! 2,..
     iip2 = ii+2        ! 3,..
 
-    v_FK = cs1*Veloc_FK(:,:,iim1)+cs2*Veloc_FK(:,:,ii)+cs3*Veloc_FK(:,:,iip1)&
-             +cs4*Veloc_FK(:,:,iip2)
-    t_FK = cs1*Tract_FK(:,:,iim1)+cs2*Tract_FK(:,:,ii)&
-             +cs3*Tract_FK(:,:,iip1)+cs4*Tract_FK(:,:,iip2)
-    write(88) v_FK, t_FK
-    ! ! time
-    ! time_t = (it_tmp-1) * deltat - tt0
-    ! if (myrank == 0) write(99, *) time_t, &
-    !    cs1*displ(3,1,iim1)+cs2*displ(3,1,ii)+cs3*displ(3,1,iip1)&
-    !    +cs4*displ(3,1,iip2)
+    write(88) cs1*displ(:,:,iim1)+cs2*displ(:,:,ii)+cs3*displ(:,:,iip1)&
+             +cs4*displ(:,:,iip2)
+    write(88) cs1*accel(:,:,iim1)+cs2*accel(:,:,ii)+cs3*accel(:,:,iip1)&
+             +cs4*accel(:,:,iip2)
+    write(88) cs1*traction(:,:,iim1)+cs2*traction(:,:,ii)&
+             +cs3*traction(:,:,iip1)+cs4*traction(:,:,iip2)
+    ! time
+    time_t = (it_tmp-1) * deltat - tt0
+    if (myrank == 0) write(99, *) time_t, &
+       cs1*displ(3,1,iim1)+cs2*displ(3,1,ii)+cs3*displ(3,1,iip1)&
+       +cs4*displ(3,1,iip2)
   enddo
   close(88)
-  ! close(99)
+  close(99)
   call MPI_Finalize(ier)
 end program write_injection_field

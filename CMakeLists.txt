@@ -5,13 +5,20 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -O3")
 
 set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/fksrc)
 
-add_executable(compute_fk_injection_field
-    ${SOURCE_PATH}/coupling_fk.f90
-    ${SOURCE_PATH}/utils.f90
+find_package(MPI REQUIRED)
+
+set(app_sources
+    # ${SOURCE_PATH}/compute_fk_receiver.f90
     ${SOURCE_PATH}/compute_fk_injection_field.f90
 )
 
-find_package(MPI REQUIRED)
-target_link_libraries(compute_fk_injection_field PRIVATE MPI::MPI_Fortran)
+foreach(app_source ${app_sources})
+    get_filename_component(app_name ${app_source} NAME_WE)
+    add_executable(${app_name} ${app_source}
+        ${SOURCE_PATH}/coupling_fk.f90
+        ${SOURCE_PATH}/utils.f90
+    )
+    target_link_libraries(${app_name} PRIVATE MPI::MPI_Fortran)
+    install(TARGETS ${app_name} RUNTIME DESTINATION pyfwat)
 
-install(TARGETS compute_fk_injection_field RUNTIME DESTINATION pyfwat)
+endforeach()
