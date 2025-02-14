@@ -137,7 +137,14 @@ class Forward():
                 os.path.join(src_dir, 'DATA', 'STATIONS')
             )
             # link Par_file
-            unix.ln(self.par_file, os.path.join(src_dir, 'DATA', 'Par_file'))
+            unix.cp(self.par_file, os.path.join(src_dir, 'DATA', 'Par_file'))
+            if 'tele' in self.simu_type or self.simu_type == 'rf':
+                with open(os.path.join(src_dir, 'DATA', 'Par_file')) as f:
+                    content = f.read()
+                content = chpar(content, 'INJECTION_TECHNIQUE_TYPE', 2)
+                content = chpar(content, 'TRACTION_PATH', os.path.join(self.local_path, f"wavefield_boundary_{src}"))
+                with open(os.path.join(src_dir, 'DATA', 'Par_file'), 'w') as f:
+                    f.write(content)
             unix.ln(
                 os.path.join(os.path.abspath(self.para.path['datadir']), 'meshfem3D_files'),
                 os.path.join(src_dir, 'DATA', 'meshfem3D_files')
@@ -174,6 +181,22 @@ class Forward():
                 logger.forward.info(f"Submit forward simulation for source {src}")
                 self.runner.submit(executable, use_gpu=use_gpu, tasktime=self.para.slurm['walltime'])
         unix.cd(self.para.abs_workdir)
+    
+    def submit_fk_injection_field(self):
+        """
+        Submit job to compute the FK injection field
+        """
+        unix.cd(self.para.abs_workdir)
+        fkexec = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             'compute_fk_injection_field')
+        for src in self.sources.evtid:
+            executable = f"{self.para.exec} -n {self.para.slurm['ntasks']} " \
+                         f"{fkexec} {self.local_path} " \
+                         f"{os.path.join(self.para.abs_workdir, SRC_REC_DIR, f'FKmodel_{src}')}"
+            self.runner.submit(executable, use_gpu=False, tasktime='00:10:00')
+            wb_dir = os.path.join(self.local_path, f"wavefield_boundary_{src}")
+            unix.mkdir(wb_dir)
+            unix.mv(glob.glob(f"{self.local_path}/proc??????_sol_axisem"), wb_dir)
 
     def submit_wavefield_discontinuity(self):
         """
