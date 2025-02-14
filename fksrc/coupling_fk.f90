@@ -4,6 +4,8 @@ module fk_injection
   integer, parameter :: CUSTOM_REAL = 4, IMAIN = 6, NGLLSQUARE = 25
   double precision, parameter :: PI = 3.141592653589793d0, &
                                    TINYVAL = 1.d-9
+  integer, parameter :: NGLLMID = (NGLLSQUARE + 1) / 2
+  
   integer :: myrank
   integer :: NSTEP
   real(kind=CUSTOM_REAL) :: deltat
@@ -1559,44 +1561,53 @@ end module fk_injection
 
   end subroutine ReadFKModelInput
 
-  subroutine read_abs_normal(h_FK, rho_FK, alpha_FK, beta_FK, xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu)
-    use fk_injection, only: CUSTOM_REAL, local_path, myrank
-    real(kind=CUSTOM_REAL), dimension(:), allocatable, intent(out) :: xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu
-    real(kind=CUSTOM_REAL), dimension(:), intent(in) :: h_FK, rho_FK, alpha_FK, beta_FK
-    real(kind=CUSTOM_REAL) :: rho_tmp, keppa_tmp, mu_tmp, xi
-    character(len=256) :: fname, line, junk
+  subroutine read_abs_normal()
+    use fk_injection
+    implicit none
 
-    integer :: i, j, k, nlayer, ilayer, npt, FID=991
-
-    nlayer = size(h_FK)
+    real(kind=CUSTOM_REAL) :: rho_tmp, kappa_tmp, mu_tmp, xi, ztop, zmid
+    character(len=256) :: fname, line
+    integer :: i, j, k, ilayer, npt, nbound, pos, ier, FID=991
 
     ! read abs boundary from file
-    write(fn, "(a,'/proc',i6.6,'_normal.txt')")&
+    write(fname, "(a,'/proc',i6.6,'_normal.txt')")&
       trim(local_path), myrank
-    open(FID, file=trim(fname), status='unknown')
-    read(FID, *) line
-    read(line, '(a,I)'), junk, npt
+    open(FID, file=trim(fname), status='unknown', action='read', iostat=ier)
+    if (ier /= 0) then
+      print *, 'error opening file ', trim(fname)
+      error stop
+    endif
+    read(FID, '(a)') line
+    pos = index(line, ':')+1
+    read(line(pos:), *) npt
     allocate(xx(npt), yy(npt), zz(npt), nmx(npt), nmy(npt), nmz(npt), xi1(npt), xim(npt), bdlambdamu(npt))
     do i = 1, npt
       read(FID, *) xx(i), yy(i), zz(i), nmx(i), nmy(i), nmz(i)
     enddo
     close(FID)
+    nbound = npt/NGLLSQUARE
 
     ! compute normal vectors
-    do i = 1, npt
+    do i = 1, nbound
+      zmid = zz((i-1)*NGLLSQUARE+NGLLMID)
       ztop = 0.0_CUSTOM_REAL
       do ilayer = 1, nlayer-1
         ztop = ztop - h_FK(ilayer)
-        if (ztop < zz(i)) exit
+        if (ztop < zmid) exit
       enddo
+      if (ztop > zmid) ilayer = nlayer
       rho_tmp = rho_FK(ilayer)
-      keppa_tmp = rho_tmp*(alpha_FK(ilayer)*2-4.0/3.0*beta_FK(ilayer)**2)
+      kappa_tmp = rho_tmp*(alpha_FK(ilayer)**2-4.0/3.0*beta_FK(ilayer)**2)
       mu_tmp = rho_tmp*beta_FK(ilayer)**2
       xi = mu_tmp/(kappa_tmp + 4.0/3.0 * mu_tmp)
-      xi1(i) = 1.0_CUSTOM_REAL - 2.0_CUSTOM_REAL * xi
-      xim(i) = (1.0_CUSTOM_REAL - xi) * mu_tmp
-      bdlambdamu(i) = (3.0 * kappa_tmp - 2.0 * mu_tmp) / (6.0 * kappa_tmp + 2.0 * mu_tmp)  ! Poisson's ratio 3K-2G/[2(3K+G)]
+      ! xi1(i) = 1.0_CUSTOM_REAL - 2.0_CUSTOM_REAL * xi
+      ! xim(i) = (1.0_CUSTOM_REAL - xi) * mu_tmp
+      ! bdlambdamu(i) = (3.0 * kappa_tmp - 2.0 * mu_tmp) / (6.0 * kappa_tmp + 2.0 * mu_tmp)  ! Poisson's ratio 3K-2G/[2(3K+G)]
+      xi1((i-1)*NGLLSQUARE+1:i*NGLLSQUARE) = 1.0_CUSTOM_REAL - 2.0_CUSTOM_REAL * xi
+      xim((i-1)*NGLLSQUARE+1:i*NGLLSQUARE) = (1.0_CUSTOM_REAL - xi) * mu_tmp
+      bdlambdamu((i-1)*NGLLSQUARE+1:i*NGLLSQUARE) = &
+        (3.0 * kappa_tmp - 2.0 * mu_tmp) / (6.0 * kappa_tmp + 2.0 * mu_tmp)  ! Poisson's ratio 3K-2G/[2(3K+G)]
     enddo
+    zz = zz - Z_REF_for_FK
 
-    
   end subroutine read_abs_normal

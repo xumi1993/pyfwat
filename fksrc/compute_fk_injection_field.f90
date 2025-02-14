@@ -3,16 +3,10 @@ program write_injection_field
   use fk_injection
   implicit none
   integer, parameter :: THREE = 3
-  integer, parameter :: NGLLMID = (NGLLSQUARE + 1) / 2
+  ! integer, parameter :: NGLLMID = (NGLLSQUARE + 1) / 2
   integer :: ier, ip, ib, igll, ilayer,nlines, nb, np, nargs
-  character(len=256) :: fn, line
-  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xp, yp, zp
-  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xb, yb, zb, nxb, nyb, nzb
-  !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: displ, accel
-  !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: traction
+  character(len=256) :: fn
   real(kind=CUSTOM_REAL) :: ray_p,Tg,DF_FK
-
-  real(kind=CUSTOM_REAL) :: rho_tmp,kappa_tmp,mu_tmp,alpha_tmp,beta_tmp,xi
   integer :: ii, kk, iim1, iip1, iip2, it_tmp
   real(kind=CUSTOM_REAL) :: cs1,cs2,cs3,cs4,w
 
@@ -126,28 +120,28 @@ program write_injection_field
     write(0, *) 'Invalid FK setting'
     stop 1
   endif
+  call MPI_BARRIER(MPI_COMM_WORLD, ier)
 
-  call read_abs_normal(h_FK, rho_FK, alpha_FK, beta_FK, xx, yy, zz, nmx, nmy, nmz, xi1, xim, bdlambdamu)
+  call read_abs_normal()
+  call MPI_BARRIER(MPI_COMM_WORLD, ier)
+
   np = size(xx)
 
   allocate(Veloc_FK(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP), &
            Tract_FK(THREE, np, -NP_RESAMP:NF_FOR_STORING+NP_RESAMP))
   Veloc_FK = 0.0_CUSTOM_REAL
   Tract_FK = 0.0_CUSTOM_REAL
-  ! allocate(xx(np), yy(np), zz(np))
-  ! xx(:) = xp(:); yy(:) = yp(:); zz(:) = zp(:) - Z_REF_for_FK
 
   call FK(alpha_FK, beta_FK, mu_FK, h_FK, nlayer, &
           Tg, ray_p, phi_FK, xx0, yy0, zz0, &
           tt0, deltat, NSTEP, np, &
           type_kpsv_fk, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK)
 
-  write(fn, "(a,'/proc',i6.6,'_sol_axisem.bin')")&
+  write(fn, "(a,'/proc',i6.6,'_sol_axisem')")&
       trim(local_path), myrank
   open(88, file=trim(fn), form="unformatted", action="write")
-  ! if (myrank == 0) open(99, file='injection_displ', form='formatted', action='write')
+  ! if (myrank == 0) open(99, file='injection_veloc', form='formatted', action='write')
   ! data
-  ! allocate(v_fk(THREE, np), t_fk(THREE, np))
   do it_tmp = 1,NSTEP
         ! FK coupling
         !! find indices
@@ -182,11 +176,9 @@ program write_injection_field
     write(88) v_FK, t_FK
     ! ! time
     ! time_t = (it_tmp-1) * deltat - tt0
-    ! if (myrank == 0) write(99, *) time_t, &
-    !    cs1*displ(3,1,iim1)+cs2*displ(3,1,ii)+cs3*displ(3,1,iip1)&
-    !    +cs4*displ(3,1,iip2)
+    ! if (myrank == 0) write(99, *) time_t, v_FK(1,1), v_FK(2,1), v_FK(3,1)
   enddo
   close(88)
-  ! close(99)
+  close(99)
   call MPI_Finalize(ier)
 end program write_injection_field
