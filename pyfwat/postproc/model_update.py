@@ -32,8 +32,8 @@ class ModUpdate():
         for i in range(self.iter_current - 1, iter_store - 1, -1):
             g0 = self.read_gradient(i)
             g1 = self.read_gradient(i + 1)
-            m0 = self.read_model(i)
-            m1 = self.read_model(i + 1)
+            m0 = self.read_model_lbfgs(i)
+            m1 = self.read_model_lbfgs(i + 1)
             gradient_diff = g1 - g0
             model_diff = m1 - m0
             p[i] = 1 / self.inner_product(gradient_diff, model_diff)
@@ -43,8 +43,8 @@ class ModUpdate():
         i = self.iter_current - 1
         g0 = self.read_gradient(i)
         g1 = self.read_gradient(i + 1)
-        m0 = self.read_model(i)
-        m1 = self.read_model(i + 1)
+        m0 = self.read_model_lbfgs(i)
+        m1 = self.read_model_lbfgs(i + 1)
         gradient_diff = g1 - g0
         model_diff = m1 - m0
         p_k_up_sum = self.inner_product(gradient_diff, model_diff)
@@ -55,15 +55,14 @@ class ModUpdate():
         for i in range(iter_store, self.iter_current):
             g0 = self.read_gradient(i)
             g1 = self.read_gradient(i + 1)
-            m0 = self.read_model(i)
-            m1 = self.read_model(i + 1)
+            m0 = self.read_model_lbfgs(i)
+            m1 = self.read_model_lbfgs(i + 1)
             gradient_diff = g1 - g0
             model_diff = m1 - m0
             b = p[i] * self.inner_product(gradient_diff, self.r_vector)
             self.r_vector += (a[i] - b) * model_diff
     
     def model_update(self):
-        print(self.optim_method)
         if self.iter_current == self.iter_start or self.optim_method == 'SD':
             self.r_vector = self.read_gradient(self.iter_current)
         else:
@@ -87,11 +86,15 @@ class ModUpdate():
 
     def read_model(self, imod:int):
         with h5py.File(f'optimize/model_M{imod:02d}.h5') as f:
-            vp = np.log(f['vp'][:])
-            vs = np.log(f['vs'][:])
-            rho = np.log(f['rho'][:])
+            vp = f['vp'][:]
+            vs = f['vs'][:]
+            rho = f['rho'][:]
         model = np.stack((vp, vs, rho))
         return model
+    
+    def read_model_lbfgs(self, imod:int):
+        model = self.read_model(imod)
+        return np.log(model)
 
     def read_gradient(self, imod:int):
         with h5py.File(f'optimize/gradient_M{imod:02d}.h5') as f:
