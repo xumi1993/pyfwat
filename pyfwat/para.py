@@ -51,18 +51,14 @@ class FWATPara(object):
             "partition": None
         })
         self.path = Dict({
-            "workdir": None,
-            "logdir": None,
+            "workdir": './',
+            "logdir": './logs',
         })
         for key, value in kwargs.items():
             if hasattr(self, key):
                 getattr(self, key).update(value)
             else:
                 setattr(self, key, value)
-        self._setup_force()
-    
-    def _setup_force(self):
-        self.path['logdir'] = os.path.join(self.path.workdir, "logs")
         self.abs_workdir = os.path.abspath(self.path.workdir)
 
     @classmethod

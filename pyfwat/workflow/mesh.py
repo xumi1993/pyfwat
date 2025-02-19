@@ -18,7 +18,7 @@ class Mesh():
         self.par_file = os.path.join(para.path['datadir'], 'Par_file')
         self.setup_params()
 
-    def init(self):
+    def init_path(self):
         """
         Initialize path for the meshing job
         """
@@ -26,15 +26,15 @@ class Mesh():
         unix.mkdir(os.path.join(self.para.abs_workdir, 'OUTPUT_FILES'))
         local_path = readpar(self.par_file, 'LOCAL_PATH')
         unix.mkdir(local_path)
-        is_force_solution = readpar(self.par_file, 'USE_FORCE_POINT_SOURCE')
-        if is_force_solution:
-            unix.touch(
-                os.path.exists(os.path.join(self.para.abs_workdir, 'DATA', 'FORCESOLUTION'))
-            )
-        else:
-            unix.touch(
-                os.path.exists(os.path.join(self.para.abs_workdir, 'DATA', 'CMTSOLUTION'))
-            )
+        # is_force_solution = readpar(self.par_file, 'USE_FORCE_POINT_SOURCE')
+        # if is_force_solution:
+            # unix.touch(
+                # os.path.exists(os.path.join(self.para.abs_workdir, 'DATA', 'FORCESOLUTION'))
+            # )
+        # else:
+        unix.touch(
+            os.path.exists(os.path.join(self.para.abs_workdir, 'DATA', 'CMTSOLUTION'))
+        )
 
     def setup_params(self):
         """
@@ -42,13 +42,15 @@ class Mesh():
         """
         with open(self.par_file) as f:
             content = f.read()
-        if self.para.tele['wavefield_discontinuity']:
-            content = chpar(content, 'PML_CONDITIONS', True)
-            content = chpar(content, 'STACEY_ABSORBING_CONDITIONS', False)
-            content = chpar(content, 'IS_WAVEFIELD_DISCONTINUITY', True)
-            content = chpar(content, 'COUPLE_WITH_INJECTION_TECHNIQUE', False)
-        else:
-            content = chpar(content, 'IS_WAVEFIELD_DISCONTINUITY', False)
+        # if self.para.tele['wavefield_discontinuity']:
+            # content = chpar(content, 'PML_CONDITIONS', True)
+            # content = chpar(content, 'STACEY_ABSORBING_CONDITIONS', False)
+            # content = chpar(content, 'IS_WAVEFIELD_DISCONTINUITY', True)
+            # content = chpar(content, 'COUPLE_WITH_INJECTION_TECHNIQUE', False)
+        # else:
+        content = chpar(content, 'IS_WAVEFIELD_DISCONTINUITY', False)
+        content = chpar(content, 'COUPLE_WITH_INJECTION_TECHNIQUE', True)
+        content = chpar(content, 'INJECTION_TECHNIQUE_TYPE', 3)
         with open(self.par_file, 'w') as f:
             f.write(content)
     

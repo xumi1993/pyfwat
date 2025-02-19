@@ -15,6 +15,7 @@ class SetupLog(object):
 
         """
         self.default_logs = {
+            "srcrec": ("SrcRec", self.default_level[level], "file_handler", "stream_handler"),
             "mesh": ("mesh", self.default_level[level], "file_handler", "stream_handler"),
             "forward": ("forward", self.default_level[level], "file_handler", "stream_handler"),
             "preproc": ("preproc", self.default_level[level], "file_handler", "stream_handler"),
