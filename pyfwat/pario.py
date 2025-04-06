@@ -4,6 +4,7 @@ import re
 import sys
 from os.path import basename
 import argparse
+from ruamel.yaml import YAML
 
 
 def readpar(par_file, key):
@@ -45,28 +46,35 @@ def readfkpar(par_file, key):
         return np.array(val_lst)
 
 
-def readfwatpar(par_file, key):
-    int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX', 'ITER_START']
-    array_str = ['NOISE_SHORT_P', 'NOISE_LONG_P', 'NOISE_GROUPVEL_MIN', 'NOISE_GROUPVEL_MAX',
-                 'STEP_LENS', 'F0', 'JOINT_WEIGHT']
-    with open(par_file) as f:
-        par = f.read()
-    outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
-    if key.upper() in array_str:
-        return np.array([float(v) for v in outstr.split()])
-    elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS', 'SET_RANGE']:
-        return [v for v in outstr.split()]
-    elif outstr.lower() == '.true.':
-        return True
-    elif outstr.lower() == '.false.':
-        return False
-    elif '_'.join(key.upper().split('_')[1:]) in int_str:
-        return int(outstr)
-    else:
-        try:
-            return float(outstr)
-        except:
-            return outstr
+# def readfwatpar(par_file, key):
+#     int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX', 'ITER_START']
+#     array_str = ['NOISE_SHORT_P', 'NOISE_LONG_P', 'NOISE_GROUPVEL_MIN', 'NOISE_GROUPVEL_MAX',
+#                  'STEP_LENS', 'F0', 'JOINT_WEIGHT']
+#     with open(par_file) as f:
+#         par = f.read()
+#     outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
+#     if key.upper() in array_str:
+#         return np.array([float(v) for v in outstr.split()])
+#     elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS', 'SET_RANGE']:
+#         return [v for v in outstr.split()]
+#     elif outstr.lower() == '.true.':
+#         return True
+#     elif outstr.lower() == '.false.':
+#         return False
+#     elif '_'.join(key.upper().split('_')[1:]) in int_str:
+#         return int(outstr)
+#     else:
+#         try:
+#             return float(outstr)
+#         except:
+#             return outstr
+
+def readfwatpar(par_file='DATA/fwat_params.yml'):
+    yaml = YAML()
+    yaml.default_flow_style = True
+    with open(par_file, encoding='utf-8') as f:
+        file_data = f.read()
+    return yaml.load(file_data)
 
 def bool2str(condition):
     if not isinstance(condition, bool):

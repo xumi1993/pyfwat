@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 setup(name='pyfwat',
       version=VERSION,
       author='Mijian Xu',
@@ -18,12 +18,12 @@ setup(name='pyfwat',
       package_dir={'pyfwat': 'pyfwat'},
       package_data={'': ['cpt/*']},
       install_requires=[
-                # 'netcdf4>=1.5.2',
                 'obspy>=1.2.0',
                 'pandas>=1.0.0',
                 'numpy>=1.19.0, <2.0.0',
                 'scipy>=1.1.0',
                 'matplotlib>=3.2.0',
+                'ruamel.yaml',
                 'h5py',
                 'pygmt',
                 'pyproj'],

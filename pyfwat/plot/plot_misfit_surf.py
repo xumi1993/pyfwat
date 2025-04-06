@@ -3,12 +3,12 @@ import glob
 import numpy as np
 import argparse
 from ..pario import readfwatpar
-from pyfwat import DATA_PATH
+from pyfwat import FWAT_PARA_FILE
 import os
 
 
 def read_misfit(it, filtstr, col=28):
-    misfit_file = 'misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr)
+    misfit_file = 'misfits/M{:02d}.*_{}_window_chi'.format(it, filtstr)
     fs = glob.glob(misfit_file)
     if len(fs) == 0:
         print(f'No misfit files found for iteration {misfit_file}')
@@ -17,6 +17,8 @@ def read_misfit(it, filtstr, col=28):
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
         chi = chi[chi!=0]
+        if chi.size == 0:
+            continue
         misfit += np.mean(chi)
     return misfit/len(fs)
 
@@ -26,6 +28,7 @@ class PlotMisfit():
         self.iter_end = iter_end
         self.col = col
         self.all_band = all_band
+        self.para = readfwatpar(FWAT_PARA_FILE)
         if self.all_band:
             self.norm = False
         else:
@@ -35,17 +38,19 @@ class PlotMisfit():
             self.read_gaus()
         else:
             self.read_freq()
+        
         self.read_misfit_all()
 
     def read_freq(self):
-        self.periodmin = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'NOISE_SHORT_P')
-        self.periodmax = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'NOISE_LONG_P')
+        self.periodmin = self.para['NOISE']['SHORT_P']
+        self.periodmax = self.para['NOISE']['LONG_P']
         self.bandname = ['T{:03.0f}_T{:03.0f}'.format(pmin, pmax) for pmin, pmax in zip(self.periodmin, self.periodmax)]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
         # self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
 
     def read_gaus(self):
-        self.gaus = readfwatpar('{DATA_PATH}/FWAT.PAR', 'RF_F0')
+        # self.gaus = readfwatpar('{DATA_PATH}/FWAT.PAR', 'RF_F0')
+        self.gaus = self.para['TELE']['RF']['F0']
         self.bandname = ['F{:.1f}'.format(ff) for ff in self.gaus]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
 

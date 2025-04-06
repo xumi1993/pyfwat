@@ -14,10 +14,10 @@ def pre_plot(modelname, evtid, comp, fltstr):
     # with open('src_rec/sources_set{}.dat'.format(setid)) as f:
     #     evtid = f.readlines()[0].strip().split()[0]
     s = ''
-    s += 'saclst knetwk kstnm b e dist f solver/{}.set*/{}/OUTPUT_FILES/*{}.obs.sac.{} > saclst_dat\n'.format(modelname, evtid, comp,fltstr)
+    s += 'saclst knetwk kstnm b e dist f solver/{}.noise/{}/OUTPUT_FILES/*{}.dat.sac.{} > saclst_dat\n'.format(modelname, evtid, comp,fltstr)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
     s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
-    s += 'ls solver/{}.set*/{}/OUTPUT_FILES/*{}.syn.sac.{} > saclst_syn\n'.format(modelname, evtid, comp,fltstr)
+    s += 'ls solver/{}.noise/{}/OUTPUT_FILES/*{}.syn.sac.{} > saclst_syn\n'.format(modelname, evtid, comp,fltstr)
     subp = subprocess.Popen(['bash'], stdin=subprocess.PIPE)
     subp.communicate(s.encode())
     xlim_all = np.loadtxt('saclst_dat', usecols=[3,4])
@@ -28,7 +28,7 @@ def pre_plot(modelname, evtid, comp, fltstr):
     return xlim, ylim
 
 def read_time_windows(modelname, evtid, comp, fltstr):
-    st = obspy.read(f'solver/{modelname}.set*/{evtid}/OUTPUT_FILES/*{comp}.obs.sac.{fltstr}')
+    st = obspy.read(f'solver/{modelname}.noise/{evtid}/OUTPUT_FILES/*{comp}.dat.sac.{fltstr}')
     output = np.zeros([len(st), 3])
     for i, tr in enumerate(st):
         output[i, 0] = tr.stats.sac.dist
@@ -53,7 +53,7 @@ def plot_noise_fit(modelname, evtid, fltstr, comp='Z', xlim=None, outpath='./fig
         lib.call_module("sac", "saclst_syn -Ek -M{} -W0.6p,255/25/25".format(enf))
     fig.plot(x=time_win[:, 1], y=time_win[:, 0], style='y0.2c', pen='1p,deepskyblue3')
     fig.plot(x=time_win[:, 2], y=time_win[:, 0], style='y0.2c', pen='1p,deepskyblue3')
-    fig.savefig('{}/{}.set{}_noise_{}_{}_fit.png'.format(outpath, modelname, evtid, comp, fltstr))
+    fig.savefig('{}/{}.{}_noise_{}_{}_fit.png'.format(outpath, modelname, evtid, comp, fltstr))
     post_plot()
 
 
