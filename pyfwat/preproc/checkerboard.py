@@ -46,7 +46,7 @@ class Checker:
         return ntaper_left, ntaper_right
     
     def checkerboard(self, n_pert_x:int, n_pert_y:int, n_pert_z:int,
-                     pert_vel=0.1, lim_x=None, lim_y=None, lim_z=None):
+                     pert_vel=0.1, xmarg=0.0, ymarg=0.0, lim_z=None):
         """
         Create a checkerboard model.
 
@@ -58,28 +58,28 @@ class Checker:
         :type n_pert_z: int
         :param pert_vel: Perturbation velocity, defaults to 0.1
         :type pert_vel: float, optional
-        :param lim_x: Limits for the x direction, defaults to None
-        :type lim_x: tuple, optional
-        :param lim_y: Limits for the y direction, defaults to None
-        :type lim_y: tuple, optional
+        :param xmarg: Margin in the x direction, defaults to 0.0
+        :type xmarg: float, optional
+        :param ymarg: Margin in the y direction, defaults to 0.0
+        :type ymarg: float, optional
         :param lim_z: Limits for the z direction, defaults to None
         :type lim_z: tuple, optional
         """
-        if lim_x is not None:
-            ntaper_left, ntaper_right = self._create_tape(lim_x[0], lim_x[1], type='x')
+        if xmarg > 0:
+            ntaper_left, ntaper_right = self._create_tape(self.x[0]+xmarg, self.x[-1]-xmarg, type='x')
         else:
             ntaper_left, ntaper_right = 0, 0
         x_pert = np.zeros_like(self.x)
-        x_pert[ntaper_left:-ntaper_right] = \
+        x_pert[ntaper_left:self.x.size-ntaper_right] = \
             np.sin(n_pert_x * np.pi * np.arange(self.x.size - ntaper_left - ntaper_right) \
             / (self.x.size - ntaper_left - ntaper_right))
-        
-        if lim_y is not None:
-            ntaper_left, ntaper_right = self._create_tape(lim_y[0], lim_y[1], type='y')
+
+        if ymarg > 0:        
+            ntaper_left, ntaper_right = self._create_tape(self.y[0]+ymarg, self.y[-1]-ymarg, type='y')
         else:
             ntaper_left, ntaper_right = 0, 0
         y_pert = np.zeros_like(self.y)
-        y_pert[ntaper_left:-ntaper_right] = \
+        y_pert[ntaper_left:self.y.size-ntaper_right] = \
             np.sin(n_pert_y * np.pi * np.arange(self.y.size - ntaper_left - ntaper_right) \
             / (self.y.size - ntaper_left - ntaper_right))
         
@@ -88,7 +88,7 @@ class Checker:
         else:
             ntaper_left, ntaper_right = 0, 0
         z_pert = np.zeros_like(self.z)
-        z_pert[ntaper_left:-ntaper_right] = \
+        z_pert[ntaper_left:self.z.size-ntaper_right] = \
             np.sin(n_pert_z * np.pi * np.arange(self.z.size - ntaper_left - ntaper_right) \
             / (self.z.size - ntaper_left - ntaper_right))
         
@@ -114,19 +114,17 @@ class Checker:
 
 def main():
     parser = argparse.ArgumentParser(description="Create a checkerboard model.")
-    parser.add_argument('-i', required=True, type=str, help='Input model file')
+    parser.add_argument('-i', required=True, help='Input model file', metavar='input_model')
     parser.add_argument('-n', help='nx, ny and nz of velocity anomalies along longitude, latitude and depth',
                          metavar='nx/ny/nz', required=True)
-    parser.add_argument('-o', required=True, type=str, help='Output model file')
+    parser.add_argument('-o', required=True, help='Output model file', metavar='output_model')
     parser.add_argument('-p', help='Perturbation velocity', type=float, default=0.1)
-    parser.add_argument('-x', help='Upper and lower limits of x', metavar='xmin/xmax', type=str, default=None)
-    parser.add_argument('-y', help='Upper and lower limits of y', metavar='ymin/ymax', type=str, default=None)
+    parser.add_argument('-x', help='x margin in m', metavar='xmarg', type=float, default=0)
+    parser.add_argument('-y', help='y margin in m', metavar='ymarg', type=float, default=0)
     parser.add_argument('-z', help='Upper and lower limits of z', metavar='zmin/zmax', type=str, default=None)
-    args = parser.parse_args(sys.argv[2:])
+    args = parser.parse_args(sys.argv[1:])
     n_pert_x, n_pert_y, n_pert_z = [int(i) for i in args.n.split('/')]
-    lim_x = [float(i) for i in args.x.split('/')] if args.x is not None else None
-    lim_y = [float(i) for i in args.y.split('/')] if args.y is not None else None
     lim_z = [float(i) for i in args.z.split('/')] if args.z is not None else None
     ckb = Checker(args.i)
-    ckb.checkerboard(n_pert_x, n_pert_y, n_pert_z, args.p, lim_x, lim_y, lim_z)
+    ckb.checkerboard(n_pert_x, n_pert_y, n_pert_z, args.p, args.x, args.y, lim_z)
     ckb.write(args.o)
