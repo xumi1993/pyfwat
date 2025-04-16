@@ -1,11 +1,12 @@
 import h5py
-from os.path import dirname, basename
+from os.path import dirname, basename, join
 
 class XDMFIO:
     def __init__(self, filename):
         self.filename = filename
+        self.basename = basename(filename)
         self.path = dirname(filename)
-        self.fname = '_'.join(basename(filename).split('.')[:-1])+'.xmf'
+        self.fname = join(self.path, '_'.join(basename(filename).split('.')[:-1])+'.xmf')
         self.model = {}
         with h5py.File(filename, 'r') as f:
             self.keys = list(f.keys())
@@ -15,6 +16,7 @@ class XDMFIO:
             self.x = f['x'][:]
             self.y = f['y'][:]
             self.z = f['z'][:]
+        self.dims = (len(self.z), len(self.y), len(self.x))
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
         self.dz = self.z[1] - self.z[0]
@@ -22,42 +24,41 @@ class XDMFIO:
         self.oy = self.y[0]
         self.oz = self.z[0]
 
+    import h5py
+
     def create_xdmf(self):
-        self.xdmf_content = f"""<?xml version="1.0" ?>
-<Xdmf Version="3.0">
+        self.xmf = f'''<?xml version="1.0" ?>
+<Xdmf Version="3.0" xmlns:xi="http://www.w3.org/2001/XInclude">
   <Domain>
-    <Grid Name="Structured Grid" GridType="Uniform">
-      
-      <Topology TopologyType="3DCORECTMesh" Dimensions="{self.z.size} {self.y.size} {self.x.size}"/>
-      
-      <Geometry GeometryType="ORIGIN_DXDYDZ">
-        <DataItem Dimensions="3" NumberType="Float" Format="XML">
-          {self.ox} {self.oy} {self.oz}
+    <Grid Name="Model" GridType="Uniform">
+      <Topology TopologyType="3DRectMesh" Dimensions="{self.dims[0]} {self.dims[1]} {self.dims[2]}"/>
+      <Geometry GeometryType="VxVyVz">
+        <DataItem Name="X" Dimensions="{self.dims[2]}" NumberType="Float" Precision="8" Format="HDF">
+          {self.basename}:/x
         </DataItem>
-        <DataItem Dimensions="3" NumberType="Float" Format="XML">
-          {self.dx} {self.dy} {self.dz}
+        <DataItem Name="Y" Dimensions="{self.dims[1]}" NumberType="Float" Precision="8" Format="HDF">
+          {self.basename}:/y
+        </DataItem>
+        <DataItem Name="Z" Dimensions="{self.dims[0]}" NumberType="Float" Precision="8" Format="HDF">
+          {self.basename}:/z
         </DataItem>
       </Geometry>
-
-"""
-        for key in self.keys:
-            self.xdmf_content += f"""
-        <Attribute Name="{key}" AttributeType="Scalar" Center="Cell">
-          <DataItem Dimensions="{self.z.size} {self.y.size} {self.x.size}" NumberType="Float" Precision="4" Format="HDF">
-            {basename(self.filename)}:/{key}
-          </DataItem>
-        </Attribute>
-
-"""
-        self.xdmf_content += """
-    </Grid>
+'''
+        for name in self.keys:
+            self.xmf += f'''      <Attribute Name="{name}" AttributeType="Scalar" Center="Node">
+        <DataItem Dimensions="{self.dims[0]} {self.dims[1]} {self.dims[2]}" NumberType="Float" Precision="8" Format="HDF">
+          {self.basename}:/{name}
+        </DataItem>
+      </Attribute>
+'''
+        self.xmf += '''    </Grid>
   </Domain>
 </Xdmf>
-"""
+'''
 
     def write(self):
-        with open(f'./{self.fname}', 'w') as f:
-            f.write(self.xdmf_content)
+        with open(f'{self.fname}', 'w') as f:
+            f.write(self.xmf)
 
 
 def create_xmf():

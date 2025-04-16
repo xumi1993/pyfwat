@@ -17,7 +17,7 @@ def clean_proj():
         shutil.rmtree('./misfits')
     except Exception as e:
         print('Warning: {}'.format(e))
-    for fname in glob.glob('./output_fwat*.txt'):
+    for fname in glob.glob('./output_*.log'):
         os.remove(fname)
 
 
