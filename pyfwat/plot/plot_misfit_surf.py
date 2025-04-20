@@ -13,14 +13,16 @@ def read_misfit(it, filtstr, col=28):
     if len(fs) == 0:
         print(f'No misfit files found for iteration {misfit_file}')
         return np.nan
-    misfit = 0
+    misfit = 0.
+    sum_chi = 0.
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
         chi = chi[chi!=0]
         if chi.size == 0:
             continue
         misfit += np.mean(chi)
-    return misfit/len(fs)
+        sum_chi += np.sum(chi)
+    return misfit/len(fs), sum_chi
 
 class PlotMisfit():
     def __init__(self, iter_start, iter_end, col=28, all_band=True, norm=False, rf=False) -> None:
@@ -57,9 +59,12 @@ class PlotMisfit():
     def read_misfit_all(self):
         self.misfits = np.zeros([len(self.bandname), self.iters.size])
         for i, it in enumerate(self.iters):
+            sum_chi = 0.
             for j, band in enumerate(self.bandname):
-                print(it, band, read_misfit(it, band, self.col))
-                self.misfits[j, i] = read_misfit(it, band, self.col)
+                # print(it, band, read_misfit(it, band, self.col))
+                self.misfits[j, i], chi = read_misfit(it, band, self.col)
+                sum_chi += chi
+            print('A total misfit of {:.6f} for {}th iter'.format(sum_chi, it))
         self.misfit_mean = np.nanmean(self.misfits, axis=0)
 
     def plot(self, outpath='./figures', color='218/56/58', avg=False):

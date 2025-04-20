@@ -5,19 +5,21 @@ import argparse
 
 
 def read_misfit(it, filtstr, col=28):
-    fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
+    fs = glob.glob('misfits/M{:02d}.*_{}_window_chi'.format(it, filtstr))
     misfit = 0
     count = 0
+    sum_chi = 0.
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
         chi = chi[chi!=0.0]
         count += chi.size
         misfit += np.mean(chi)
-    print('A total of {} traces for {}th iter'.format(count, it))
+        sum_chi += np.sum(chi)
+    print('A total misfit of {:.6f} for {}th iter'.format(sum_chi, it))
     return misfit/len(fs)
 
 class PlotMisfit():
-    def __init__(self, iter_start, iter_end, filtstr, col=26) -> None:
+    def __init__(self, iter_start, iter_end, filtstr, col=28) -> None:
         self.iter_start = iter_start
         self.iter_end = iter_end
         self.col = col

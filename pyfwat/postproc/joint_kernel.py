@@ -22,12 +22,14 @@ class JointKernel():
     def __init__(self, model):
         self.model = model
         self.data = self.read(model)
-        it_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
-        self.model_start = f'M{it_start:02d}'
-        self.weight = readfwatpar('DATA/FWAT.PAR', 'JOINT_WEIGHT')
+        self.para = readfwatpar()
+        # it_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
+        self.model_start = 'M00'
+        # self.weight = readfwatpar('DATA/FWAT.PAR', 'JOINT_WEIGHT')
+        self.weight = self.para['POSTPROC']['JOINT_WEIGHT']
         self.setname = {}
-        self.setname['noise'] = readfwatpar('DATA/FWAT.PAR', 'NOISE_SET_RANGE')[0]
-        self.setname['tele'] = readfwatpar('DATA/FWAT.PAR', 'TELE_SET_RANGE')[0]
+        # self.setname['noise'] = readfwatpar('DATA/FWAT.PAR', 'NOISE_SET_RANGE')[0]
+        # self.setname['tele'] = readfwatpar('DATA/FWAT.PAR', 'TELE_SET_RANGE')[0]
 
     def read(self, model_name):
         data = {
@@ -36,16 +38,16 @@ class JointKernel():
         }
         for simu in simu_type:
             grad_all = []
-            for kernel in kernel_name:
-                with h5py.File(f'{basepath}/{kernel}_kernel_smooth_{model_name}_{simu}.h5') as f:
+            with h5py.File(f'{basepath}/gradient_{model_name}_{simu}.h5') as f:
+                for kernel in kernel_name:
                     grad_all.append(f[f'{kernel}_kernel_smooth'][:])
-            data[simu] = np.stack(grad_all)
+                    data[simu] = np.stack(grad_all)
         return data
 
-    def read_misfit(self):
-        self.misfit = {}
-        self.misfit['noise'] = read_misfit(self.model_start, self.setname['noise'])
-        self.misfit['tele'] = read_misfit(self.model_start, self.setname['tele'])
+    # def read_misfit(self):
+    #     self.misfit = {}
+    #     self.misfit['noise'] = read_misfit(self.model_start, 'noise')
+    #     self.misfit['tele'] = read_misfit(self.model_start, 'tele')
 
     def sum(self, misfit_norm=False):
         normval = {}
@@ -56,12 +58,11 @@ class JointKernel():
             data0 = self.read(self.model_start)
             for simu in simu_type:
                 normval[simu] = np.max(np.abs(data0[simu]))
-        self.read_misfit()
         self.grad = {}
         for kernel in kernel_name:
             self.grad[kernel] = np.zeros(self.data['noise'][0].shape)
         for i, simu in enumerate(simu_type):
-            self.data[simu] /= normval[simu] * self.weight[i]
+            self.data[simu] /= normval[simu] / self.weight[i]
             print(f'max {simu} grad: {np.max(np.abs(self.data[simu]))}')
             for j, kernel in enumerate(kernel_name):
                 self.grad[kernel] += self.data[simu][j]
