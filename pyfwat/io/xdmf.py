@@ -16,15 +16,13 @@ class XDMFIO:
             self.x = f['x'][:]
             self.y = f['y'][:]
             self.z = f['z'][:]
-        self.dims = (len(self.z), len(self.y), len(self.x))
+        self.dims = (len(self.x), len(self.y), len(self.z))
         self.dx = self.x[1] - self.x[0]
         self.dy = self.y[1] - self.y[0]
         self.dz = self.z[1] - self.z[0]
         self.ox = self.x[0]
         self.oy = self.y[0]
         self.oz = self.z[0]
-
-    import h5py
 
     def create_xdmf(self):
         self.xmf = f'''<?xml version="1.0" ?>
@@ -33,13 +31,13 @@ class XDMFIO:
     <Grid Name="Model" GridType="Uniform">
       <Topology TopologyType="3DRectMesh" Dimensions="{self.dims[0]} {self.dims[1]} {self.dims[2]}"/>
       <Geometry GeometryType="VxVyVz">
-        <DataItem Name="X" Dimensions="{self.dims[2]}" NumberType="Float" Precision="8" Format="HDF">
+        <DataItem Name="X" Dimensions="{self.dims[0]}" NumberType="Float" Precision="8" Format="HDF">
           {self.basename}:/x
         </DataItem>
         <DataItem Name="Y" Dimensions="{self.dims[1]}" NumberType="Float" Precision="8" Format="HDF">
           {self.basename}:/y
         </DataItem>
-        <DataItem Name="Z" Dimensions="{self.dims[0]}" NumberType="Float" Precision="8" Format="HDF">
+        <DataItem Name="Z" Dimensions="{self.dims[2]}" NumberType="Float" Precision="8" Format="HDF">
           {self.basename}:/z
         </DataItem>
       </Geometry>

@@ -6,7 +6,7 @@ import argparse
 
 def _read_misfit(it, filtstr, col=28):
     misfit = np.array([])
-    fs = glob.glob('misfits/M{:02d}.set*_{}_window_chi'.format(it, filtstr))
+    fs = glob.glob('misfits/M{:02d}*_{}_window_chi'.format(it, filtstr))
     for f in fs:
         chi = np.loadtxt(f, usecols=[col], unpack=True)
         misfit = np.append(misfit, chi)
