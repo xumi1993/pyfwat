@@ -25,18 +25,19 @@ def read_misfit(it, filtstr, col=28):
     return misfit/len(fs), sum_chi
 
 class PlotMisfit():
-    def __init__(self, iter_start, iter_end, col=28, all_band=True, norm=False, rf=False) -> None:
+    def __init__(self, iter_start, iter_end, col=28, all_band=True, norm=False, simu_type='noise') -> None:
         self.iter_start = iter_start
         self.iter_end = iter_end
         self.col = col
         self.all_band = all_band
         self.para = readfwatpar(FWAT_PARA_FILE)
+        self.simu_type = simu_type.upper()
         if self.all_band:
             self.norm = False
         else:
             self.norm = norm
         self.colors = ['47/127/193', '150/195/125', '196/151/178', '73/108/136', 'olivedrab', 'burlywood', 'thistle']
-        if rf:
+        if self.simu_type == 'RF':
             self.read_gaus()
         else:
             self.read_freq()
@@ -44,8 +45,8 @@ class PlotMisfit():
         self.read_misfit_all()
 
     def read_freq(self):
-        self.periodmin = self.para['NOISE']['SHORT_P']
-        self.periodmax = self.para['NOISE']['LONG_P']
+        self.periodmin = self.para[self.simu_type]['SHORT_P']
+        self.periodmax = self.para[self.simu_type]['LONG_P']
         self.bandname = ['T{:03.0f}_T{:03.0f}'.format(pmin, pmax) for pmin, pmax in zip(self.periodmin, self.periodmax)]
         self.iters = np.arange(self.iter_start, self.iter_end+1)
         # self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
@@ -92,7 +93,7 @@ class PlotMisfit():
             fig.plot(x=self.iters, y=self.misfit_mean, pen='0.5p')
             fig.plot(x=self.iters, y=self.misfit_mean, style='c0.25c', fill=color, pen='0.1p')
         os.makedirs(outpath, exist_ok=True)
-        fig.savefig('{}/misfit_M{:02d}_M{:02d}_multifreq.png'.format(outpath, self.iter_start, self.iter_end))
+        fig.savefig('{}/misfit_M{:02d}_M{:02d}_{}_multifreq.png'.format(outpath, self.iter_start, self.iter_end, self.simu_type.lower()))
 
 
 def main():
@@ -102,9 +103,9 @@ def main():
     parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     parser.add_argument('-n', help='Normalization when plotting mean misfits', action='store_true',default=False)
-    parser.add_argument('-r', help='read rf misfits', action='store_true',default=False)
+    parser.add_argument('-s', help='simulation type, defaults to noise', default='noise', metavar='<noise|rf|tele>')
     args = parser.parse_args()
     its = [int(v) for v in args.m.split('/')]
-    pm = PlotMisfit(its[0], its[1], col=args.l, all_band=True, norm=args.n, rf=args.r)
+    pm = PlotMisfit(its[0], its[1], col=args.l, all_band=True, norm=args.n, simu_type=args.s)
     pm.plot(args.o, avg=args.a)
 
