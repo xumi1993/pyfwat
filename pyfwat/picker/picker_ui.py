@@ -21,11 +21,11 @@ import glob
 
 class MyMplCanvas(FigureCanvas):
     def __init__(self, parent=None, path='', marker='a', enf=1,
-                 xlim=[-50, 120], num=30):
+                 xlim=[-50, 120], num=30, resample_dt=None):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
-        self.pf = PickFig(path, marker=marker)
+        self.pf = PickFig(path, marker=marker, resample_dt=resample_dt)
         self.pf.para.xlim = xlim
         self.pf.para.enf = enf
         self.pf.para.num_per_page = num
@@ -44,12 +44,13 @@ class MyMplCanvas(FigureCanvas):
 
 class MatplotlibWidget(QMainWindow):
     def __init__(self, path, marker='a', xlim=[-50, 120], enf=1,
-                 pre_flt=None, num=30, parent=None):
+                 pre_flt=None, num=30, resample_dt=None, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.pre_flt = pre_flt
         self.enf = enf
         self.num = num
+        self.resample_dt = resample_dt
         self.initUi(path, marker)
         QMetaObject.connectSlotsByName(self)
 
@@ -57,7 +58,7 @@ class MatplotlibWidget(QMainWindow):
         self.layout = QHBoxLayout()
         self._set_geom_center()
         self.mpl = MyMplCanvas(self, path=path, marker=marker, enf=self.enf,
-                               xlim=self.xlim, num=self.num)
+                               xlim=self.xlim, num=self.num, resample_dt=self.resample_dt)
 
         self.main_frame = QWidget()
         self.setCentralWidget(self.main_frame)
@@ -444,6 +445,7 @@ class MatplotlibWidget(QMainWindow):
 def main():
     parser = argparse.ArgumentParser(description="User interface for picking PRFs")
     parser.add_argument('path', type=str, help='Path to data directory')
+    parser.add_argument('-d', help='Resample dt, defaults to 0.01. set to NA to use raw rampling rate.', default=0.01, metavar='dt')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
     parser.add_argument('-m', help='marker for picking', default='a', metavar='marker')
@@ -456,10 +458,17 @@ def main():
         pre_flt = arg.f
     else:
         pre_flt = [float(v) for v in arg.f.split('/')]
+    if arg.d == 'NA':
+        resample_dt = None
+    else:
+        try:
+            resample_dt = float(arg.d)
+        except:
+            raise ValueError('Resample dt must be a number or NA')
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e, num=arg.n)
+    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e, num=arg.n, resample_dt=resample_dt)
     ui.show()
     sys.exit(app.exec_())
 

@@ -29,12 +29,12 @@ class Para():
 
 
 class PickFig(object):
-    def __init__(self, path, marker='t0', pre_flt=None) -> None:
+    def __init__(self, path, marker='t0', resample_dt=None) -> None:
         self.para = Para()
         self.para.path = path
         self.para.marker = marker
         self.current_page = 0
-        self.read_sac(self.para.resample_dt)
+        self.read_sac(resample_dt)
 
     def _get_y_limit(self):
         self.low_lim = np.arange(1, self.stnum+1, self.para.num_per_page)
@@ -42,9 +42,9 @@ class PickFig(object):
         self.npage = self.low_lim.size
 
     def init_figure(self, figsize=(18,10)):
-        self.fig, self.axes = plt.subplots(1, 2, sharey=True, figsize=figsize, tight_layout=True)
-        self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\circ$, Longitude: {:.3f}$^\circ$, Depth: {:.1f}, Mag: {:.1f}\n'
-                          'Averaged distance: {:.2f}$^\circ$, Averaged back-azimuth: {:.2f}$^\circ$'.format(
+        self.fig, self.axes = plt.subplots(1, 2, figsize=figsize, tight_layout=True)
+        self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\\circ$, Longitude: {:.3f}$^\\circ$, Depth: {:.1f}, Mag: {:.1f}\n'
+                          'Averaged distance: {:.2f}$^\\circ$, Averaged back-azimuth: {:.2f}$^\\circ$'.format(
                           basename(self.para.path), self.stz[0].stats.sac.evla, self.stz[0].stats.sac.evlo,
                           self.stz[0].stats.sac.evdp, self.stz[0].stats.sac.mag, np.mean(self.dist), np.mean(self.baz)), fontweight="bold")
         self._get_y_limit()
@@ -58,21 +58,30 @@ class PickFig(object):
             # ax.set_ylim(0, self.stnum+1)
             y_range = np.arange(self.stnum) + 1
             ax.set_yticks(y_range)
-            ax.set_yticklabels([tr.stats.network+'.'+tr.stats.station for tr in st])
+            if icomp == 0:
+                ax.set_yticklabels([tr.stats.network+'.'+tr.stats.station for tr in st])
+            else:
+                ax.set_yticklabels(y_range)
             ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
+            for idx in np.where(self.good_seis == 0)[0]:
+                ax.get_yticklabels()[idx].set_color('gray')
 
     def read_sac(self, resample_dt=0.025):
-        self.dt = resample_dt
-        sample_rate = 1/resample_dt
         self.str = obspy.read(join(self.para.path,'*R.sac'))
         self.stz = obspy.read(join(self.para.path,'*Z.sac'))
         if len(self.str) != len(self.stz):
             raise ValueError('Different num of files in R and Z components')
         else:
             self.stnum = len(self.stz)
-        for i, str in enumerate(self.str):
-            str.resample(sample_rate)
-            self.stz[i].resample(sample_rate)
+
+        if resample_dt is not None:
+            self.dt = resample_dt
+            sample_rate = 1/resample_dt
+            for i, str in enumerate(self.str):
+                str.resample(sample_rate)
+                self.stz[i].resample(sample_rate)
+        else:
+            self.dt = self.str[0].stats.delta    
         self._calc_distaz()
         self.sort()
         self.str_cp = self.str.copy()
@@ -145,7 +154,7 @@ class PickFig(object):
                     ttal = self.tdelta[i]
                 times = tr.times() - t0
                 data = tr.data / self.avg_amp * self.para.enf + (i + 1)
-                ax.plot(times, data, color='gray', lw=1)
+                ax.plot(times, data, color='gray', lw=0.3)
                 self.wvfillpos[i][icomp] = ax.fill_between(times, data, bound + i+1, where=data > i+1, facecolor='red',
                                 alpha=0.5)
                 self.wvfillnag[i][icomp] = ax.fill_between(times, data, bound + i+1, where=data < i+1, facecolor='blue',
@@ -179,6 +188,7 @@ class PickFig(object):
         if event.inaxes != self.axes[0] and event.inaxes != self.axes[1]:
             return
         click_idx = int(np.round(event.ydata))
+        ticklabels = [ax.get_yticklabels() for ax in self.axes]
         if click_idx > self.stnum:
             return
         if self.good_seis[click_idx-1] == 1:
@@ -188,6 +198,8 @@ class PickFig(object):
             self.wvfillpos[click_idx-1][1].set_facecolor('gray')
             self.wvfillnag[click_idx-1][0].set_facecolor('gray')
             self.wvfillnag[click_idx-1][1].set_facecolor('gray')
+            for ticklabel in ticklabels:
+                ticklabel[click_idx-1].set_color('gray')
         else:
             # self.log.RFlog.info("Canceled "+self.filenames[click_idx-1])
             self.good_seis[click_idx-1] = 1
@@ -195,6 +207,8 @@ class PickFig(object):
             self.wvfillpos[click_idx-1][1].set_facecolor('red')
             self.wvfillnag[click_idx-1][0].set_facecolor('blue')
             self.wvfillnag[click_idx-1][1].set_facecolor('blue')
+            for ticklabel in ticklabels:
+                ticklabel[click_idx-1].set_color('black')
 
     def _set_gray(self):
         for i in np.where(self.good_seis == 0)[0]:
