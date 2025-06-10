@@ -135,6 +135,8 @@ class PickFig(object):
         for i, tr in enumerate(self.stz):
             t0 = self.t0[i]
             nref = int(t0/self.dt)
+            if nref-nb < 0:
+                nref = nb
             avg_data += tr.data[nref-nb:nref+ne]
         avg_data /= self.stnum
         self.avg_amp = np.max(avg_data)
@@ -145,14 +147,14 @@ class PickFig(object):
             for i, tr in enumerate(st):
                 bound = np.zeros(tr.data.size)
                 if self.para.align == 'mccc':
-                    t0 = self.tmccc[i]
+                    self.tarr = self.tmccc[i]
                     tt0 = self.tdelta[i]
                     ttal = 0
                 else:
-                    t0 = self.t0[i]
+                    self.tarr = self.t0[i]
                     tt0 = 0
                     ttal = self.tdelta[i]
-                times = tr.times() - t0
+                times = tr.times() - self.tarr
                 data = tr.data / self.avg_amp * self.para.enf + (i + 1)
                 ax.plot(times, data, color='gray', lw=0.3)
                 self.wvfillpos[i][icomp] = ax.fill_between(times, data, bound + i+1, where=data > i+1, facecolor='red',
@@ -209,6 +211,15 @@ class PickFig(object):
             self.wvfillnag[click_idx-1][1].set_facecolor('blue')
             for ticklabel in ticklabels:
                 ticklabel[click_idx-1].set_color('black')
+    
+    def onclick_arr(self, event):
+        if event.inaxes != self.axes[0] and event.inaxes != self.axes[1]:
+            return
+        tcorr = event.xdata
+        if self.para.align == 'mccc':
+            self.tmccc += tcorr
+        else:
+            self.t0 += tcorr
 
     def _set_gray(self):
         for i in np.where(self.good_seis == 0)[0]:
