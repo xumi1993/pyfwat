@@ -85,7 +85,7 @@ class MatplotlibWidget(QMainWindow):
 
         # self._define_global_shortcuts()
         
-        # self.setWindowIcon(QIcon(join(dirname(__file__), 'data', 'seispy.png')))
+        self.setWindowIcon(QIcon(join(dirname(dirname(__file__)), 'data', 'icon.svg')))
     
     def add_layout(self):
         self.add_filter_box()
