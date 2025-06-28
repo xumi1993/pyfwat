@@ -10,7 +10,10 @@ def read_misfit(it, filtstr, col=28):
     count = 0
     sum_chi = 0.
     for f in fs:
-        chi = np.loadtxt(f, usecols=[col], unpack=True)
+        try:
+            chi = np.loadtxt(f, usecols=[col], unpack=True)
+        except Exception as e:
+            raise ValueError(f'error in reading {f}: {e}')
         chi = chi[chi!=0.0]
         count += chi.size
         misfit += np.mean(chi)

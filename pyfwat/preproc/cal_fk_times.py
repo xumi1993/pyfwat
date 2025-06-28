@@ -168,14 +168,14 @@ def create_fktimes(evtid, utmzone=None, shift=0):
 
 def main():
   parser = argparse.ArgumentParser('generate FKtimes (FKmodel and STATIONS should be in preparation)')
-  parser.add_argument('-s', help="Set name", metavar='set_name')
+  parser.add_argument('-s', help="Set name", metavar='set_name', required=True)
   parser.add_argument('-u', help='Use utm zone, default to None', default=None, type=int)
   parser.add_argument('-t', help='Add a time shift, defaults to 0', default=0, type=float)
   args = parser.parse_args()
   with open('src_rec/sources_{}.dat'.format(args.s)) as f:
     eid = [v.strip().split()[0] for v in f.readlines()]
   for id in eid:
-    create_fktimes(id, is_utm=args.u, shift=args.t)
+    create_fktimes(id, utmzone=args.u, shift=args.t)
 
 if __name__ == '__main__':
   main()

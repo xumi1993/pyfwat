@@ -7,7 +7,7 @@ import argparse
 
 
 data_names = ['vp', 'vs', 'rho']
-model_h5 = 'DATA/tomo_files/tomography_xyz.h5'
+model_h5 = 'DATA/tomo_files/tomography_model.h5'
 
 class ModUpdate():
     def __init__(self, model_name, step_length):
@@ -15,10 +15,11 @@ class ModUpdate():
         self.model_name = model_name
         self.iter_current = int(model_name[1:])
         self.iter_next = self.iter_current + 1
-        self.iter_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
-        self.m_store = int(readfwatpar('DATA/FWAT.PAR', 'LBFGS_M_STORE'))
-        self.do_ls = readfwatpar('DATA/FWAT.PAR', 'DO_LS')
-        self.optim_method = readfwatpar('DATA/FWAT.PAR', 'OPT_METHOD')
+        self.para = readfwatpar()
+        self.iter_start = self.para['MODEL_UPDATE']['ITER_START']
+        self.m_store = self.para['MODEL_UPDATE']['LBFGS_M_STORE']
+        self.do_ls = self.para['MODEL_UPDATE']['DO_LS']
+        self.optim_method = self.para['MODEL_UPDATE']['OPT_METHOD']
         self.read_coord()
 
     def lbfgs(self):
@@ -63,7 +64,6 @@ class ModUpdate():
             self.r_vector += (a[i] - b) * model_diff
     
     def model_update(self):
-        print(self.optim_method)
         if self.iter_current == self.iter_start or self.optim_method == 'SD':
             self.r_vector = self.read_gradient(self.iter_current)
         else:
