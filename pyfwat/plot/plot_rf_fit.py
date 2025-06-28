@@ -9,7 +9,7 @@ import argparse
 
 def pre_plot(modelname, evtid, gauss):
     s = ''
-    s += 'saclst knetwk kstnm f solver/{}.*/{}/OUTPUT_FILES/dat.*.F{} > saclst_dat\n'.format(modelname, evtid, gauss)
+    s += 'saclst knetwk kstnm f solver/{}.rf/{}/OUTPUT_FILES/obs.*.F{} > saclst_dat\n'.format(modelname, evtid, gauss)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
     s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
     s += 'ls solver/{}.*/{}/OUTPUT_FILES/syn.*.F{} > saclst_syn\n'.format(modelname, evtid, gauss)
@@ -27,15 +27,14 @@ def post_plot():
 
 def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.05):
     num_sta = pre_plot(modelname, evtid, gauss)
+    para = readfwatpar()
     if xlim is None:
-        xmin = -1 * readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'TELE_TW_BEFORE')
-        xmax = readfwatpar(f'{DATA_PATH}/FWAT.PAR', 'TELE_TW_AFTER')
-        xlim = [xmin, xmax]
+        xlim = para['TELE']['TIME_WIN']
     fig = pygmt.Figure()
     pygmt.config(FONT_TITLE='14p',
                  MAP_GRID_PEN='0.3p,gray')
     fig.basemap(region=[*xlim, 0, num_sta+3], projection='X8c/10c',
-                frame=['xa5f1g5+l"Time after P (s)"', '+t"{}, Event: {}"'.format(modelname, evtid), 'pycyticklabel.txt'])
+                frame=['xa5f1g5+lTime after P (s)', '+t{}, Event: {}'.format(modelname, evtid), 'pycyticklabel.txt'])
     with Session() as lib:
         lib.call_module("sac", "saclst_dat_plot -En1 -M{} -W1p".format(enf))
         lib.call_module("sac", "saclst_syn -En1 -M{} -W1p,255/25/25".format(enf))

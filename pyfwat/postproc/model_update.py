@@ -11,11 +11,11 @@ model_h5 = 'DATA/tomo_files/tomography_model.h5'
 
 class ModUpdate():
     def __init__(self, model_name, step_length):
+        self.para = readfwatpar()
         self.step_length = step_length
         self.model_name = model_name
         self.iter_current = int(model_name[1:])
         self.iter_next = self.iter_current + 1
-        self.para = readfwatpar()
         self.iter_start = self.para['MODEL_UPDATE']['ITER_START']
         self.m_store = self.para['MODEL_UPDATE']['LBFGS_M_STORE']
         self.do_ls = self.para['MODEL_UPDATE']['DO_LS']

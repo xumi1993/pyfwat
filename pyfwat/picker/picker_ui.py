@@ -3,6 +3,7 @@ import os
 import argparse
 # matplotlib.use("Qt5Agg")
 try:
+    from PyQt5.QtCore import Qt
     from PyQt5.QtGui import QIcon, QKeySequence, QWheelEvent
     from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, \
                                 QSizePolicy, QWidget, QDesktopWidget, \
@@ -15,6 +16,7 @@ except:
 from os.path import exists, dirname, join
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Cursor
 from .picker_fig import PickFig
 import glob
 
@@ -53,6 +55,7 @@ class MatplotlibWidget(QMainWindow):
         self.resample_dt = resample_dt
         self.marker = marker
         self.align = align
+        self.cursors = []
         self.initUi(path, marker)
         QMetaObject.connectSlotsByName(self)
 
@@ -82,7 +85,7 @@ class MatplotlibWidget(QMainWindow):
 
         # self._define_global_shortcuts()
         
-        # self.setWindowIcon(QIcon(join(dirname(__file__), 'data', 'seispy.png')))
+        self.setWindowIcon(QIcon(join(dirname(dirname(__file__)), 'data', 'icon.svg')))
     
     def add_layout(self):
         self.add_filter_box()
@@ -113,12 +116,14 @@ class MatplotlibWidget(QMainWindow):
         self.xminEdit.setFixedWidth(40)
         self.xminEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[0]))
         self.xminEdit.textChanged.connect(self.on_xmin_changed)
+        self.xminEdit.setFocusPolicy(Qt.NoFocus)
         label_bar = QLabel()
         label_bar.setText('-')
         self.xmaxEdit = QLineEdit()
         self.xmaxEdit.setFixedWidth(40)
         self.xmaxEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[1]))
         self.xmaxEdit.textChanged.connect(self.on_xmax_changed)
+        self.xmaxEdit.setFocusPolicy(Qt.NoFocus)
         xlim_layout.addWidget(label_x)
         xlim_layout.addWidget(self.xminEdit)
         xlim_layout.addWidget(label_bar)
@@ -129,6 +134,7 @@ class MatplotlibWidget(QMainWindow):
         self.ampzoomEdit = QLineEdit()
         self.ampzoomEdit.setText('{:.1e}'.format(self.mpl.pf.para.enf))
         self.ampzoomEdit.textChanged.connect(self.on_enf_changed)
+        self.ampzoomEdit.setFocusPolicy(Qt.NoFocus)
         ampzoom_layout.addWidget(label_zoom)
         ampzoom_layout.addWidget(self.ampzoomEdit)
         self.ampzoomButton = QPushButton()
@@ -151,12 +157,14 @@ class MatplotlibWidget(QMainWindow):
         self.cutminEdit.setFixedWidth(40)
         self.cutminEdit.setText('')
         self.cutminEdit.textChanged.connect(self.on_cutmin_changed)
+        self.cutminEdit.setFocusPolicy(Qt.NoFocus)
         label_bar = QLabel()
         label_bar.setText('to')
         self.cutmaxEdit = QLineEdit()
         self.cutmaxEdit.setFixedWidth(40)
         self.cutmaxEdit.setText('')
         self.cutmaxEdit.textChanged.connect(self.on_cutmax_changed)
+        self.cutmaxEdit.setFocusPolicy(Qt.NoFocus)
         cut_layout.addWidget(label_x)
         cut_layout.addWidget(self.cutminEdit)
         cut_layout.addWidget(label_bar)
@@ -175,10 +183,12 @@ class MatplotlibWidget(QMainWindow):
         self.mcccButton = QPushButton()
         self.mcccButton.setText('Do MCCC')
         self.mcccButton.clicked.connect(self.on_do_mccc)
-        self.fkButton = QPushButton()
-        self.fkButton.setText('Calculate FK times')
+        self.pickButton = QPushButton()
+        self.pickButton.setText('Pick arrival time')
+        self.pickButton.setCheckable(True)
+        self.pickButton.clicked.connect(self.on_pick_arr)
         align_layout.addWidget(self.mcccButton)
-        align_layout.addWidget(self.fkButton)
+        align_layout.addWidget(self.pickButton)
         self.t0Radio = QRadioButton(f"Align with {self.marker}")
         self.t0Radio.setObjectName(self.marker)
         self.mcccRadio = QRadioButton("Align with MCCC")
@@ -262,20 +272,24 @@ class MatplotlibWidget(QMainWindow):
         else:
             self.mpl.pf.page_down()
         self.mpl.pf.setup_figure()
-        self.mpl.draw()
+        self.mpl.draw_idle()
 
     def previous_connect(self):
         self.mpl.pf.page_down()
         self.mpl.pf.setup_figure()
-        self.mpl.draw()
+        self.mpl.draw_idle()
     
     def next_connect(self):
         self.mpl.pf.page_up()
         self.mpl.pf.setup_figure()
-        self.mpl.draw()
+        self.mpl.draw_idle()
 
     def on_click(self, event):
-        self.mpl.pf.onclick(event)
+        if self.pickButton.isChecked():
+            self.mpl.pf.onclick_arr(event)
+            self.replot_fig()
+        else:
+            self.mpl.pf.onclick(event)
         self.mpl.draw_idle()
 
     def on_cutmin_changed(self):
@@ -285,6 +299,18 @@ class MatplotlibWidget(QMainWindow):
         except:
             self.mpl.pf.para.cut_win[0] = None
             self.cutminEdit.setText('')
+    
+    def on_pick_arr(self, event):
+        if self.pickButton.isChecked():
+            QApplication.setOverrideCursor(Qt.CrossCursor)
+            for ax in self.mpl.pf.axes:
+                self.cursors.append(Cursor(ax, horizOn=False, vertOn=True, useblit=True, color='k', alpha=0.5))
+        else:
+            QApplication.restoreOverrideCursor()
+            for cursor in self.cursors:
+                cursor.clear(event)
+            self.cursors.clear()
+            self.mpl.draw_idle()
 
     def on_cutmax_changed(self):
         text = self.cutmaxEdit.text()
@@ -329,7 +355,7 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.pf.reset()
         self.mpl.pf.plot_seis()
         self.mpl.pf.setup_figure()
-        self.mpl.draw()
+        self.mpl.draw_idle()
 
     def on_plot(self):
         if self.mpl.pf.para.xlim[1] < self.mpl.pf.para.xlim[0]:
