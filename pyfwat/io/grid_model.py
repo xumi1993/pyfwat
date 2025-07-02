@@ -54,7 +54,8 @@ class GridModel():
     def calc_dv(self, ref_model_fname:str):
         with h5py.File(ref_model_fname, 'r') as f:
             ref_model = f[self.key_name][:]
-        self.dv = 100 * (self.model - ref_model) / ref_model
+        # self.dv = 100 * (self.model - ref_model) / ref_model
+        self.dv = 100 * np.log(self.model / ref_model)
     
     def calc_dv_avg(self):
         self.dv = np.zeros_like(self.model)
