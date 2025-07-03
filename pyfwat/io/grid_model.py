@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 from scipy.interpolate import interpn
+import copy
 
 class GridModel():
     def __init__(self, fname:str, key=None) -> None:
@@ -32,6 +33,14 @@ class GridModel():
         self.dz = np.mean(np.diff(self.z))
         self.dv = None
         self._meshgrid()
+
+    def copy(self):
+        """ Create a deep copy of the GridModel instance.
+
+        :return: A deep copy of the GridModel instance.
+        :rtype: GridModel
+        """
+        return copy.deepcopy(self)
 
     def _meshgrid(self):
         self.xx, self.yy, self.zz = np.meshgrid(self.x, self.y, self.z, indexing='ij')
