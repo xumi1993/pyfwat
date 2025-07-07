@@ -20,7 +20,7 @@ setup(name='pyfwat',
       install_requires=[
                 'obspy>=1.2.0',
                 'pandas>=1.0.0',
-                'numpy>=1.19.0, <2.0.0',
+                'numpy>=1.19.0',
                 'scipy>=1.1.0',
                 'matplotlib>=3.2.0',
                 'ruamel.yaml',
