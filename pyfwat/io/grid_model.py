@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 from scipy.interpolate import interpn
+import copy
 
 class GridModel():
     def __init__(self, fname:str, key=None) -> None:
@@ -33,6 +34,14 @@ class GridModel():
         self.dv = None
         self._meshgrid()
 
+    def copy(self):
+        """ Create a deep copy of the GridModel instance.
+
+        :return: A deep copy of the GridModel instance.
+        :rtype: GridModel
+        """
+        return copy.deepcopy(self)
+
     def _meshgrid(self):
         self.xx, self.yy, self.zz = np.meshgrid(self.x, self.y, self.z, indexing='ij')
 
@@ -54,7 +63,8 @@ class GridModel():
     def calc_dv(self, ref_model_fname:str):
         with h5py.File(ref_model_fname, 'r') as f:
             ref_model = f[self.key_name][:]
-        self.dv = 100 * (self.model - ref_model) / ref_model
+        # self.dv = 100 * (self.model - ref_model) / ref_model
+        self.dv = 100 * np.log(self.model / ref_model)
     
     def calc_dv_avg(self):
         self.dv = np.zeros_like(self.model)

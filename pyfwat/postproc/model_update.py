@@ -64,10 +64,12 @@ class ModUpdate():
             self.r_vector += (a[i] - b) * model_diff
     
     def model_update(self):
-        if self.iter_current == self.iter_start or self.optim_method == 'SD':
+        if self.iter_current == self.iter_start or self.optim_method == 1:
             self.r_vector = self.read_gradient(self.iter_current)
-        else:
+        elif self.optim_method == 2:
             self.lbfgs()
+        else:
+            raise ValueError(f'Unknown optimization method: {self.optim_method}')
         self.r_vector /= np.max(np.abs(self.r_vector))
         model = self.read_model(self.iter_current)
         model *= np.exp(-self.step_length * self.r_vector)
