@@ -24,7 +24,7 @@ class JointKernel():
         self.data = self.read(model)
         self.para = readfwatpar()
         # it_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
-        self.model_start = 'M00'
+        self.model_start = f'M{self.para['MODEL_UPDATE']['ITER_START']:02d}'
         # self.weight = readfwatpar('DATA/FWAT.PAR', 'JOINT_WEIGHT')
         self.weight = self.para['POSTPROC']['JOINT_WEIGHT']
         self.setname = {}
@@ -49,9 +49,9 @@ class JointKernel():
     #     self.misfit['noise'] = read_misfit(self.model_start, 'noise')
     #     self.misfit['tele'] = read_misfit(self.model_start, 'tele')
 
-    def sum(self, misfit_norm=False):
+    def sum(self):
         normval = {}
-        if misfit_norm:
+        if self.para['POSTPROC']['NORM_TYPE'] == 2:
             for simu in simu_type:
                 normval[simu] = read_misfit(self.model_start, self.setname[simu])
         else:
@@ -68,26 +68,25 @@ class JointKernel():
                 self.grad[kernel] += self.data[simu][j]
     
     def write(self):
-        with h5py.File(f'{basepath}/model_{self.model}.h5', 'r') as f:
-            x = f['x'][:]
-            y = f['y'][:]
-            z = f['z'][:]
+        # with h5py.File(f'{basepath}/model_{self.model}.h5', 'r') as f:
+        #     x = f['x'][:]
+        #     y = f['y'][:]
+        #     z = f['z'][:]
         with h5py.File(f'{basepath}/gradient_{self.model}.h5', 'w') as f:
             for kernel in kernel_name:
                 # kdata = np.asfortranarray(self.grad[kernel])
                 kdata = self.grad[kernel]
                 f.create_dataset(f'{kernel}_kernel_smooth', data=kdata)
-            f.create_dataset('x', data=x)
-            f.create_dataset('y', data=y)
-            f.create_dataset('z', data=z)
+            # f.create_dataset('x', data=x)
+            # f.create_dataset('y', data=y)
+            # f.create_dataset('z', data=z)
 
 def main():
     parser = argparse.ArgumentParser('Joint kernel of different data sets')
     parser.add_argument('-m', help='Model name e.g.,M01', metavar='M??', required=True)
-    parser.add_argument('-n', help='Normalize the gradient by misfit', action='store_true', default=False)
     args = parser.parse_args()
     joint = JointKernel(args.m)
-    joint.sum(misfit_norm=args.n)
+    joint.sum()
     joint.write()
 
 if __name__ == '__main__':
