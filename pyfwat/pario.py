@@ -93,7 +93,25 @@ def read_interface(fname='DATA/meshfem3D_files/interfaces.dat', inter_num=1):
 
 
 def chpar(parstr, key, value, type='sem'):
-    if type.lower() not in ['sem', 'fk', 'fwat']:
+    """
+    Change parameter in the parameter string.
+
+    :param parstr: Parameter content as a string
+    :type parstr: str
+    :param key: Parameter key to change
+    :type key: str
+    :param value: New value for the parameter
+    :type value: str, float, int, bool, list, np.ndarray
+    :param type: Type of parameter file, can be 'sem', 'fk', 'fwat', or 'solution'
+    :type type: str
+
+    :raises ValueError: If the type is not recognized or the key is not found
+    :raises ValueError: If more than one parameter is matched for the key
+    
+    :return: Modified parameter string
+    :rtype: str
+    """
+    if type.lower() not in ['sem', 'fk', 'fwat', 'solution']:
         raise ValueError('type should be in \'sem\' and \'fk\'')
     if not re.search('{}'.format(key), parstr):
         raise ValueError('No paremeter called {}'.format(key))
@@ -105,7 +123,7 @@ def chpar(parstr, key, value, type='sem'):
         patten = r'^({}\s+)(.+?)(\S+)'.format(key)
         if key == 'ORIGIN_WAVEFRONT':
             patten = r'^({}\s+)(.+?)$'.format('ORIGIN_WAVEFRONT')
-    elif type.lower() == 'fwat':
+    elif type.lower() == 'fwat' or type.lower() == 'solution':
         patten = r'^({}:\s+\s*)(.*?)$'.format(key)
         # value = str(value)+'\n'
     else:
