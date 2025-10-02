@@ -2,6 +2,8 @@ import pygmt
 import glob
 import numpy as np
 import argparse
+from ..io.misfit import PeriodBandMisfit
+import os
 
 
 def read_misfit(it, filtstr, col=28):
@@ -28,7 +30,11 @@ class PlotMisfit():
         self.col = col
         self.filtstr = filtstr
         self.iters = np.arange(self.iter_start, self.iter_end+1)
-        self.misfits = np.array([read_misfit(it, self.filtstr, col) for it in self.iters])
+        self.misfits = np.zeros(self.iters.size)
+        for it in self.iters:
+            pbm = PeriodBandMisfit(it, self.filtstr)
+            print(f'A total misfit of {pbm.sum_chi:.6f} for {it}th iter')
+            self.misfits[it-self.iter_start] = pbm.mean_chi
     
     def plot(self, outpath='./figures', color='255/25/25'):
         self.misfits /= np.max(self.misfits)
@@ -51,6 +57,7 @@ def main():
     parser.add_argument('-l', help='Column in misfit to plot, defaults to 28', metavar='col_num', type=int, default=28)
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
     args = parser.parse_args()
+    os.makedirs(args.o, exist_ok=True)
     its = [int(v) for v in args.m.split('/')]
     pm = PlotMisfit(its[0], its[1], args.f, args.l)
     pm.plot(args.o, args.c)
