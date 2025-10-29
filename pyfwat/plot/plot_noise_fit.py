@@ -11,8 +11,6 @@ from .plot_rf_fit import post_plot
 import os
 
 def pre_plot(modelname, evtid, comp, fltstr):
-    # with open('src_rec/sources_set{}.dat'.format(setid)) as f:
-    #     evtid = f.readlines()[0].strip().split()[0]
     s = ''
     s += 'saclst knetwk kstnm b e dist f solver/{}.noise/{}/OUTPUT_FILES/*{}.obs.sac.{} > saclst_dat\n'.format(modelname, evtid, comp,fltstr)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"

@@ -2,33 +2,14 @@ import pygmt
 import subprocess
 from os import remove
 from pygmt.clib import Session
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 from .. import SOLVER_PATH
 import argparse
 import obspy
 import os
 
 
-def pre_plot(modelname, evtid, gauss):
-    s = ''
-    s += 'saclst knetwk kstnm f solver/{}.rf/{}/OUTPUT_FILES/obs.*.F{} > saclst_dat\n'.format(modelname, evtid, gauss)
-    s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
-    s += 'awk \'{print FNR" a "$2"."$3}\' saclst_dat > yticklabel.txt\n'
-    s += 'ls solver/{}.*/{}/OUTPUT_FILES/syn.*.F{} > saclst_syn\n'.format(modelname, evtid, gauss)
-    subp = subprocess.Popen(['bash'], stdin=subprocess.PIPE)
-    subp.communicate(s.encode())
-    with open('saclst_dat') as f:
-        num_sta = len(f.readlines())
-    return num_sta
-
-def post_plot():
-    remove('saclst_dat')
-    remove('saclst_dat_plot')
-    remove('yticklabel.txt')
-    remove('saclst_syn')
-
 def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.05, yunit=0.2):
-    # num_sta = pre_plot(modelname, evtid, gauss)
     fs_dat = obspy.read(f'{SOLVER_PATH}/{modelname}.rf/{evtid}/OUTPUT_FILES/obs.*.F{gauss:3.1f}')
     fs_syn = obspy.read(f'{SOLVER_PATH}/{modelname}.rf/{evtid}/OUTPUT_FILES/syn.*.F{gauss:3.1f}')
     num_sta = len(fs_dat)
@@ -52,7 +33,6 @@ def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.0
         staname = f'{trdat.stats.sac.knetwk}.{trdat.stats.station}'
         fig.text(x=xlim[0], y=i+1, text=staname, font='7p,Helvetica,black', justify='RM', offset='-0.1c/0c', no_clip=True)
     fig.savefig('{}/{}_{}_rf_fit_F{}.png'.format(outpath, modelname, evtid, gauss))
-    # post_plot()
 
 def main():
     parser = argparse.ArgumentParser('Plot rf fitting. read data/evtid/*F{{gauss}}.rf.sac for data,'

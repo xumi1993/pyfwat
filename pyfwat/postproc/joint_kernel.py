@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 import sys
 import glob
 import argparse
@@ -10,22 +10,13 @@ simu_type = ['noise', 'tele']
 kernel_name = ['alpha', 'beta', 'rhop']
 basepath = './optimize'
 
-def read_misfit(it, setname, col=28):
-    fs = glob.glob('misfits/{}.{}_*_window_chi'.format(it, setname))
-    misfit = 0
-    for f in fs:
-        chi = np.loadtxt(f, usecols=[col], unpack=True)
-        misfit += np.sum(chi)
-    return misfit
 
 class JointKernel():
     def __init__(self, model):
         self.model = model
         self.data = self.read(model)
         self.para = readfwatpar()
-        # it_start = int(readfwatpar('DATA/FWAT.PAR', 'ITER_START'))
         self.model_start = f'M{self.para['MODEL_UPDATE']['ITER_START']:02d}'
-        # self.weight = readfwatpar('DATA/FWAT.PAR', 'JOINT_WEIGHT')
         self.weight = self.para['POSTPROC']['JOINT_WEIGHT']
         self.setname = {}
         # self.setname['noise'] = readfwatpar('DATA/FWAT.PAR', 'NOISE_SET_RANGE')[0]
@@ -34,7 +25,8 @@ class JointKernel():
     def read(self, model_name):
         data = {
             'noise': {},
-            'tele': {}
+            'tele': {},
+            'leq': {}
         }
         for simu in simu_type:
             grad_all = []
@@ -51,13 +43,9 @@ class JointKernel():
 
     def sum(self):
         normval = {}
-        if self.para['POSTPROC']['NORM_TYPE'] == 2:
-            for simu in simu_type:
-                normval[simu] = read_misfit(self.model_start, self.setname[simu])
-        else:
-            data0 = self.read(self.model_start)
-            for simu in simu_type:
-                normval[simu] = np.max(np.abs(data0[simu]))
+        data0 = self.read(self.model_start)
+        for simu in simu_type:
+            normval[simu] = np.max(np.abs(data0[simu]))
         self.grad = {}
         for kernel in kernel_name:
             self.grad[kernel] = np.zeros(self.data['noise'][0].shape)

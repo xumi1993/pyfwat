@@ -2,9 +2,9 @@
 from genericpath import exists
 from os import makedirs
 import numpy as np
-from seispy.geo import asind, latlon_from
+from ..utils.geo import asind
 import sys
-from ..pario import readfkpar, chpar, readpar
+from ..utils.pario import readfkpar, chpar, readpar
 import argparse
 from scipy.interpolate import interp1d
 from pyproj import Proj
@@ -16,11 +16,6 @@ def get_dist(px):
     rayp = np.array([0.079422, 0.0773818, 0.0745565, 0.0714173, 0.0682781, 0.0649819, \
                      0.0616857, 0.0585465, 0.0552503, 0.0519541, 0.0485010, 0.0450478, 0.0415947])
     return interp1d(rayp, dist, bounds_error=False, fill_value='extrapolate')(px)
-
-def get_evt(la, lo, baz, dis):
-    for i, ba in baz:
-        for j, di in dis:
-            lat, lon = latlon_from(la, lo, ba, di)
 
 
 class FKEvts():

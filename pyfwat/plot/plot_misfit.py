@@ -46,6 +46,7 @@ class PlotMisfit():
                     frame=['WSrt', 'xa1f1+lIteration', 'yaf+lMisfit'])
         fig.plot(x=self.iters, y=self.misfits, pen='0.5p')
         fig.plot(x=self.iters, y=self.misfits, style='c0.25c', fill=color, pen='0.1p')
+        os.makedirs(outpath, exist_ok=True)
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_{}.png'.format(outpath, self.iter_start, self.iter_end, self.filtstr))
 
 

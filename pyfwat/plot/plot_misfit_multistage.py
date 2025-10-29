@@ -1,7 +1,8 @@
 import pygmt
-from .plot_misfit import read_misfit
+from ..io.misfit import PeriodBandMisfit
 import numpy as np
 import argparse
+import os
 
 
 class PlotMulMisfit():
@@ -14,6 +15,8 @@ class PlotMulMisfit():
             Stages information with 3 columns: start iteration, end iteration, column in misfit file to plot.
         fltlst : list
             List of band names.
+        norm : bool
+            Whether to normalize misfit values.
         """
         self.stages = stages
         self.fltlst = fltlst
@@ -21,8 +24,16 @@ class PlotMulMisfit():
         self.colors = ['218/56/58', '47/127/193', '150/195/125', '196/151/178']
 
     def read_stage_misfit(self, norm=True):
+        """
+        Read misfit values for each stage.
+        Parameters
+        ----------
+        norm : bool
+            Whether to normalize misfit values.
+        """
         for i, stage in enumerate(self.stages):
-            self.stages[i].append(np.array([read_misfit(iter, self.fltlst[i], col=stage[2]) for iter in range(stage[0], stage[1]+1)]))
+            pbm = [PeriodBandMisfit(iter, self.fltlst[i]) for iter in range(stage[0], stage[1]+1)]
+            self.stages[i].append(np.array([p.mean_chi for p in pbm]))
         if norm:
             maxchi = np.concatenate([st[-1] for st in self.stages]).max()
             for i, stage in enumerate(self.stages):
@@ -31,6 +42,14 @@ class PlotMulMisfit():
         self.min_misfit = min([np.min(st[-1]) for st in self.stages])
 
     def plot(self, outpath='./figures'):
+        """
+        Plot misfit values for each stage.
+        
+        Parameters
+        ----------
+        outpath : str
+            Output path for the figure.
+        """
         fig = pygmt.Figure()
         # print(self.stages)
         bound = (self.stages[-1][1]-self.stages[0][0])*0.1
@@ -44,6 +63,7 @@ class PlotMulMisfit():
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], pen='0.5p')
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=self.colors[i], pen='0.1p', label=self.fltlst[i])
         fig.legend(position='JTR+jTR+o0.2c', box='+gwhite+p1p')
+        os.makedirs(outpath, exist_ok=True)
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multistages.png'.format(outpath, self.stages[0][0], self.stages[-1][1]))
 
 

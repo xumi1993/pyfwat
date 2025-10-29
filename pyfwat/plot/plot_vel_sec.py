@@ -7,7 +7,7 @@ from scipy.interpolate import interpn
 import pygmt
 import argparse
 from ..utils.utils import parse_cpt_name
-from ..pario import readpar
+from ..utils.pario import readpar
 from pyproj import Geod, Proj
 
 

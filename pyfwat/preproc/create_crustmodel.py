@@ -1,5 +1,5 @@
 import numpy as np
-from ..pario import readpar, readfwatpar, readfkpar
+from ..utils.pario import readpar, readfwatpar, readfkpar
 from pyproj import Proj
 from scipy.signal.windows import hann, bartlett
 from scipy.ndimage import gaussian_filter

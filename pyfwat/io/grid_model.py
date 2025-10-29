@@ -5,29 +5,27 @@ import copy
 
 class GridModel():
     def __init__(self, fname:str, key=None) -> None:
-        try:
-            npdata = np.load(fname)
-            if key is not None:
-                self.key_name = key
+        """ Grid model class to handle 3D grid data.
+        Parameters
+        ----------
+        fname : str
+            File name of the grid model (hdf5 .h5).
+        key : str, optional
+            Key name to access the model data.
+        """
+
+        with h5py.File(fname, 'r') as f:
+            if key is None:
+                key_list = list(f.keys())
+                for tname in ['x', 'y', 'z']:
+                    key_list.remove(tname)
+                self.key_name = key_list[0]
             else:
-                self.key_name = npdata.__dict__['files'][-1]
-            self.model = npdata[self.key_name]
-            self.x = npdata['x']
-            self.y = npdata['y']
-            self.z = npdata['z']
-        except:
-            with h5py.File(fname, 'r') as f:
-                if key is None:
-                    key_list = list(f.keys())
-                    for tname in ['x', 'y', 'z']:
-                        key_list.remove(tname)
-                    self.key_name = key_list[0]
-                else:
-                    self.key_name = key
-                self.model = f[self.key_name][:]
-                self.x = f['x'][:]
-                self.y = f['y'][:]
-                self.z = f['z'][:]
+                self.key_name = key
+            self.model = f[self.key_name][:]
+            self.x = f['x'][:]
+            self.y = f['y'][:]
+            self.z = f['z'][:]
         self.dx = np.mean(np.diff(self.x))
         self.dy = np.mean(np.diff(self.y))
         self.dz = np.mean(np.diff(self.z))
@@ -46,6 +44,12 @@ class GridModel():
         self.xx, self.yy, self.zz = np.meshgrid(self.x, self.y, self.z, indexing='ij')
 
     def trim(self, sup_m):
+        """ Trim the model by a specified margin.
+        Parameters
+        ----------
+        sup_m : float
+            Margin in meters to trim from each side of the model.
+        """
         nsup = int(sup_m/self.dx)
         self.x = self.x[nsup:self.x.size-nsup]
         nsup = int(sup_m/self.dy)
@@ -56,17 +60,37 @@ class GridModel():
             self.dv = self.dv[nsup:-nsup, nsup:-nsup, :]
 
     def to_geo(self, zone:int):
+        """ Convert UTM coordinates to geographic coordinates (longitude, latitude).
+        Parameters
+        ----------
+        zone : int
+            UTM zone number.
+        Returns
+        -------
+        lon : numpy.ndarray
+            Longitude values.
+        lat : numpy.ndarray
+            Latitude values.
+        """
         from pyproj import Proj
         p = Proj(proj='utm', zone=zone, ellps='WGS84')
         return p(self.xx, self.yy, inverse=True)
     
     def calc_dv(self, ref_model_fname:str):
+        """ Calculate the percentage velocity perturbation (dV/V) compared to a reference model.
+        Parameters
+        ----------
+        ref_model_fname : str
+            File name of the reference model (hdf5 .h5).
+        """
         with h5py.File(ref_model_fname, 'r') as f:
             ref_model = f[self.key_name][:]
         # self.dv = 100 * (self.model - ref_model) / ref_model
         self.dv = 100 * np.log(self.model / ref_model)
     
     def calc_dv_avg(self):
+        """ Calculate the percentage velocity perturbation (dV/V) compared to the average model.
+        """
         self.dv = np.zeros_like(self.model)
         for i in range(self.z.size):
             self.dv[:, :, i] = 100 * (self.model[:, :, i] - np.mean(self.model[:, :, i])) / np.mean(self.model[:, :, i])

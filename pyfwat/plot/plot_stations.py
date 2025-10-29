@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 from os.path import dirname, abspath
-from ..pario import readpar
+from ..utils.pario import readpar
 import pygmt
 import numpy as np
 import argparse

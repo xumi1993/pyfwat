@@ -7,7 +7,7 @@ import sys
 import glob
 from os.path import exists, dirname
 from os import makedirs
-from ..pario import readfkpar
+from ..utils.pario import readfkpar
 import argparse
 
 def get_rayp(evtid):

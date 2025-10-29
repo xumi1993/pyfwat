@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 import argparse
 import sys
 

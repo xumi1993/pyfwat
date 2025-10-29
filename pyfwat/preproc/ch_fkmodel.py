@@ -1,4 +1,4 @@
-from ..pario import chpar
+from ..utils.pario import chpar
 import glob
 import argparse
 

@@ -3,9 +3,9 @@ import glob
 import numpy as np
 import argparse
 import re
-from ..pario import readfwatpar
-import matplotlib.pyplot as plt
+from ..utils.pario import readfwatpar
 from pyfwat import DATA_PATH
+import os
 
 colors = ['47/127/193', '150/195/125', '196/151/178', '218/56/58']
 
@@ -86,6 +86,7 @@ def plot_all(model, simu_type, setname='ls', col=28, outpath='./figures'):
     fig.plot(x=pm.steplen, y=mean_chi, style='c0.2c', fill='255/50/50')
     if len(flts) > 1:
         fig.legend()
+    os.makedirs(outpath, exist_ok=True)
     fig.savefig('{}/misfit_{}_{}_linesearch.png'.format(outpath, model, simu_type))
 
 

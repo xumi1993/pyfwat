@@ -5,7 +5,7 @@ import numpy as np
 from os import remove
 from pygmt.clib import Session
 from .plot_rf_fit import post_plot
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 import glob
 import re
 import argparse

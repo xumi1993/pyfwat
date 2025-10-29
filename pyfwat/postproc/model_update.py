@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 import sys
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 import os
 import argparse
 

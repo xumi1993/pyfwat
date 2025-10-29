@@ -1,4 +1,5 @@
 import numpy as np
+from pyproj import Geod
 
 def sind(deg):
     """ Sine function with degree as input
@@ -172,3 +173,84 @@ def skm2srad(skm):
     """
     sdeg = skm * deg2km(1)
     return rad2deg(sdeg)
+
+
+def latlon_from(lat0, lon0, azimuth, gcarc_dist, ellps="WGS84"):
+    """
+    Determine position with given position of initial point, azimuth and distance
+
+    Accepted numeric scalar or array:
+    - :class:`int`
+    - :class:`float`
+    - :class:`numpy.floating`
+    - :class:`numpy.integer`
+    - :class:`list`
+    - :class:`tuple`
+    - :class:`array.array`
+    - :class:`numpy.ndarray`
+    - :class:`xarray.DataArray`
+    - :class:`pandas.Series`
+
+    :param lat0: Latitude of original point
+    :type lat0: float or array
+    :param lon0: Longitude of original point
+    :type lon0: float or array
+    :param azimuth: Azimuth(s) in degree
+    :type azimuth: float or array
+    :param gcarc_dist: Distance(s) between initial and terminus point(s) in degree
+    :type gcarc_dist: float or array
+    :param ellps: Ellipsoids supported by ``pyproj``, defaults to "WGS84"
+    :type ellps: :class:`str`, optional
+
+    Returns
+    -------
+    scalar or array:
+        Latitude(s) of terminus point(s)  
+    scalar or array:
+        Longitude(s) of terminus point(s)
+    """
+
+    def init_lalo(lat0, lon0, npts):
+        if hasattr(lat0, "__iter__") and hasattr(lon0, "__iter__"):
+            if len(lat0) != len(lon0):
+                raise ValueError('lat0 and lon0 must be in the same length')
+            elif len(lat0) != npts:
+                raise ValueError('initial points must be in the same length as azimuths')
+            else:
+                lat1 = lat0
+                lon1 = lon0
+        elif np.isscalar(lat0) and np.isscalar(lon0):
+            lat1 = np.ones(npts) * lat0
+            lon1 = np.ones(npts) * lon0
+        else:
+            raise ValueError('lat0 and lon0 must be in the same length')
+        return lat1, lon1
+
+    if hasattr(azimuth, "__iter__") and hasattr(gcarc_dist, "__iter__"):
+        if len(azimuth) == len(gcarc_dist):
+            npts = len(azimuth)
+            lat0, lon0 = init_lalo(lat0, lon0, npts)
+        else:
+            raise ValueError('azimuth and gcarc_dist must be in the same length')
+    elif np.isscalar(azimuth) and np.isscalar(gcarc_dist):
+        if hasattr(lat0, "__iter__") and hasattr(lon0, "__iter__"):
+            if len(lat0) != len(lon0):
+                raise ValueError('lat0 and lon0 must be in the same length')
+            else:
+                azimuth = np.ones_like(lat0)*azimuth
+                gcarc_dist = np.ones_like(lat0)*gcarc_dist
+        elif np.isscalar(lat0) and np.isscalar(lon0):
+            pass
+        else:
+            raise ValueError('lat0 and lon0 must be in the same length')
+    elif np.isscalar(azimuth) and hasattr(gcarc_dist, "__iter__"):
+        npts = len(gcarc_dist)
+        azimuth = np.ones(npts)*azimuth
+        lat0, lon0 = init_lalo(lat0, lon0, npts)
+    elif np.isscalar(gcarc_dist) and hasattr(azimuth, "__iter__"):
+        npts = len(azimuth)
+        gcarc_dist = np.ones(lat0, lon0, npts)*gcarc_dist
+        lat0, lon0 = init_lalo(lat0, lon0, npts)
+    g = Geod(ellps=ellps)
+    lon, lat, _ = g.fwd(lon0, lat0, azimuth, deg2km(gcarc_dist)*1000)
+    return lat, lon

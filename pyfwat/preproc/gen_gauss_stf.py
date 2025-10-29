@@ -3,7 +3,7 @@ from curses import meta
 import numpy as np
 from obspy.io.sac import SACTrace
 import sys
-from ..pario import readfwatpar
+from ..utils.pario import readfwatpar
 import argparse
 
 def gauss(x, a=1, b=0, c=2):
