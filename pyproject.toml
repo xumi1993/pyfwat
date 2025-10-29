@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyfwat"
+version = "0.2.1"
+description = "Python interface for SpecFWAT (Full Waveform Adjoint Tomography)"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "GPLv3"}
+authors = [
+    {name = "Mijian Xu", email = "mijian.xu@utoronto.ca"}
+]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "obspy>=1.2.0",
+    "pandas>=1.0.0",
+    "numpy>=1.19.0",
+    "scipy>=1.1.0",
+    "matplotlib>=3.2.0",
+    "ruamel.yaml",
+    "h5py",
+    "pygmt",
+    "pyproj",
+]
+
+[project.scripts]
+plot_vel_sec = "pyfwat.plot.plot_vel_sec:main"
+plot_dv_sec = "pyfwat.plot.plot_dv_sec:main"
+plot_kernel_sec = "pyfwat.plot.plot_kernel_sec:main"
+plot_residual = "pyfwat.plot.plot_res:main"
+plot_misfit = "pyfwat.plot.plot_misfit:main"
+plot_misfit_multifreq = "pyfwat.plot.plot_misfit_surf:main"
+plot_misfit_multistage = "pyfwat.plot.plot_misfit_multistage:main"
+plot_misfit_linesearch = "pyfwat.plot.plot_misfit_linesearch:main"
+plot_stations = "pyfwat.plot.plot_stations:main"
+plot_rf_evts = "pyfwat.plot.plot_rf_evts:main"
+gen_virt_fkevts = "pyfwat.preproc.gen_virt_fkevts:main"
+plot_rf_fit = "pyfwat.plot.plot_rf_fit:main"
+plot_noise_fit = "pyfwat.plot.plot_noise_fit:main"
+plot_surf_data = "pyfwat.plot.plot_surf_data:main"
+plot_tele_fit = "pyfwat.plot.plot_tele_fit:main"
+gen_gauss_stf = "pyfwat.preproc.gen_gauss_stf:main"
+ch_fkmodel = "pyfwat.preproc.ch_fkmodel:main"
+pick_tele = "pyfwat.picker.picker_ui:main"
+setpar_fwat = "pyfwat.pario:setpar"
+optimize_ls = "pyfwat.postproc.optimize_ls:main"
+cal_fk_times = "pyfwat.preproc.cal_fk_times:main"
+fwat_clean = "pyfwat.postproc.clean:main"
+create_xmf = "pyfwat.io.xdmf:create_xmf"
+fwat_joint_kernel = "pyfwat.postproc.joint_kernel:main"
+fwat_model_update = "pyfwat.postproc.model_update:main"
+fwat_checkerboard = "pyfwat.preproc.checkerboard:main"
+fwat_createmodel = "pyfwat.preproc.create_crustmodel:main"
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyfwat*"]
+
+[tool.setuptools.package-data]
+"*" = ["cpt/*", "data/*"]
