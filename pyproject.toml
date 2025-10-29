@@ -12,8 +12,14 @@ license = {text = "GPLv3"}
 authors = [
     {name = "Mijian Xu", email = "mijian.xu@utoronto.ca"}
 ]
+keywords = ["seismology", "full-waveform-inversion", "adjoint-tomography", "seismic-imaging"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -30,6 +36,11 @@ dependencies = [
     "pygmt",
     "pyproj",
 ]
+
+[project.urls]
+Homepage = "https://github.com/xumi1993/pyfwat"
+Repository = "https://github.com/xumi1993/pyfwat"
+"Bug Tracker" = "https://github.com/xumi1993/pyfwat/issues"
 
 [project.scripts]
 plot_vel_sec = "pyfwat.plot.plot_vel_sec:main"

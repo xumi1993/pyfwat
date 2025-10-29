@@ -16,6 +16,20 @@ PyFWAT is a comprehensive Python toolkit designed for full waveform inversion (F
 
 ## Installation
 
+### Install from PyPI (recommended)
+
+```bash
+pip install pyfwat
+```
+
+### Install from source
+
+```bash
+git clone https://github.com/xumi1993/pyfwat.git
+cd pyfwat
+pip install -e .
+```
+
 ### Requirements
 
 - Python >= 3.9
@@ -28,14 +42,6 @@ PyFWAT is a comprehensive Python toolkit designed for full waveform inversion (F
 - h5py
 - pyproj
 - ruamel.yaml
-
-### Install from source
-
-```bash
-git clone https://github.com/xumi1993/pyfwat.git
-cd pyfwat
-pip install -e .
-```
 
 ## Command-line Tools
 
