@@ -6,23 +6,6 @@ from ..io.misfit import PeriodBandMisfit
 import os
 
 
-def read_misfit(it, filtstr, col=28):
-    fs = glob.glob('misfits/M{:02d}.*_{}_window_chi'.format(it, filtstr))
-    misfit = 0
-    count = 0
-    sum_chi = 0.
-    for f in fs:
-        try:
-            chi = np.loadtxt(f, usecols=[col], unpack=True)
-        except Exception as e:
-            raise ValueError(f'error in reading {f}: {e}')
-        chi = chi[chi!=0.0]
-        count += chi.size
-        misfit += np.mean(chi)
-        sum_chi += np.sum(chi)
-    print('A total misfit of {:.6f} for {}th iter'.format(sum_chi, it))
-    return misfit/len(fs)
-
 class PlotMisfit():
     def __init__(self, iter_start, iter_end, filtstr, col=28) -> None:
         self.iter_start = iter_start

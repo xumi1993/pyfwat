@@ -36,11 +36,6 @@ class JointKernel():
                     data[simu] = np.stack(grad_all)
         return data
 
-    # def read_misfit(self):
-    #     self.misfit = {}
-    #     self.misfit['noise'] = read_misfit(self.model_start, 'noise')
-    #     self.misfit['tele'] = read_misfit(self.model_start, 'tele')
-
     def sum(self):
         normval = {}
         data0 = self.read(self.model_start)

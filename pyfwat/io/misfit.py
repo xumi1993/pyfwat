@@ -4,8 +4,8 @@ import glob
 from .. import MISFIT_PATH
 
 class PeriodBandMisfit():
-    def __init__(self, it, band_name) -> None:
-        fs = glob.glob(f'{MISFIT_PATH}/M{it:02d}.*_{band_name}_window_chi')
+    def __init__(self, it, band_name, evtid='*') -> None:
+        fs = glob.glob(f'{MISFIT_PATH}/M{it:02d}.{evtid}*_{band_name}_window_chi')
         self.sum_chi = 0.
         self.misfits = []
         for f in fs:

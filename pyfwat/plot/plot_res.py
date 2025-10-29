@@ -19,9 +19,9 @@ class PlotRes():
         self.iter_start = iter_start
         self.iter_end = iter_end
         self.filtstr = filtstr
-        self.read_misfit()
+        self.read_res()
     
-    def read_misfit(self):
+    def read_res(self):
         pbm = PeriodBandMisfit(self.iter_start, self.filtstr)
         self.misfit_start = pbm.misfits['residual'][pbm.misfits['imeas']!=0]
         pbm = PeriodBandMisfit(self.iter_end, self.filtstr)

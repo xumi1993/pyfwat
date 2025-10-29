@@ -3,6 +3,7 @@ from ..io.misfit import PeriodBandMisfit
 import numpy as np
 import argparse
 import os
+from .. import COLORS
 
 
 class PlotMulMisfit():
@@ -21,7 +22,6 @@ class PlotMulMisfit():
         self.stages = stages
         self.fltlst = fltlst
         self.read_stage_misfit(norm)
-        self.colors = ['218/56/58', '47/127/193', '150/195/125', '196/151/178']
 
     def read_stage_misfit(self, norm=True):
         """
@@ -61,7 +61,7 @@ class PlotMulMisfit():
                     frame=['WSrt', 'xaf+lIteration', 'yaf+lMisfit'])
         for i, stage in enumerate(self.stages):
             fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], pen='0.5p')
-            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=self.colors[i], pen='0.1p', label=self.fltlst[i])
+            fig.plot(x=np.arange(stage[0], stage[1]+1), y=stage[-1], style='c0.25c', fill=COLORS[i], pen='0.1p', label=self.fltlst[i])
         fig.legend(position='JTR+jTR+o0.2c', box='+gwhite+p1p')
         os.makedirs(outpath, exist_ok=True)
         fig.savefig('{}/misfit_M{:02d}_M{:02d}_multistages.png'.format(outpath, self.stages[0][0], self.stages[-1][1]))
@@ -72,8 +72,6 @@ def main():
     parser.add_argument('-f', help='band name of misfit files', metavar='band_name1/band_name2', default='*')
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/5,6/9,10/15',
                         metavar='it1_start/it1_end,it2_start/it2_end')
-    parser.add_argument('-l', help='Columns in misfit files with iterations, defaults to 28,28,28',
-                        metavar='col_num', default=None)
     # parser.add_argument('-n', help='normlization with stages or iterations, defaults to iterations',
                         # action='store_true')
     parser.add_argument('-c', help='Color of markers, defaults to 255/25/25', metavar='color', default='255/25/25')
@@ -88,7 +86,7 @@ def main():
         cols = [28]*len(its)
     else:
         cols = [int(v) for v in args.l.split(',')]
-    stages = [[int(st[0]), int(st[1]), col] for st, col in zip(its, cols)]
+    stages = [[int(ts[0]), int(ts[1])] for ts in its]
     pm = PlotMulMisfit(stages, fltlst=fltlst, norm=True)
     pm.plot(args.o)
         
