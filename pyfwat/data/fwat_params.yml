@@ -1,0 +1,51 @@
+slurm:
+  partition_cpu: cpusx
+  partition_gpu: debug
+  nnodes: 1
+  ntasks: 4
+  ngpus: 1
+  walltime: None # Maximum walltime
+  max_array_size: 2 # Maximum number of jobs in the array
+  args:
+
+path:
+  workdir: ./
+  datadir: ./DATA/
+  meshdir: ./DATA/meshfem3D_files/
+  modeldir: ./DATA/model_initial/
+  specfemdir: /HOME/scw6ez6/run/Codes/specfem3d
+
+noise:
+  mesh_file: DATA/meshfem3D_files/Mesh_Par_file # Mesh file
+  set_name: set0
+  scomps: ['Z'] # Components of the source
+  rcomps: ['Z'] # Components of the receiver
+  ch_code: BX # Channel code
+  nstep: 4500 # Number of time steps
+  dt: 0.06 # Time step for the noise data
+  short_period: [6, 10, 20] # Short period of filters
+  long_period: [15, 25, 40] # Long period of filters
+  group_vel_min: [2.3, 2.3, 2.5] # Approximate minimum group velocity
+  group_vel_max: [3.2, 3.5, 4.0] # Approximate maximum group velocity
+  adj_src_norm: False # Set the following to .true. to normalize adjoint sources across different bands
+  use_near_offset: False # Set the following to false if use only data > 1 average wavelength
+  suppress_egf: False # Set to .false. when the data are cross-correlation functions
+  precond_type: 1 # 1: inner product of acceleration
+
+tele:
+  mesh_file: DATA/meshfem3D_files/Mesh_Par_file # Mesh file
+  set_name: set1
+  wavefield_discontinuity : False # Set to .true. if the wavefield is discontinuous
+  rcomps: ['Z', 'R'] # Components of the receiver
+  ch_code: BX # Channel code
+  nstep: 2500 # Number of time steps
+  dt: 0.05 # Time step for the teleseismic data
+  short_period: [5] # Short period of filters
+  long_period: [50] # Long period of filters
+  time_window: [-5, 45] # Time window for the teleseismic data
+  precond_type: 2 # 2: root squared z
+  rf:
+    gauss: [1.0] # Gaussian width for the RF
+    maxit: 200 # Maximum number of iterations
+    minderr: 0.001 # Minimum residual error when the RF converges
+    tshift: 5.0 # Time shift before P

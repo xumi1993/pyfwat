@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from setuptools import setup,find_packages
-packages = find_packages()
+from setuptools import find_packages
+from skbuild import setup
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -15,6 +15,8 @@ setup(name='pyfwat',
       author_email='mijian.xu@ntu.edu.sg',
       license='GPLv3',
       packages=find_packages(),
+      setup_requires=['scikit-build', 'cmake'],
+      cmake_install_dir='.',
       package_dir={'pyfwat': 'pyfwat'},
       package_data={'': ['cpt/*', 'data/*']},
       install_requires=[
@@ -26,7 +28,9 @@ setup(name='pyfwat',
                 'ruamel.yaml',
                 'h5py',
                 'pygmt',
-                'pyproj'],
+                'pyproj',
+                'ruamel.yaml',
+                'scikit-build',],
       entry_points={'console_scripts': ['plot_vel_sec=pyfwat.plot.plot_vel_sec:main',
                                         'plot_dv_sec=pyfwat.plot.plot_dv_sec:main',
                                         'plot_kernel_sec=pyfwat.plot.plot_kernel_sec:main',
