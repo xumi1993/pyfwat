@@ -12,13 +12,13 @@ import os
 from .. import SOLVER_PATH
 
 class PlotWaveformFit:
-    def __init__(self, modelname, evtid, comp, fltstr):
+    def __init__(self, modelname, evtid, comp, fltstr, simutype='LEQ'):
         self.para = readfwatpar()
         self.modelname = modelname
         self.iter = int(modelname[1:])
         self.evtid = evtid
         self.comp = comp
-        self.chan = f'{self.para['LEQ']['CH_CODE']}{comp}'
+        self.chan = f'{self.para[simutype.upper()]['CH_CODE']}{comp}'
         self.fltstr = fltstr 
         self.pbm = PeriodBandMisfit(self.iter, self.fltstr, evtid=self.evtid)
 
@@ -98,13 +98,14 @@ def main():
     parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: donnot insert space after -x', default=None, metavar='xmin/xmax')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 5', type=float, default=3, metavar='coef')
     parser.add_argument('-o', help='Figure output path', default='./figures', metavar='outpath')
+    parser.add_argument('-t', help='Simulation type, LEQ or NOISE, default to LEQ', default='LEQ', metavar='simutype')
     args = parser.parse_args()
 
     if args.x is not None:
         xlim = [float(v) for v in args.x.split('/')]
     else:
         xlim = None
-    pwf = PlotWaveformFit(args.m, args.s, args.c, args.f)
+    pwf = PlotWaveformFit(args.m, args.s, args.c, args.f, simutype=args.t)
     pwf.read_waveform()
     pwf.read_windows()
     pwf.plot(xlim=xlim, outpath=args.o, enf=args.e)
