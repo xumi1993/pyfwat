@@ -8,6 +8,15 @@ from ruamel.yaml import YAML
 
 
 def readpar(par_file, key):
+    """ Read parameter from sem parameter file.
+
+    :param par_file: Path to sem parameter file
+    :type par_file: str
+    :param key: Parameter key to read
+    :type key: str
+    :return: Parameter value
+    :rtype: float, int, bool, str
+    """
     s = subprocess.Popen("grep ^{} {} | cut -d = -f 2 | cut -d \\# -f 1 | tr -d ' '".format(key, par_file), 
                          shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     outstr = s.stdout.read().decode().strip()
@@ -27,6 +36,15 @@ def readpar(par_file, key):
 
 
 def readfkpar(par_file, key):
+    """ Read parameter from fk parameter file. 
+    
+    :param par_file: Path to fk parameter file
+    :type par_file: str
+    :param key: Parameter key to read
+    :type key: str
+    :return: Parameter value
+    :rtype: float, int, bool, np.ndarray
+    """
     with open(par_file) as f:
         par = f.read()
     if key == 'LAYER':
@@ -44,30 +62,6 @@ def readfkpar(par_file, key):
         return val_lst[0]
     else:
         return np.array(val_lst)
-
-
-# def readfwatpar(par_file, key):
-#     int_str = ['NSCOMP', 'NRCOMP', 'NUM_FILTER', 'NUM_STEP', 'NGAUSS', 'ITMAX', 'ITER_START']
-#     array_str = ['NOISE_SHORT_P', 'NOISE_LONG_P', 'NOISE_GROUPVEL_MIN', 'NOISE_GROUPVEL_MAX',
-#                  'STEP_LENS', 'F0', 'JOINT_WEIGHT']
-#     with open(par_file) as f:
-#         par = f.read()
-#     outstr = re.findall(r'\n{}:\s+(.+?)\n'.format(key), par)[0]
-#     if key.upper() in array_str:
-#         return np.array([float(v) for v in outstr.split()])
-#     elif '_'.join(key.upper().split('_')[1:]) in ['SCOMPS', 'RCOMPS', 'SET_RANGE']:
-#         return [v for v in outstr.split()]
-#     elif outstr.lower() == '.true.':
-#         return True
-#     elif outstr.lower() == '.false.':
-#         return False
-#     elif '_'.join(key.upper().split('_')[1:]) in int_str:
-#         return int(outstr)
-#     else:
-#         try:
-#             return float(outstr)
-#         except:
-#             return outstr
 
 def readfwatpar(par_file='DATA/fwat_params.yml'):
     yaml = YAML()
@@ -111,7 +105,7 @@ def chpar(parstr, key, value, type='sem'):
     :return: Modified parameter string
     :rtype: str
     """
-    if type.lower() not in ['sem', 'fk', 'fwat', 'solution']:
+    if type.lower() not in ['sem', 'fk', 'solution']:
         raise ValueError('type should be in \'sem\' and \'fk\'')
     if not re.search('{}'.format(key), parstr):
         raise ValueError('No paremeter called {}'.format(key))
@@ -123,7 +117,7 @@ def chpar(parstr, key, value, type='sem'):
         patten = r'^({}\s+)(.+?)(\S+)'.format(key)
         if key == 'ORIGIN_WAVEFRONT':
             patten = r'^({}\s+)(.+?)$'.format('ORIGIN_WAVEFRONT')
-    elif type.lower() == 'fwat' or type.lower() == 'solution':
+    elif type.lower() == 'solution':
         patten = r'^({}:\s+\s*)(.*?)$'.format(key)
         # value = str(value)+'\n'
     else:
@@ -136,22 +130,81 @@ def chpar(parstr, key, value, type='sem'):
     else:
         return parstr
 
+def str2val(str_val):
+    """ Convert string value to appropriate type: int, float, list of int, list of float, or str.
+    
+    :param str_val: Input string value
+    :type str_val: str
+    :return: Converted value
+    :rtype: int, float, list of int, list of float, or str
+    """
+    # single value handling
+    # return integer
+    try:
+        return int(str_val)
+    except ValueError:
+        pass
+
+    # return float
+    try:
+        return float(str_val)
+    except ValueError:
+        pass
+
+    # list values handling
+    # return list of integer
+    try:
+        return [int(v) for v in str_val.strip('[]').split(',')]
+    except ValueError:
+        pass
+
+    # return list of float
+    try:
+        return [float(v) for v in str_val.strip('[]').split(',')]
+    except ValueError:
+        pass
+
+    return str_val
 
 def setpar():
     parser = argparse.ArgumentParser(description="Set parameters to configure file")
     parser.add_argument('par_file', type=str, help='Path to configure file')
-    parser.add_argument('key', type=str, help='key name')
+    parser.add_argument('key', type=str, help='key name', metavar='key.name')
     parser.add_argument('value', type=str, help='value')
     args = parser.parse_args()
     if basename(args.par_file) == 'Par_file' or basename(args.par_file) == 'Mesh_Par_file':
         type = 'sem'
     elif 'fwat' in basename(args.par_file).lower():
         type = 'fwat'
-    else:
+    elif 'fk' in basename(args.par_file).lower():
         type = 'fk'
-    with open(args.par_file) as f:
-        content = f.read()
-    content = chpar(content, args.key, args.value, type=type)
-    with open(args.par_file, 'w') as f:
-        f.write(content)
+    else:
+        raise ValueError('Cannot recognize the parameter file type.')
+    
+    # update parameter in the data structure for fwat parameter file
+    if type == 'fwat':
+        para = readfwatpar(args.par_file)
+        keys = args.key.split('.')
+        
+        # Navigate to the correct nested location
+        current = para
+        for k in keys[:-1]:
+            current = current.setdefault(k, {})
+        
+        # Set the value at the final key
+        current[keys[-1]] = str2val(args.value)
+        
+        # Write the complete parameter dictionary back to file
+        with open(args.par_file, 'w', encoding='utf-8') as f:
+            yaml = YAML()
+            yaml.default_flow_style = False
+            yaml.dump(para, f)
+
+    # update parameter in the text file for sem and fk parameter file
+    else:
+        with open(args.par_file) as f:
+            content = f.read()
+        content = chpar(content, args.key, args.value, type=type)
+        with open(args.par_file, 'w') as f:
+            f.write(content)
 
