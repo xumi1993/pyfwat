@@ -42,6 +42,7 @@ pip install -e .
 - h5py
 - pyproj
 - ruamel.yaml
+- PyQt5 (optional, for GUI tools)
 
 ## Command-line Tools
 
@@ -49,42 +50,41 @@ PyFWAT provides numerous command-line utilities for various tasks:
 
 ### Visualization Tools
 
-- `plot_vel_sec` - Plot velocity cross-sections
-- `plot_dv_sec` - Plot velocity perturbation cross-sections
-- `plot_kernel_sec` - Plot sensitivity kernel cross-sections
-- `plot_residual` - Visualize data residuals
-- `plot_misfit` - Plot misfit evolution
-- `plot_misfit_multifreq` - Plot misfit for multiple frequencies
-- `plot_misfit_multistage` - Plot misfit across multiple inversion stages
-- `plot_misfit_linesearch` - Visualize line search optimization
-- `plot_stations` - Display station distributions
-- `plot_rf_evts` - Plot receiver function events
-- `plot_rf_fit` - Show receiver function data fits
-- `plot_noise_fit` - Visualize ambient noise data fits
-- `plot_surf_data` - Plot surface wave data
-- `plot_tele_fit` - Display teleseismic waveform fits
+- `fwat_plot_vel_sec` - Plot velocity cross-sections
+- `fwat_plot_dv_sec` - Plot velocity perturbation cross-sections
+- `fwat_plot_kernel_sec` - Plot sensitivity kernel cross-sections
+- `fwat_plot_residual` - Visualize data residuals
+- `fwat_plot_misfit` - Plot misfit evolution
+- `fwat_plot_misfit_multifreq` - Plot misfit for multiple frequencies
+- `fwat_plot_misfit_multistage` - Plot misfit across multiple inversion stages
+- `fwat_plot_misfit_linesearch` - Visualize line search optimization
+- `fwat_plot_stations` - Display station distributions
+- `fwat_plot_rf_evts` - Plot receiver function events
+- `fwat_plot_rf_fit` - Show receiver function data fits
+- `fwat_plot_waveform_fit` - Visualize ambient noise / local earthquake data fits
+- `fwat_plot_tele_fit` - Display teleseismic waveform fits
 
 ### Preprocessing Tools
 
-- `gen_virt_fkevts` - Generate virtual FK events
-- `gen_gauss_stf` - Generate Gaussian source time functions
-- `ch_fkmodel` - Modify FK models
-- `cal_fk_times` - Calculate FK travel times
+- `fwat_gen_virt_fkevts` - Generate virtual FK events
+- `fwat_gen_gauss_stf` - Generate Gaussian source time functions
+- `fwat_ch_fkmodel` - Modify FK models
+- `fwat_cal_fk_times` - Calculate FK travel times
 - `fwat_checkerboard` - Create checkerboard resolution tests
 - `fwat_createmodel` - Generate initial crustal models
-- `setpar_fwat` - Configure FWAT parameters
+- `fwat_setpar` - Setup parameters of FWAT and Specfem3D
 
 ### Post-processing Tools
 
-- `optimize_ls` - Perform line search optimization
+- `fwat_optimize_ls` - Perform line search optimization
 - `fwat_clean` - Clean up working directories
 - `fwat_joint_kernel` - Combine kernels from different data types
 - `fwat_model_update` - Update velocity models
-- `create_xmf` - Create XDMF files for visualization (under development)
 
 ### Interactive Tools
 
-- `pick_tele` - Interactive GUI for teleseismic phase picking
+- `fwat_pick_tele` - Interactive GUI for teleseismic phase picking
+- `fwat_pick_waveform` - Interactive GUI for ambient noise / local earthquake waveform picking
 
 ## Module Structure
 
