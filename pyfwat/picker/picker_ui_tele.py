@@ -41,6 +41,7 @@ class MyMplCanvas(FigureCanvas):
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+        self.setFocusPolicy(Qt.StrongFocus)
 
 
 class MatplotlibWidget(QMainWindow):
@@ -211,7 +212,7 @@ class MatplotlibWidget(QMainWindow):
         self.horizontalLayout_2.addWidget(self.label)
         self.lineEdit_freqmin = QLineEdit()
         # self.lineEdit_freqmin.setObjectName("freqmin")
-        self.lineEdit_freqmin.setText('{}'.format(self.pre_flt[0] if self.pre_flt is not None else None))
+        self.lineEdit_freqmin.setText('{}'.format(self.pre_flt[0] if self.pre_flt is not None else ""))
         self.lineEdit_freqmin.textChanged.connect(self.on_freqmin_changed)
         self.horizontalLayout_2.addWidget(self.lineEdit_freqmin)
         self.Filter.addLayout(self.horizontalLayout_2)
@@ -221,7 +222,7 @@ class MatplotlibWidget(QMainWindow):
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_3.addWidget(self.label_2)
         self.lineEdit_freqmax = QLineEdit()
-        self.lineEdit_freqmax.setText('{}'.format(self.pre_flt[1] if self.pre_flt is not None else None))
+        self.lineEdit_freqmax.setText('{}'.format(self.pre_flt[1] if self.pre_flt is not None else ""))
         # self.lineEdit_freqmax.setObjectName("freqmax")
         self.lineEdit_freqmax.textChanged.connect(self.on_freqmax_changed)
         self.horizontalLayout_3.addWidget(self.lineEdit_freqmax)
@@ -251,8 +252,10 @@ class MatplotlibWidget(QMainWindow):
     def _define_global_shortcuts(self):
         self.key_c = QShortcut(QKeySequence('c'), self)
         self.key_c.activated.connect(self.next_connect)
+        self.key_c.setContext(Qt.ApplicationShortcut)
         self.key_z = QShortcut(QKeySequence('z'), self)
         self.key_z.activated.connect(self.previous_connect)
+        self.key_z.setContext(Qt.ApplicationShortcut)
         # self.key_space = QShortcut(QKeySequence('Space'), self)
         # self.key_space.activated.connect(self.plot_ui)
     

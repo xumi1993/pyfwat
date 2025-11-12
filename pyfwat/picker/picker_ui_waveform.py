@@ -44,6 +44,8 @@ class MyMplCanvas(FigureCanvas):
                                    QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
+        self.setFocusPolicy(Qt.StrongFocus)
+
 
 class MatplotlibWidget(QMainWindow):
     def __init__(self, path, xlim=None, enf=1,
@@ -262,8 +264,10 @@ class MatplotlibWidget(QMainWindow):
 
     def _define_global_shortcuts(self):
         self.key_c = QShortcut(QKeySequence('c'), self)
+        self.key_c.setContext(Qt.ApplicationShortcut)
         self.key_c.activated.connect(self.next_connect)
         self.key_z = QShortcut(QKeySequence('z'), self)
+        self.key_z.setContext(Qt.ApplicationShortcut)
         self.key_z.activated.connect(self.previous_connect)
         # self.key_space = QShortcut(QKeySequence('Space'), self)
         # self.key_space.activated.connect(self.plot_ui)
@@ -287,6 +291,7 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.draw_idle()
 
     def on_click(self, event):
+        self.mpl.setFocus()
         self.mpl.pf.onclick(event)
         self.mpl.draw_idle()
 
@@ -391,8 +396,8 @@ class MatplotlibWidget(QMainWindow):
 
     def plot_ui(self):
         if self.pre_flt is not None:
-            self.mpl.pf.para.freqmin = self.pre_flt[0]
-            self.mpl.pf.para.freqmax = self.pre_flt[1]
+            self.mpl.pf.para.freqmax = 1/self.pre_flt[0]
+            self.mpl.pf.para.freqmin = 1/self.pre_flt[1]
         self.mpl.pf.filter()
         self.mpl.pf.plot_seis()
         self.mpl.pf.setup_figure()
@@ -466,7 +471,7 @@ def main():
     parser.add_argument('path', type=str, help='Path to data directory')
     parser.add_argument('-d', help='Resample dt, defaults to 0.01. set to NA to use raw rampling rate.', default=0.01, metavar='dt')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
-    parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
+    parser.add_argument('-f', help="period range of pre-filter on waveforms ", default=None, metavar='short_period/long_period')
     parser.add_argument('-n', help='number of traces per page', default=30, type=int, metavar='num')
     parser.add_argument('-x', help="Set x limits of the current axes, defaults to None for auto setting",
                         dest='xlim', default=None, metavar='xmin/xmax')

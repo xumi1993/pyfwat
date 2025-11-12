@@ -2,7 +2,7 @@ import numpy as np
 import obspy
 import matplotlib.pyplot as plt
 from matplotlib.widgets import MultiCursor
-from os.path import join, basename
+from os.path import join, basename, normpath
 from .mccc import mccc
 from obspy.io.sac import SACTrace
 from obspy.geodetics import gps2dist_azimuth, kilometer2degrees
@@ -46,7 +46,7 @@ class PickFig(object):
         else:
             evdp = 0.
         self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\\circ$, Longitude: {:.3f}$^\\circ$, Depth: {:.1f}\n'.format(
-                          basename(self.para.path), self.stz[0].stats.sac.evla, self.stz[0].stats.sac.evlo,
+                          basename(normpath(self.para.path)), self.stz[0].stats.sac.evla, self.stz[0].stats.sac.evlo,
                           evdp), fontweight="bold")
         self._get_y_limit()
     

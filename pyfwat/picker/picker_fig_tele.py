@@ -93,14 +93,14 @@ class PickFig(object):
         self.dist = np.zeros(self.stnum)
         self.baz = np.zeros(self.stnum)
         for i, tr in enumerate(self.stz):
-            if all(hasattr(tr.stats.sac, attr) for attr in ['dist', 'baz']):
-                self.dist[i] = tr.stats.sac.dist
-                self.baz[i] = tr.stats.sac.baz
-            elif all(hasattr(tr.stats.sac, attr) for attr in ['stla', 'stlo', 'evla', 'evlo']):
+            if all(hasattr(tr.stats.sac, attr) for attr in ['stla', 'stlo', 'evla', 'evlo']):
                 distaz = gps2dist_azimuth(tr.stats.sac.evla, tr.stats.sac.evlo,
                                           tr.stats.sac.stla, tr.stats.sac.stlo)
                 self.dist[i] = kilometer2degrees(distaz[0]/1000)
                 self.baz[i] = distaz[2]
+            elif all(hasattr(tr.stats.sac, attr) for attr in ['dist', 'baz']):
+                self.dist[i] = tr.stats.sac.gcarc
+                self.baz[i] = tr.stats.sac.baz
             else:
                 raise ValueError('Not enough info to calculate epicentral distance and back-azimuth. '
                                  'Please make sure sac headers contain dist, baz or stla, stlo, evla, evlo')
