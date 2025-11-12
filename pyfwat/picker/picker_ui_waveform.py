@@ -9,7 +9,7 @@ try:
                                 QSizePolicy, QWidget, QDesktopWidget, \
                                 QPushButton, QHBoxLayout, QFileDialog, \
                                 QAction, QShortcut, QLabel, QLineEdit, \
-                                QGroupBox, QRadioButton
+                                QGroupBox, QRadioButton, QSplitter
     from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject 
 except:
     raise("Please install PyQt5 first: pip install PyQt5")
@@ -17,23 +17,24 @@ from os.path import exists, dirname, join
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
-from .picker_fig import PickFig
+from .picker_fig_waveform import PickFig
 import glob
 
 
 class MyMplCanvas(FigureCanvas):
-    def __init__(self, parent=None, path='', marker='a', enf=1,
-                 xlim=[-50, 120], num=30, resample_dt=None):
+    def __init__(self, parent=None, path='', sort_key='dist', enf=1,
+                 xlim=[0, 120], num=30, resample_dt=None):
 
         plt.rcParams['axes.unicode_minus'] = False 
 
-        self.pf = PickFig(path, marker=marker, resample_dt=resample_dt)
+        self.pf = PickFig(path, resample_dt=resample_dt)
         self.pf.para.xlim = xlim
         self.pf.para.enf = enf
         self.pf.para.num_per_page = num
+        self.pf.para.sort_key = sort_key
         self.pf.init_figure()
         # self.pf.read_sac()
-        self.pf.tdelta_mccc()
+        # self.pf.tdelta_mccc()
 
         FigureCanvas.__init__(self, self.pf.fig)
         self.setParent(parent)
@@ -45,34 +46,41 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
-    def __init__(self, path, marker='a', xlim=[-50, 120], enf=1,
-                 pre_flt=None, num=30, align=False, resample_dt=None, parent=None):
+    def __init__(self, path, xlim=None, enf=1,
+                 pre_flt=None, num=30, sort_key='dist', resample_dt=None, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.pre_flt = pre_flt
         self.enf = enf
         self.num = num
         self.resample_dt = resample_dt
-        self.marker = marker
-        self.align = align
+        self.sort_key = sort_key
         self.cursors = []
-        self.initUi(path, marker)
+        self.initUi(path)
         QMetaObject.connectSlotsByName(self)
 
-    def initUi(self, path, marker):
-        self.layout = QHBoxLayout()
+    def initUi(self, path):
         self._set_geom_center()
-        self.mpl = MyMplCanvas(self, path=path, marker=marker, enf=self.enf,
+        self.mpl = MyMplCanvas(self, path=path, sort_key=self.sort_key, enf=self.enf,
                                xlim=self.xlim, num=self.num, resample_dt=self.resample_dt)
 
         self.main_frame = QWidget()
         self.setCentralWidget(self.main_frame)
+        
+        # 使用 QSplitter 替代 QHBoxLayout 以支持可拖动的分隔条
+        self.splitter = QSplitter(Qt.Horizontal)
+        
         self.add_layout()
         self.plot_ui()
         self.mpl.mpl_connect('button_press_event', self.on_click)
-        self.main_frame.setLayout(self.layout)
+        
+        # 将 splitter 设置为主布局
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.splitter)
+        self.main_frame.setLayout(main_layout)
+        
         self._define_global_shortcuts()
-        self.setWindowTitle('Pick Teleseismic waveforms')
+        self.setWindowTitle('Pick Noise/LEQ waveforms')
 
         # saveAction = QAction('&Save', self)        
         # saveAction.setShortcut('Ctrl+S')
@@ -87,22 +95,47 @@ class MatplotlibWidget(QMainWindow):
         
         self.setWindowIcon(QIcon(join(dirname(dirname(__file__)), 'data', 'icon.svg')))
     
+    def showEvent(self, event):
+        """在窗口显示时设置 splitter 的初始大小"""
+        super().showEvent(event)
+        # 获取窗口总宽度，按比例分配
+        total_width = self.width()
+        ctrl_width = int(total_width * 0.3) 
+        plot_width = int(total_width * 0.7)
+        self.splitter.setSizes([ctrl_width, plot_width])
+    
     def add_layout(self):
         self.add_filter_box()
-        self.add_align_box()
+        # self.add_align_box()
         self.add_plotting_box()
         self.add_saving_box()
         self.add_control_layout()
-        # self.layout.addStretch(1)
+        
+        ctrl_widget = QWidget()
+        ctrl_widget.setMaximumWidth(2000)  
+        
         ctrlbox = QVBoxLayout()
         ctrlbox.addLayout(self.control_layout)
         ctrlbox.addWidget(self.plotting_box)
         ctrlbox.addWidget(self.filter_box)
-        ctrlbox.addWidget(self.align_box)
+        # ctrlbox.addWidget(self.align_box)
         ctrlbox.addWidget(self.saving_box)
         ctrlbox.addStretch()
-        self.layout.addLayout(ctrlbox)
-        self.layout.addWidget(self.mpl, 2)
+        ctrl_widget.setLayout(ctrlbox)
+        
+        self.splitter.addWidget(ctrl_widget)
+        self.splitter.addWidget(self.mpl)
+        
+        self.splitter.setCollapsible(0, False)  # 控制面板不可折叠
+        self.splitter.setCollapsible(1, False)  # 绘图区域不可折叠
+        
+        self.splitter.setStretchFactor(0, 1)  # 左侧控制面板，索引是 0
+        self.splitter.setStretchFactor(1, 4)  # 右侧绘图区域，索引是 1
+        
+        ctrl_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.mpl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
+        self.mpl.setMinimumWidth(300)
 
     def add_plotting_box(self):
         self.plotting_box = QGroupBox('Plotting')
@@ -111,19 +144,19 @@ class MatplotlibWidget(QMainWindow):
         xlim_layout = QHBoxLayout()
         xlim_layout.addStretch(1)
         label_x = QLabel()
-        label_x.setText('Limitation of X-axis (s):')
+        label_x.setText('Time range (s):')
         self.xminEdit = QLineEdit()
-        self.xminEdit.setFixedWidth(40)
-        self.xminEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[0]))
+        # self.xminEdit.setFixedWidth(150)
+        # self.xminEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[0]))
         self.xminEdit.textChanged.connect(self.on_xmin_changed)
-        self.xminEdit.setFocusPolicy(Qt.NoFocus)
+        # self.xminEdit.setFocusPolicy(Qt.NoFocus)
         label_bar = QLabel()
         label_bar.setText('-')
         self.xmaxEdit = QLineEdit()
-        self.xmaxEdit.setFixedWidth(40)
-        self.xmaxEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[1]))
+        # self.xmaxEdit.setFixedWidth(150)
+        # self.xmaxEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[1]))
         self.xmaxEdit.textChanged.connect(self.on_xmax_changed)
-        self.xmaxEdit.setFocusPolicy(Qt.NoFocus)
+        # self.xmaxEdit.setFocusPolicy(Qt.NoFocus)
         xlim_layout.addWidget(label_x)
         xlim_layout.addWidget(self.xminEdit)
         xlim_layout.addWidget(label_bar)
@@ -132,9 +165,9 @@ class MatplotlibWidget(QMainWindow):
         label_zoom = QLabel()
         label_zoom.setText('Amp zoom: ')
         self.ampzoomEdit = QLineEdit()
-        self.ampzoomEdit.setText('{:.1e}'.format(self.mpl.pf.para.enf))
+        self.ampzoomEdit.setText('{:.2f}'.format(self.mpl.pf.para.enf))
         self.ampzoomEdit.textChanged.connect(self.on_enf_changed)
-        self.ampzoomEdit.setFocusPolicy(Qt.NoFocus)
+        # self.ampzoomEdit.setFocusPolicy(Qt.NoFocus)
         ampzoom_layout.addWidget(label_zoom)
         ampzoom_layout.addWidget(self.ampzoomEdit)
         self.ampzoomButton = QPushButton()
@@ -154,17 +187,15 @@ class MatplotlibWidget(QMainWindow):
         label_x = QLabel()
         label_x.setText('Cut from')
         self.cutminEdit = QLineEdit()
-        self.cutminEdit.setFixedWidth(40)
         self.cutminEdit.setText('')
         self.cutminEdit.textChanged.connect(self.on_cutmin_changed)
-        self.cutminEdit.setFocusPolicy(Qt.NoFocus)
+        # self.cutminEdit.setFocusPolicy(Qt.NoFocus)
         label_bar = QLabel()
         label_bar.setText('to')
         self.cutmaxEdit = QLineEdit()
-        self.cutmaxEdit.setFixedWidth(40)
         self.cutmaxEdit.setText('')
         self.cutmaxEdit.textChanged.connect(self.on_cutmax_changed)
-        self.cutmaxEdit.setFocusPolicy(Qt.NoFocus)
+        # self.cutmaxEdit.setFocusPolicy(Qt.NoFocus)
         cut_layout.addWidget(label_x)
         cut_layout.addWidget(self.cutminEdit)
         cut_layout.addWidget(label_bar)
@@ -175,35 +206,6 @@ class MatplotlibWidget(QMainWindow):
         self.saveButton.clicked.connect(self.on_save)
         save_layout.addWidget(self.saveButton)
         self.saving_box.setLayout(save_layout)
-
-    def add_align_box(self):
-        self.align_box = QGroupBox("Alignment")
-        self.align_box.setStyleSheet("QGroupBox {font-size: 18px; font-weight: bold;}")
-        align_layout = QVBoxLayout()
-        self.mcccButton = QPushButton()
-        self.mcccButton.setText('Do MCCC')
-        self.mcccButton.clicked.connect(self.on_do_mccc)
-        self.pickButton = QPushButton()
-        self.pickButton.setText('Pick arrival time')
-        self.pickButton.setCheckable(True)
-        self.pickButton.clicked.connect(self.on_pick_arr)
-        align_layout.addWidget(self.mcccButton)
-        align_layout.addWidget(self.pickButton)
-        self.t0Radio = QRadioButton(f"Align with {self.marker}")
-        self.t0Radio.setObjectName(self.marker)
-        self.mcccRadio = QRadioButton("Align with MCCC")
-        self.mcccRadio.setObjectName('mccc')
-        if self.align:
-            self.mcccRadio.setChecked(True)
-            self.mpl.pf.para.align = 'mccc'
-        else:
-            self.t0Radio.setChecked(True)
-            self.mpl.pf.para.align = self.marker
-        self.t0Radio.toggled.connect(self.on_align)
-        self.mcccRadio.toggled.connect(self.on_align)
-        align_layout.addWidget(self.t0Radio)
-        align_layout.addWidget(self.mcccRadio)
-        self.align_box.setLayout(align_layout)
 
     def add_filter_box(self):
         self.filter_box = QGroupBox("Filter")
@@ -219,22 +221,22 @@ class MatplotlibWidget(QMainWindow):
         self.label = QLabel()
         self.label.setObjectName("label")
         self.horizontalLayout_2.addWidget(self.label)
-        self.lineEdit_freqmin = QLineEdit()
+        self.lineEdit_periodmin = QLineEdit()
         # self.lineEdit_freqmin.setObjectName("freqmin")
-        self.lineEdit_freqmin.setText('{}'.format(self.pre_flt[0] if self.pre_flt is not None else None))
-        self.lineEdit_freqmin.textChanged.connect(self.on_freqmin_changed)
-        self.horizontalLayout_2.addWidget(self.lineEdit_freqmin)
+        self.lineEdit_periodmin.setText('{}'.format(self.pre_flt[0] if self.pre_flt is not None else ''))
+        self.lineEdit_periodmin.textChanged.connect(self.on_periodmin_changed)
+        self.horizontalLayout_2.addWidget(self.lineEdit_periodmin)
         self.Filter.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.label_2 = QLabel()
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_3.addWidget(self.label_2)
-        self.lineEdit_freqmax = QLineEdit()
-        self.lineEdit_freqmax.setText('{}'.format(self.pre_flt[1] if self.pre_flt is not None else None))
+        self.lineEdit_periodmax = QLineEdit()
+        self.lineEdit_periodmax.setText('{}'.format(self.pre_flt[1] if self.pre_flt is not None else ''))
         # self.lineEdit_freqmax.setObjectName("freqmax")
-        self.lineEdit_freqmax.textChanged.connect(self.on_freqmax_changed)
-        self.horizontalLayout_3.addWidget(self.lineEdit_freqmax)
+        self.lineEdit_periodmax.textChanged.connect(self.on_periodmax_changed)
+        self.horizontalLayout_3.addWidget(self.lineEdit_periodmax)
         self.Filter.addLayout(self.horizontalLayout_3)
         self.fltButton = QPushButton()
         # self.fltButton.setObjectName("pushButton")
@@ -244,8 +246,8 @@ class MatplotlibWidget(QMainWindow):
         self.Filter.addWidget(self.restoreButton)
         self.restoreButton.clicked.connect(self.on_restore)
         _translate = QCoreApplication.translate
-        self.label.setText(_translate("Dialog", "Min Frequency (Hz):"))
-        self.label_2.setText(_translate("Dialog", "Max Frequency (Hz):"))
+        self.label.setText(_translate("Dialog", "Short period (s):"))
+        self.label_2.setText(_translate("Dialog", 'Long period (s):'))
         self.fltButton.setText(_translate("Dialog", "Confirm"))
         self.filter_box.setLayout(self.Filter)
 
@@ -285,11 +287,7 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.draw_idle()
 
     def on_click(self, event):
-        if self.pickButton.isChecked():
-            self.mpl.pf.onclick_arr(event)
-            self.replot_fig()
-        else:
-            self.mpl.pf.onclick(event)
+        self.mpl.pf.onclick(event)
         self.mpl.draw_idle()
 
     def on_cutmin_changed(self):
@@ -299,18 +297,6 @@ class MatplotlibWidget(QMainWindow):
         except:
             self.mpl.pf.para.cut_win[0] = None
             self.cutminEdit.setText('')
-    
-    def on_pick_arr(self, event):
-        if self.pickButton.isChecked():
-            QApplication.setOverrideCursor(Qt.CrossCursor)
-            for ax in self.mpl.pf.axes:
-                self.cursors.append(Cursor(ax, horizOn=False, vertOn=True, useblit=True, color='k', alpha=0.5))
-        else:
-            QApplication.restoreOverrideCursor()
-            for cursor in self.cursors:
-                cursor.clear(event)
-            self.cursors.clear()
-            self.mpl.draw_idle()
 
     def on_cutmax_changed(self):
         text = self.cutmaxEdit.text()
@@ -337,16 +323,16 @@ class MatplotlibWidget(QMainWindow):
             self.mpl.pf.para.enf = float(self.ampzoomEdit.text())
         except:
             self.ampzoomEdit.setText('{:.1f}'.format(self.mpl.pf.para.enf))
-    
-    def on_freqmin_changed(self):
+
+    def on_periodmin_changed(self):
         try:
-            self.mpl.pf.para.freqmin = float(self.lineEdit_freqmin.text())
+            self.mpl.pf.para.freqmax = 1/float(self.lineEdit_periodmin.text())
         except:
             pass
 
-    def on_freqmax_changed(self):
+    def on_periodmax_changed(self):
         try:
-            self.mpl.pf.para.freqmax = float(self.lineEdit_freqmax.text())
+            self.mpl.pf.para.freqmin = 1/float(self.lineEdit_periodmax.text())
         except:
             pass
     
@@ -364,8 +350,7 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.draw_idle()
     
     def replot_fig(self):
-        for ax in self.mpl.pf.axes:
-            ax.cla()
+        self.mpl.pf.axes.cla()
         self.mpl.pf.plot_seis()
         self.mpl.pf._set_gray()
         self.mpl.pf.setup_figure()
@@ -411,6 +396,8 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.pf.filter()
         self.mpl.pf.plot_seis()
         self.mpl.pf.setup_figure()
+        self.xminEdit.setText('{:.2f}'.format(self.mpl.pf.para.xlim[0]))
+        self.xmaxEdit.setText('{:.2f}'.format(self.mpl.pf.para.xlim[1]))
 
     def plot_save(self):
         if self.only_r:
@@ -475,16 +462,14 @@ class MatplotlibWidget(QMainWindow):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="User interface for picking PRFs")
+    parser = argparse.ArgumentParser(description="User interface for picking Noise/LEQ waveforms")
     parser.add_argument('path', type=str, help='Path to data directory')
-    parser.add_argument('-c', help='Align with corrected arrival time', action='store_true')
     parser.add_argument('-d', help='Resample dt, defaults to 0.01. set to NA to use raw rampling rate.', default=0.01, metavar='dt')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 1', type=float, default=1, metavar='coef')
     parser.add_argument('-f', help="pre-filter on waveforms", default=None, metavar='0.05/1.0')
-    parser.add_argument('-m', help='marker for picking', default='a', metavar='marker')
     parser.add_argument('-n', help='number of traces per page', default=30, type=int, metavar='num')
-    parser.add_argument('-x', help="Set x limits of the current axes, defaults to [-20, 120]",
-                        dest='xlim', default=None, type=float, metavar='xmin/xmax')
+    parser.add_argument('-x', help="Set x limits of the current axes, defaults to None for auto setting",
+                        dest='xlim', default=None, metavar='xmin/xmax')
     arg = parser.parse_args()
     path = arg.path
     if arg.f is None:
@@ -498,10 +483,14 @@ def main():
             resample_dt = float(arg.d)
         except:
             raise ValueError('Resample dt must be a number or NA')
+    if arg.xlim is not None:
+        xlim = [float(v) for v in arg.xlim.split('/')]
+    else:
+        xlim = None
     if not exists(path):
         raise FileNotFoundError('No such directory of {}'.format(path))
     app = QApplication(sys.argv)
-    ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e, num=arg.n, align=arg.c, resample_dt=resample_dt)
+    ui = MatplotlibWidget(path, pre_flt=pre_flt, enf=arg.e, num=arg.n, resample_dt=resample_dt, xlim=xlim)
     ui.show()
     sys.exit(app.exec_())
 

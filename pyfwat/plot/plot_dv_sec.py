@@ -1,5 +1,3 @@
-
-from audioop import reverse
 import numpy as np
 import sys
 from os.path import basename, dirname, join, exists

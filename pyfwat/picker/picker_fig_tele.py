@@ -1,4 +1,3 @@
-from audioop import avg
 import numpy as np
 import obspy
 import matplotlib.pyplot as plt
@@ -94,10 +93,17 @@ class PickFig(object):
         self.dist = np.zeros(self.stnum)
         self.baz = np.zeros(self.stnum)
         for i, tr in enumerate(self.stz):
-            distaz = gps2dist_azimuth(tr.stats.sac.evla, tr.stats.sac.evlo,
-                                    tr.stats.sac.stla, tr.stats.sac.stlo)
-            self.dist[i] = kilometer2degrees(distaz[0]/1000)
-            self.baz[i] = distaz[2]
+            if all(hasattr(tr.stats.sac, attr) for attr in ['dist', 'baz']):
+                self.dist[i] = tr.stats.sac.dist
+                self.baz[i] = tr.stats.sac.baz
+            elif all(hasattr(tr.stats.sac, attr) for attr in ['stla', 'stlo', 'evla', 'evlo']):
+                distaz = gps2dist_azimuth(tr.stats.sac.evla, tr.stats.sac.evlo,
+                                          tr.stats.sac.stla, tr.stats.sac.stlo)
+                self.dist[i] = kilometer2degrees(distaz[0]/1000)
+                self.baz[i] = distaz[2]
+            else:
+                raise ValueError('Not enough info to calculate epicentral distance and back-azimuth. '
+                                 'Please make sure sac headers contain dist, baz or stla, stlo, evla, evlo')
 
     def filter(self, renew=True, zerosphase=True):
         if self.para.freqmin is None or self.para.freqmax is None:
@@ -105,8 +111,10 @@ class PickFig(object):
         if renew:
             self.str_cp = self.str.copy()
             self.stz_cp = self.stz.copy()
+        self.str_cp.taper(max_percentage=0.1, type='hann')
         self.str_cp.filter(type='bandpass', freqmin=self.para.freqmin, 
                            freqmax=self.para.freqmax, corners=4, zerophase=zerosphase)
+        self.stz_cp.taper(max_percentage=0.1, type='hann')
         self.stz_cp.filter(type='bandpass', freqmin=self.para.freqmin,
                            freqmax=self.para.freqmax, corners=4, zerophase=zerosphase)
 
@@ -176,8 +184,8 @@ class PickFig(object):
             # for ax in self.axes:
                 # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
-    def sort(self, key='gcarc'):
-        if key == 'gcarc':
+    def sort(self, key='dist'):
+        if key == 'gcarc' or key == 'dist':
             idx = np.argsort(self.dist)
         elif key == 'baz':
             idx = np.argsort(self.baz)
