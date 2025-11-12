@@ -8,6 +8,8 @@ class PeriodBandMisfit():
         fs = glob.glob(f'{MISFIT_PATH}/M{it:02d}.{evtid}*_{band_name}_window_chi')
         self.sum_chi = 0.
         self.misfits = []
+        if not fs:
+            raise FileNotFoundError(f'No misfit files found for iteration {it}, event {evtid}, band {band_name}')
         for f in fs:
             try:
                 self.misfits.append(pd.read_csv(f, sep=r'\s+', header=None))
