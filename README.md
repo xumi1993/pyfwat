@@ -1,5 +1,11 @@
 # PyFWAT
 
+[![PyPI version](https://badge.fury.io/py/pyfwat.svg)](https://badge.fury.io/py/pyfwat)
+[![Python](https://img.shields.io/pypi/pyversions/pyfwat.svg)](https://pypi.org/project/pyfwat/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Downloads](https://static.pepy.tech/badge/pyfwat)](https://pepy.tech/project/pyfwat)
+[![GitHub stars](https://img.shields.io/github/stars/xumi1993/pyfwat.svg?style=social&label=Star)](https://github.com/xumi1993/pyfwat)
+
 Python interface for SpecFWAT (Full Waveform Adjoint Tomography)
 
 ## Overview
