@@ -201,7 +201,6 @@ class GridModel():
                 x = lat
             else:
                 x = sec_range
-            print(x)
             grid = xr.DataArray(
                 data=value.T,
                 coords=[depth, x],
