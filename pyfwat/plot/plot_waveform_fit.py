@@ -128,7 +128,7 @@ def main():
     parser = argparse.ArgumentParser('Plot noise/leq fitting.')
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
     parser.add_argument('-s', help='Event id', metavar='evtid')
-    parser.add_argument('-f', help='Band name ', default=None, metavar='bandname')
+    parser.add_argument('-f', help='Period band name, defaults to the first band in parameter file', default=None, metavar='bandname')
     parser.add_argument('-c', help='Component name, defaults to Z', default='Z', metavar='comp')
     parser.add_argument('-x', help='x-axis limits, defaults to -5/30, NOTE: DO NOT insert space after -x', default=None, metavar='xmin/xmax')
     parser.add_argument('-e', help='enlarge coefficient, defaults to 5', type=float, default=3, metavar='coef')
