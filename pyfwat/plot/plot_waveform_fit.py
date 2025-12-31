@@ -96,6 +96,15 @@ class PlotWaveformFit:
             frame=[f'xafg+lTime (s)', 'ya1' , f'wSet+t{self.modelname}, Event: {self.evtid}, Band: {self.fltstr}']
         )
         for i, trdat in enumerate(self.st_obs):
+            # plot windows
+            staname = f'{trdat.stats.sac.knetwk}.{trdat.stats.station}'
+            for twin in self.win_dict[staname]:
+                # draw an area to indicate the window
+                fig.plot(
+                    x=[twin[0], twin[1], twin[1], twin[0], twin[0]],
+                    y=[i+0.5, i+0.5, i+1.5, i+1.5, i+0.5],
+                    fill='lightblue', pen='0.2p,darkblue', transparency=50
+                )
             # plot observed data
             fig.plot(
                 x=self.times, y=trdat.data * enf + i + 1,
@@ -107,15 +116,6 @@ class PlotWaveformFit:
                 x=self.times, y=trsyn.data * enf + i + 1,
                 pen='0.5p,255/25/25'
             )
-            # plot windows
-            staname = f'{trdat.stats.sac.knetwk}.{trdat.stats.station}'
-            for twin in self.win_dict[staname]:
-                # draw an area to indicate the window
-                fig.plot(
-                    x=[twin[0], twin[1], twin[1], twin[0], twin[0]],
-                    y=[i+0.5, i+0.5, i+1.5, i+1.5, i+0.5],
-                    fill='lightblue', transparency=50
-                )
             # plot station name
             fig.text(
                 x=xlim[0], y=i+1, text=staname, fill='255',
