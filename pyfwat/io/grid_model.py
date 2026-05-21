@@ -2,6 +2,8 @@ import numpy as np
 import h5py
 from scipy.interpolate import interpn
 import copy
+import xarray as xr
+
 
 class GridModel():
     def __init__(self, fname:str, key=None) -> None:
@@ -95,7 +97,39 @@ class GridModel():
         for i in range(self.z.size):
             self.dv[:, :, i] = 100 * (self.model[:, :, i] - np.mean(self.model[:, :, i])) / np.mean(self.model[:, :, i])
 
-    def interp_sec(self, start_point, end_point, is_geo=True, val=5, is_pert=False):
+    def interp_dep(self, depth:float, is_pert:bool=False, output_grid:bool=False,
+                   to_geo=None, bounds_error:bool=False, fill_value=None):
+        """ Interpolate the model at a specific depth.
+
+        :param depth: The depth to interpolate.
+        :type depth: float
+        :param is_pert: Whether to interpolate the perturbation model.
+        :type is_pert: bool
+        :return: The interpolated 2D model at the specified depth.
+        :rtype: numpy.ndarray
+        """
+        if is_pert:
+            model = self.dv
+        else:
+            model = self.model
+        points = np.hstack([[self.xx[:, :, 0].flatten(), self.yy[:, :, 0].flatten(), np.zeros_like(self.xx[:, :, 0].flatten()) + depth]]).T
+        value = interpn((self.x, self.y, self.z), model, points, bounds_error=bounds_error, fill_value=fill_value)
+        if output_grid:
+            grid = xr.DataArray(
+                data=value.reshape(self.x.size, self.y.size).T,
+                coords=[self.y, self.x],
+                dims=['y', 'x']
+            )
+            return grid
+        else:
+            if to_geo is not None:
+                lo, la = self.to_geo(to_geo)
+                out_points = np.array([lo[:, :, 0].flatten(), la[:, :, 0].flatten(), value]).T
+            else:
+                out_points = np.array([points[:, 0], points[:, 1], value]).T
+            return out_points
+
+    def interp_sec(self, start_point, end_point, to_geo=None, val=5, is_pert=False, output_grid=False, x_col=2, convert_km=True):
         """ Interpolate the section between two points.
 
         :param start_point: The start point.
@@ -104,46 +138,72 @@ class GridModel():
         :type end_point: tuple
         :param val: The interval value.
         :type val: float
+        :param is_geo: Whether the input points are in geographic coordinates.
+        :type is_geo: bool
+        :param is_pert: Whether to interpolate the perturbation model.
+        :type is_pert: bool
+        :param output_grid: Whether to output the result as a grid.
+        :type output_grid: bool
+        :param x_col: The column index for the x-coordinate in the output grid.
+        :type x_col: int
+        :return: The interpolated points or grid.
+        :rtype: numpy.ndarray or xarray.DataArray
         """
-        from pyproj import Geod
+        from pyproj import Proj
 
-        # Initialize a profile
-        if is_geo:
-            g = Geod(ellps='WGS84')
-            az, _, dist = g.inv(start_point[0],start_point[1],end_point[0],end_point[1])
-            sec_range = np.arange(0, dist/1000, val)
-            r = g.fwd_intermediate(start_point[0],start_point[1], az, npts=sec_range.size, del_s=val*1000)
-            lat = r.lats
-            lon = r.lons
+
+        distance = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2)
+        num_points = int(distance // val) + 1
+        xpoints = np.linspace(start_point[0], end_point[0], num_points)
+        ypoints = np.linspace(start_point[1], end_point[1], num_points)
+        sec_range = np.sqrt((xpoints - start_point[0])**2 + (ypoints - start_point[1])**2)
+
+        if to_geo is not None:
+            if not isinstance(to_geo, int):
+                raise ValueError("to_geo must be an integer UTM zone number.")
+            p = Proj(proj='utm', zone=to_geo, ellps='WGS84')
+            lon, lat = p(self.xx, self.yy, inverse=True)
         else:
-            az = np.arctan2(end_point[1]-start_point[1], end_point[0]-start_point[0])
-            dist = np.sqrt((end_point[0]-start_point[0])**2+(end_point[1]-start_point[1])**2)
-            sec_range = np.arange(0, dist, val)
-            lat = np.zeros(sec_range.size)
-            lon = np.zeros(sec_range.size)
-            for i, r in enumerate(sec_range):
-                lon[i] = start_point[0]+r*np.cos(az)
-                lat[i] = start_point[1]+r*np.sin(az)
+            lon = xpoints
+            lat = ypoints
 
         # create points array
-        points = np.zeros([sec_range.size*self.z.size, 5])
-        offset = 0
-        for i, lola in enumerate(zip(lon, lat)):
-            for _, dep in enumerate(self.z):
-                points[offset] = [lola[0], lola[1], dep, sec_range[i], 0.]
-                offset += 1
-
+        # points = np.zeros([sec_range.size*self.z.size, 5])
         # Interpolation
         if is_pert:
             model = self.dv
         else:
             model = self.model
-        points[:, 4] = interpn(
-            (self.x, 
-             self.y, 
-             self.z),
-            model,
-            points[:, 0:3],
-            bounds_error=False
-        )
-        return points
+        value = np.zeros([sec_range.size, self.z.size])
+        for iz in range(self.z.size):
+            value[:, iz] = interpn((self.x, self.y), model[:, :, iz], np.vstack((xpoints, ypoints)).T, bounds_error=False, fill_value=None)
+        
+        if convert_km:
+            depth = -self.z / 1000
+            sec_range = sec_range / 1000
+        else:
+            depth = self.z
+            sec_range = sec_range
+        if not output_grid:
+            points = np.zeros([sec_range.size*self.z.size, 5])
+            for iz in range(self.z.size):
+                for ix in range(sec_range.size):
+                    points[iz*sec_range.size + ix, 0] = lon[ix]
+                    points[iz*sec_range.size + ix, 1] = lat[ix]
+                    points[iz*sec_range.size + ix, 2] = sec_range[ix]
+                    points[iz*sec_range.size + ix, 3] = depth[iz]
+                    points[iz*sec_range.size + ix, 4] = value[ix, iz]
+            return points
+        else:
+            if x_col == 0:
+                x = lon
+            elif x_col == 1:
+                x = lat
+            else:
+                x = sec_range
+            grid = xr.DataArray(
+                data=value.T,
+                coords=[depth, x],
+                dims=['y', 'x']
+            )
+            return grid
