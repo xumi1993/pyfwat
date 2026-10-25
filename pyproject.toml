@@ -37,6 +37,12 @@ dependencies = [
     "pyproj",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "PySide6>=6.2",
+    "matplotlib>=3.5.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/xumi1993/pyfwat"
 Repository = "https://github.com/xumi1993/pyfwat"
@@ -61,6 +67,7 @@ fwat_gen_gauss_stf = "pyfwat.preproc.gen_gauss_stf:main"
 fwat_ch_fkmodel = "pyfwat.preproc.ch_fkmodel:main"
 fwat_pick_tele = "pyfwat.picker.picker_ui_tele:main"
 fwat_pick_waveform = "pyfwat.picker.picker_ui_waveform:main"
+fwat_pick_rf = "pyfwat.picker.picker_ui_rf:main"
 fwat_setpar = "pyfwat.utils.pario:setpar"
 fwat_optimize_ls = "pyfwat.postproc.optimize_ls:main"
 fwat_cal_fk_times = "pyfwat.preproc.cal_fk_times:main"

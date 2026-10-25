@@ -1,20 +1,19 @@
 import sys
 import os
 import argparse
-# matplotlib.use("Qt5Agg")
 try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon, QKeySequence, QWheelEvent
-    from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, \
-                                QSizePolicy, QWidget, QDesktopWidget, \
-                                QPushButton, QHBoxLayout, QFileDialog, \
-                                QAction, QShortcut, QLabel, QLineEdit, \
-                                QGroupBox, QRadioButton, QSplitter
-    from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject 
-except:
-    raise("Please install PyQt5 first: pip install PyQt5")
+    from PySide6.QtCore import QCoreApplication, Qt
+    from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QWheelEvent
+    from PySide6.QtWidgets import (
+        QApplication, QFileDialog, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+        QMainWindow, QPushButton, QSizePolicy, QSplitter, QVBoxLayout, QWidget,
+    )
+except ImportError as exc:
+    raise ImportError(
+        'GUI tools require PySide6. Install with: pip install "pyfwat[gui]"'
+    ) from exc
 from os.path import exists, dirname, join
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 from .picker_fig_waveform import PickFig
@@ -40,11 +39,11 @@ class MyMplCanvas(FigureCanvas):
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
+                                   QSizePolicy.Policy.Expanding,
+                                   QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
 
 class MatplotlibWidget(QMainWindow):
@@ -59,7 +58,6 @@ class MatplotlibWidget(QMainWindow):
         self.sort_key = sort_key
         self.cursors = []
         self.initUi(path)
-        QMetaObject.connectSlotsByName(self)
 
     def initUi(self, path):
         self._set_geom_center()
@@ -70,7 +68,7 @@ class MatplotlibWidget(QMainWindow):
         self.setCentralWidget(self.main_frame)
         
         # 使用 QSplitter 替代 QHBoxLayout 以支持可拖动的分隔条
-        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
         
         self.add_layout()
         self.plot_ui()
@@ -134,8 +132,12 @@ class MatplotlibWidget(QMainWindow):
         self.splitter.setStretchFactor(0, 1)  # 左侧控制面板，索引是 0
         self.splitter.setStretchFactor(1, 4)  # 右侧绘图区域，索引是 1
         
-        ctrl_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.mpl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        ctrl_widget.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+        )
+        self.mpl.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         
         self.mpl.setMinimumWidth(300)
 
@@ -151,14 +153,14 @@ class MatplotlibWidget(QMainWindow):
         # self.xminEdit.setFixedWidth(150)
         # self.xminEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[0]))
         self.xminEdit.textChanged.connect(self.on_xmin_changed)
-        # self.xminEdit.setFocusPolicy(Qt.NoFocus)
+        # self.xminEdit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         label_bar = QLabel()
         label_bar.setText('-')
         self.xmaxEdit = QLineEdit()
         # self.xmaxEdit.setFixedWidth(150)
         # self.xmaxEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[1]))
         self.xmaxEdit.textChanged.connect(self.on_xmax_changed)
-        # self.xmaxEdit.setFocusPolicy(Qt.NoFocus)
+        # self.xmaxEdit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         xlim_layout.addWidget(label_x)
         xlim_layout.addWidget(self.xminEdit)
         xlim_layout.addWidget(label_bar)
@@ -169,7 +171,7 @@ class MatplotlibWidget(QMainWindow):
         self.ampzoomEdit = QLineEdit()
         self.ampzoomEdit.setText('{:.2f}'.format(self.mpl.pf.para.enf))
         self.ampzoomEdit.textChanged.connect(self.on_enf_changed)
-        # self.ampzoomEdit.setFocusPolicy(Qt.NoFocus)
+        # self.ampzoomEdit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         ampzoom_layout.addWidget(label_zoom)
         ampzoom_layout.addWidget(self.ampzoomEdit)
         self.ampzoomButton = QPushButton()
@@ -191,13 +193,13 @@ class MatplotlibWidget(QMainWindow):
         self.cutminEdit = QLineEdit()
         self.cutminEdit.setText('')
         self.cutminEdit.textChanged.connect(self.on_cutmin_changed)
-        # self.cutminEdit.setFocusPolicy(Qt.NoFocus)
+        # self.cutminEdit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         label_bar = QLabel()
         label_bar.setText('to')
         self.cutmaxEdit = QLineEdit()
         self.cutmaxEdit.setText('')
         self.cutmaxEdit.textChanged.connect(self.on_cutmax_changed)
-        # self.cutmaxEdit.setFocusPolicy(Qt.NoFocus)
+        # self.cutmaxEdit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         cut_layout.addWidget(label_x)
         cut_layout.addWidget(self.cutminEdit)
         cut_layout.addWidget(label_bar)
@@ -264,10 +266,10 @@ class MatplotlibWidget(QMainWindow):
 
     def _define_global_shortcuts(self):
         self.key_c = QShortcut(QKeySequence('c'), self)
-        self.key_c.setContext(Qt.ApplicationShortcut)
+        self.key_c.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.key_c.activated.connect(self.next_connect)
         self.key_z = QShortcut(QKeySequence('z'), self)
-        self.key_z.setContext(Qt.ApplicationShortcut)
+        self.key_z.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.key_z.activated.connect(self.previous_connect)
         # self.key_space = QShortcut(QKeySequence('Space'), self)
         # self.key_space.activated.connect(self.plot_ui)
@@ -425,15 +427,16 @@ class MatplotlibWidget(QMainWindow):
             self.mpl.rffig.log.RFlog.error('{}'.format(e))
 
     def _set_geom_center(self, height=1, width=1):
-        screen_resolution = QDesktopWidget().screenGeometry()
+        screen_resolution = self.screen().availableGeometry()
         screen_height = screen_resolution.height()
         screen_width = screen_resolution.width()
         self.frame_height = int(screen_height * height)
         self.frame_width = int(screen_width * width)
 
-        self.setGeometry(0, 0, self.frame_width, self.frame_height)
-        self.move(int((screen_width / 2) - (self.frameSize().width() / 2)),
-                  int((screen_height / 2) - (self.frameSize().height() / 2)))
+        self.resize(self.frame_width, self.frame_height)
+        frame_geometry = self.frameGeometry()
+        frame_geometry.moveCenter(screen_resolution.center())
+        self.move(frame_geometry.topLeft())
 
     def add_btn(self):
         pre_btn = QPushButton("Back (z)")
@@ -497,7 +500,7 @@ def main():
     app = QApplication(sys.argv)
     ui = MatplotlibWidget(path, pre_flt=pre_flt, enf=arg.e, num=arg.n, resample_dt=resample_dt, xlim=xlim)
     ui.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

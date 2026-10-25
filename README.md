@@ -36,6 +36,14 @@ cd pyfwat
 pip install -e .
 ```
 
+For the PySide6 GUI tools, install the optional GUI dependencies:
+
+```bash
+pip install "pyfwat[gui]"
+# Or, from a source checkout:
+pip install -e ".[gui]"
+```
+
 ### Requirements
 
 - Python >= 3.9
@@ -48,7 +56,7 @@ pip install -e .
 - h5py
 - pyproj
 - ruamel.yaml
-- PyQt5 (optional, for GUI tools)
+- PySide6 >= 6.2 and Matplotlib >= 3.5.0 (optional, for GUI tools)
 
 ## Command-line Tools
 

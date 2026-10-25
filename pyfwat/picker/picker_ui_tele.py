@@ -1,20 +1,19 @@
 import sys
 import os
 import argparse
-# matplotlib.use("Qt5Agg")
 try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon, QKeySequence, QWheelEvent
-    from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, \
-                                QSizePolicy, QWidget, QDesktopWidget, \
-                                QPushButton, QHBoxLayout, QFileDialog, \
-                                QAction, QShortcut, QLabel, QLineEdit, \
-                                QGroupBox, QRadioButton
-    from PyQt5.QtCore import QRect, QCoreApplication, pyqtSlot, QMetaObject 
-except:
-    raise("Please install PyQt5 first: pip install PyQt5")
+    from PySide6.QtCore import QCoreApplication, Qt
+    from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QWheelEvent
+    from PySide6.QtWidgets import (
+        QApplication, QFileDialog, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+        QMainWindow, QPushButton, QRadioButton, QSizePolicy, QVBoxLayout, QWidget,
+    )
+except ImportError as exc:
+    raise ImportError(
+        'GUI tools require PySide6. Install with: pip install "pyfwat[gui]"'
+    ) from exc
 from os.path import exists, dirname, join
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
 from .picker_fig_tele import PickFig
@@ -38,10 +37,10 @@ class MyMplCanvas(FigureCanvas):
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
+                                   QSizePolicy.Policy.Expanding,
+                                   QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
 
 class MatplotlibWidget(QMainWindow):
@@ -57,7 +56,6 @@ class MatplotlibWidget(QMainWindow):
         self.align = align
         self.cursors = []
         self.initUi(path, marker)
-        QMetaObject.connectSlotsByName(self)
 
     def initUi(self, path, marker):
         self.layout = QHBoxLayout()
@@ -252,10 +250,10 @@ class MatplotlibWidget(QMainWindow):
     def _define_global_shortcuts(self):
         self.key_c = QShortcut(QKeySequence('c'), self)
         self.key_c.activated.connect(self.next_connect)
-        self.key_c.setContext(Qt.ApplicationShortcut)
+        self.key_c.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.key_z = QShortcut(QKeySequence('z'), self)
         self.key_z.activated.connect(self.previous_connect)
-        self.key_z.setContext(Qt.ApplicationShortcut)
+        self.key_z.setContext(Qt.ShortcutContext.ApplicationShortcut)
         # self.key_space = QShortcut(QKeySequence('Space'), self)
         # self.key_space.activated.connect(self.plot_ui)
     
@@ -295,7 +293,7 @@ class MatplotlibWidget(QMainWindow):
     
     def on_pick_arr(self, event):
         if self.pickButton.isChecked():
-            QApplication.setOverrideCursor(Qt.CrossCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
             for ax in self.mpl.pf.axes:
                 self.cursors.append(Cursor(ax, horizOn=False, vertOn=True, useblit=True, color='k', alpha=0.5))
         else:
@@ -426,15 +424,16 @@ class MatplotlibWidget(QMainWindow):
             self.mpl.rffig.log.RFlog.error('{}'.format(e))
 
     def _set_geom_center(self, height=1, width=1):
-        screen_resolution = QDesktopWidget().screenGeometry()
+        screen_resolution = self.screen().availableGeometry()
         screen_height = screen_resolution.height()
         screen_width = screen_resolution.width()
         self.frame_height = int(screen_height * height)
         self.frame_width = int(screen_width * width)
 
-        self.setGeometry(0, 0, self.frame_width, self.frame_height)
-        self.move(int((screen_width / 2) - (self.frameSize().width() / 2)),
-                  int((screen_height / 2) - (self.frameSize().height() / 2)))
+        self.resize(self.frame_width, self.frame_height)
+        frame_geometry = self.frameGeometry()
+        frame_geometry.moveCenter(screen_resolution.center())
+        self.move(frame_geometry.topLeft())
 
     def add_btn(self):
         pre_btn = QPushButton("Back (z)")
@@ -501,7 +500,7 @@ def main():
     ui = MatplotlibWidget(path, marker=arg.m, pre_flt=pre_flt, enf=arg.e, num=arg.n,
                           align=arg.c, resample_dt=resample_dt, xlim=xlim)
     ui.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
