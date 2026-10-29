@@ -10,7 +10,7 @@ try:
     )
 except ImportError as exc:
     raise ImportError(
-        'GUI tools require PySide6. Install with: pip install "pyfwat[gui]"'
+        'GUI tools require PySide6. Install with: pip install "PySide6>=6.2"'
     ) from exc
 from os.path import exists, dirname, join
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
