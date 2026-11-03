@@ -1,4 +1,4 @@
-/* Furo stretches the logo to the full sidebar width; keep it small. */
+/* The wordmark logo is wide and short: let it fill the sidebar width. */
 .sidebar-logo {
-  max-width: 5rem;
+  max-width: 100%;
 }
