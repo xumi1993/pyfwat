@@ -2,7 +2,7 @@
 
 import numpy as np
 import pygmt
-from seispy.geo import sind
+from ..utils.geo import sind
 import sys
 import glob
 from os.path import exists, dirname
@@ -45,10 +45,10 @@ def plot_evts(label_angle=22.5, setid=None, outpath='./figures', isweight=False)
         vmin = np.min(weights)-0.1
         vmax = np.max(weights)+0.1
         pygmt.makecpt(cmap='jet', series=[vmin, vmax, 0.01], continuous=True)        
-        fig.plot(x=baz, y=rayp, color=weights, style='a0.26c', pen='0.1p', cmap=True)
+        fig.plot(x=baz, y=rayp, fill=weights, style='a0.26c', pen='0.1p', cmap=True)
         fig.colorbar(frame='xa0.2g0.2+l"Weight"')
     else:
-        fig.plot(x=baz, y=rayp, style='a0.26c', pen='0.1p', color='255/25/25')
+        fig.plot(x=baz, y=rayp, style='a0.26c', pen='0.1p', fill='255/25/25')
     fig.text(text='{:.3f}'.format(ymin), x=label_angle, y=ymin, font='8p', angle=-label_angle, no_clip=True, fill='255')
     fig.text(text='{:.3f}'.format(ymax), x=label_angle, y=ymax, font='8p', angle=-label_angle, no_clip=True, fill='255')
     fig.savefig('{}/rf_evts.png'.format(outpath))

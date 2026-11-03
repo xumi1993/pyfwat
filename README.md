@@ -94,6 +94,7 @@ PyFWAT provides numerous command-line utilities for various tasks:
 - `fwat_plot_misfit_linesearch` - Visualize line search optimization
 - `fwat_plot_stations` - Display station distributions
 - `fwat_plot_rf_evts` - Plot receiver function events
+- `fwat_plot_evt_weight` - Plot event distribution (back-azimuth/ray-parameter and epicenters) colored by weight
 - `fwat_plot_rf_fit` - Show receiver function data fits
 - `fwat_plot_waveform_fit` - Visualize ambient noise / local earthquake data fits
 - `fwat_plot_tele_fit` - Display teleseismic waveform fits
@@ -104,6 +105,7 @@ PyFWAT provides numerous command-line utilities for various tasks:
 - `fwat_gen_gauss_stf` - Generate Gaussian source time functions
 - `fwat_ch_fkmodel` - Modify FK models
 - `fwat_cal_fk_times` - Calculate FK travel times
+- `fwat_assign_weight` - Assign event weights in `src_rec/sources_*.dat` by back-azimuth/ray-parameter or location density
 - `fwat_checkerboard` - Create checkerboard resolution tests
 - `fwat_createmodel` - Generate initial crustal models
 - `fwat_setpar` - Setup parameters of FWAT and Specfem3D

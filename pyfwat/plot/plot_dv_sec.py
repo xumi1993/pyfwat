@@ -56,7 +56,7 @@ class PltDv(Pltvel):
             cmapp = True
         fig.grdimage(grid=line['grid'], cmap=cmapp)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.1c',
-                 style='t{}c'.format(xscale/45), pen='0.5p', color='gray40', no_clip=True)
+                 style='t{}c'.format(xscale/45), pen='0.5p', fill='gray40', no_clip=True)
         if colorbar:
             fig.colorbar(position="JMR+o0.7c/0c+w4c+ebf", frame=['xag+l"{}"'.format(label), 'y+l"%"'])
         fig.savefig('{}/d{}_{:.1f}_{:.1f}_{:.1f}_{:.1f}.png'.format(

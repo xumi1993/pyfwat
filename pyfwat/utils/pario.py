@@ -43,7 +43,7 @@ def readfkpar(par_file, key):
     :param key: Parameter key to read
     :type key: str
     :return: Parameter value
-    :rtype: float, int, bool, np.ndarray
+    :rtype: float, int, bool, str, np.ndarray
     """
     with open(par_file) as f:
         par = f.read()
@@ -56,8 +56,9 @@ def readfkpar(par_file, key):
     else:
         outstr = re.findall(r'{}\s+(.+?)\n'.format(key), par)[0]
     # outstr = s.stdout.read().decode().strip()
-    if key != 'INCIDENT_WAVE':
-        val_lst = [float(value) for value in outstr.split()]
+    if key == 'INCIDENT_WAVE':
+        return outstr.split()[0]
+    val_lst = [float(value) for value in outstr.split()]
     if len(val_lst) == 1:
         return val_lst[0]
     else:

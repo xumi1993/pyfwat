@@ -66,7 +66,7 @@ class Pltdlnv():
         pygmt.makecpt(cmap=cpt, series=[-vmax, vmax, 2*vmax/cpt_span], continuous=True)
         fig.grdimage(grid=line['grid'], cmap=True)
         fig.plot(x=line['stpos'], y=line['stel'], offset='0/0.15c',
-                 style='t0.3c', pen='0.5p', color='gray40', no_clip=True)
+                 style='t0.3c', pen='0.5p', fill='gray40', no_clip=True)
         fig.colorbar(position="JMR+o0.7c/0c+w5c/0.3c+ebf", frame=['xag+l"dln{}"'.format(self.dataname), 'y+l"%"'])
         fig.savefig('{}/{}_{}_{:.1f}_{:.1f}_{:.1f}_{:.1f}.png'.format(
                     outpath, self.modid, self.dataname, *line['pos']))
