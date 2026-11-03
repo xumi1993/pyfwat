@@ -60,6 +60,16 @@ STATION_PATTERN = re.compile(
 
 @dataclass
 class RFRecord:
+    """A receiver function loaded from a SAC file.
+
+    :ivar path: Path to the SAC file
+    :ivar network: Network code
+    :ivar station: Station code
+    :ivar channel: Channel code
+    :ivar gauss: Gaussian factor from the file name, None if unknown
+    :ivar times: Sample times in s relative to the SAC ``b`` reference
+    :ivar data: Amplitudes, with non-finite values set to 0
+    """
     path: Path
     network: str
     station: str
@@ -70,6 +80,14 @@ class RFRecord:
 
 
 def natural_station_key(station: str) -> tuple[str, int, str]:
+    """Sort key that orders station codes such as ``ST2`` before ``ST10``.
+
+    :param station: Station code
+    :type station: str
+    :return: Upper-case letter prefix, numeric suffix (-1 if the code is not
+        letters followed by digits) and the original code
+    :rtype: tuple
+    """
     match = re.fullmatch(r"([A-Za-z]+)(\d+)", station)
     if match is None:
         return station, -1, station
@@ -78,6 +96,16 @@ def natural_station_key(station: str) -> tuple[str, int, str]:
 
 
 def file_metadata(path: Path) -> tuple[str, str, str, float | None]:
+    """Network, station, channel and Gaussian factor from a file name.
+
+    Names like ``NET.STA.BXR.F2.5.rf.sac`` are parsed fully; otherwise the first
+    three dot-separated fields are used and the Gaussian factor is None.
+
+    :param path: Path to the SAC file
+    :type path: pathlib.Path
+    :return: Network, station, channel and Gaussian factor
+    :rtype: tuple
+    """
     match = STATION_PATTERN.match(path.name)
     if match is not None:
         gauss_text = match.group("gauss")
@@ -99,6 +127,15 @@ def file_metadata(path: Path) -> tuple[str, str, str, float | None]:
 
 
 def load_rf_record(path: Path) -> RFRecord:
+    """Read a single-trace SAC file into an :class:`RFRecord`.
+
+    :param path: Path to the SAC file
+    :type path: pathlib.Path
+    :raises RuntimeError: If the file does not hold exactly one trace or has no
+        finite samples
+    :return: The loaded receiver function
+    :rtype: RFRecord
+    """
     stream = read(str(path))
     if len(stream) != 1:
         raise RuntimeError(f"expected one trace, found {len(stream)}")
@@ -126,7 +163,15 @@ def load_rf_record(path: Path) -> RFRecord:
 
 
 class RFPickerWindow(QMainWindow):
+    """Window to review the receiver functions of an event and delete bad ones.
+
+    Click a waveform or check a station to mark it; ``z``/``c`` change the page;
+    the delete button permanently removes the marked SAC files.
+    """
     def __init__(self, initial_directory: Path | None = None) -> None:
+        """:param initial_directory: Event directory to load on start, defaults to None
+        :type initial_directory: pathlib.Path, optional
+        """
         super().__init__()
         self.setWindowTitle("Receiver Function Picker — PySide6")
         self.resize(1450, 900)
@@ -146,6 +191,7 @@ class RFPickerWindow(QMainWindow):
             self.load_directory(initial_directory)
 
     def _build_interface(self) -> None:
+        """Create the directory, display and selection controls and the canvas."""
         central = QWidget()
         root_layout = QVBoxLayout(central)
         root_layout.setContentsMargins(8, 8, 8, 8)
@@ -267,14 +313,21 @@ class RFPickerWindow(QMainWindow):
         self.canvas.mpl_connect("button_press_event", self.on_canvas_click)
 
     def showEvent(self, event) -> None:
+        """Focus the canvas once the window is shown, so that page keys work.
+
+        :param event: Show event
+        :type event: PySide6.QtGui.QShowEvent
+        """
         super().showEvent(event)
         if self.records:
             QTimer.singleShot(0, self.focus_canvas)
 
     def focus_canvas(self) -> None:
+        """Give keyboard focus to the canvas."""
         self.canvas.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def browse_directory(self) -> None:
+        """Choose an event directory in a dialog and load it."""
         start = self.directory_edit.text().strip() or str(Path.home())
         selected = QFileDialog.getExistingDirectory(
             self,
@@ -286,6 +339,7 @@ class RFPickerWindow(QMainWindow):
             self.load_directory(Path(selected))
 
     def load_from_text(self) -> None:
+        """Load the directory typed in the directory box."""
         text = self.directory_edit.text().strip()
         if not text:
             QMessageBox.warning(
@@ -302,6 +356,15 @@ class RFPickerWindow(QMainWindow):
         *,
         show_errors: bool = True,
     ) -> None:
+        """Load the receiver functions of a directory that match the file pattern.
+
+        Files are sorted by station; files that cannot be read are reported.
+
+        :param directory: Event directory
+        :type directory: pathlib.Path
+        :param show_errors: Show message boxes for errors, defaults to True
+        :type show_errors: bool, optional
+        """
         directory = directory.resolve()
         pattern = self.pattern_edit.text().strip() or DEFAULT_PATTERN
         if not directory.is_dir():
@@ -363,6 +426,7 @@ class RFPickerWindow(QMainWindow):
             )
 
     def _populate_station_list(self) -> None:
+        """Fill the station list with one checkable item per receiver function."""
         self._updating_list = True
         self.station_list.clear()
         for index, record in enumerate(self.records):
@@ -379,6 +443,7 @@ class RFPickerWindow(QMainWindow):
         self._updating_list = False
 
     def _update_global_amplitude(self) -> None:
+        """Set the largest absolute amplitude of all records, used to normalize every trace."""
         amplitudes = [
             float(np.max(np.abs(record.data)))
             for record in self.records
@@ -392,6 +457,7 @@ class RFPickerWindow(QMainWindow):
         )
 
     def _draw_visible_records(self) -> None:
+        """Draw the receiver functions of the current page."""
         self.figure.clear()
         self.axes = self.figure.add_subplot(111)
         self.artists = {}
@@ -478,6 +544,11 @@ class RFPickerWindow(QMainWindow):
         self._update_status()
 
     def apply_time_range(self, *, redraw: bool = True) -> None:
+        """Apply the time range of the spin boxes to the axes.
+
+        :param redraw: Redraw the canvas, defaults to True
+        :type redraw: bool, optional
+        """
         if not hasattr(self, "axes"):
             return
         xmin = self.xmin_spin.value()
@@ -494,6 +565,7 @@ class RFPickerWindow(QMainWindow):
             self.canvas.draw_idle()
 
     def show_full_time_range(self) -> None:
+        """Show the full time span of all records."""
         if not self.records:
             return
         xmin = min(float(record.times[0]) for record in self.records)
@@ -503,11 +575,17 @@ class RFPickerWindow(QMainWindow):
         self.apply_time_range()
 
     def update_scale(self) -> None:
+        """Redraw with the amplitude scale of the slider."""
         if not self.records:
             return
         self._draw_visible_records()
 
     def on_canvas_click(self, event) -> None:
+        """Toggle the mark of the waveform under a left click.
+
+        :param event: Mouse click event
+        :type event: matplotlib.backend_bases.MouseEvent
+        """
         self.focus_canvas()
         if (
             not self.records
@@ -525,11 +603,20 @@ class RFPickerWindow(QMainWindow):
             self.set_selected(index, index not in self.selected)
 
     def _last_page_start(self) -> int:
+        """Index of the first record on the last page.
+
+        :rtype: int
+        """
         if not self.records:
             return 0
         return ((len(self.records) - 1) // ROWS_PER_VIEW) * ROWS_PER_VIEW
 
     def change_page(self, direction: int) -> None:
+        """Move one page forward or backward.
+
+        :param direction: Positive for the next page, otherwise the previous page
+        :type direction: int
+        """
         if not self.records:
             return
         step = ROWS_PER_VIEW if direction > 0 else -ROWS_PER_VIEW
@@ -547,6 +634,15 @@ class RFPickerWindow(QMainWindow):
             )
 
     def eventFilter(self, watched, event) -> bool:
+        """Handle the ``z`` and ``c`` page keys anywhere in the window, except in text fields.
+
+        :param watched: Object receiving the event
+        :type watched: PySide6.QtCore.QObject
+        :param event: Event to filter
+        :type event: PySide6.QtCore.QEvent
+        :return: True if the key was handled
+        :rtype: bool
+        """
         if (
             event.type() == QEvent.Type.KeyPress
             and self.isActiveWindow()
@@ -564,6 +660,11 @@ class RFPickerWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def on_list_item_changed(self, item: QListWidgetItem) -> None:
+        """Mark or unmark a record when its station is checked or unchecked.
+
+        :param item: Changed list item
+        :type item: PySide6.QtWidgets.QListWidgetItem
+        """
         if self._updating_list:
             return
         index = int(item.data(Qt.ItemDataRole.UserRole))
@@ -578,6 +679,17 @@ class RFPickerWindow(QMainWindow):
         update_list: bool = True,
         redraw: bool = True,
     ) -> None:
+        """Mark or unmark a record and update its colors and list item.
+
+        :param index: Record index
+        :type index: int
+        :param selected: True to mark the record for deletion
+        :type selected: bool
+        :param update_list: Update the check box of the list item, defaults to True
+        :type update_list: bool, optional
+        :param redraw: Redraw the canvas, defaults to True
+        :type redraw: bool, optional
+        """
         if selected:
             self.selected.add(index)
         else:
@@ -616,16 +728,19 @@ class RFPickerWindow(QMainWindow):
             self.canvas.draw_idle()
 
     def select_all(self) -> None:
+        """Mark all records."""
         for index in range(len(self.records)):
             self.set_selected(index, True, redraw=False)
         self.canvas.draw_idle()
 
     def clear_selection(self) -> None:
+        """Unmark all records."""
         for index in range(len(self.records)):
             self.set_selected(index, False, redraw=False)
         self.canvas.draw_idle()
 
     def invert_selection(self) -> None:
+        """Invert the marks of all records."""
         previous = set(self.selected)
         for index in range(len(self.records)):
             self.set_selected(
@@ -636,6 +751,10 @@ class RFPickerWindow(QMainWindow):
         self.canvas.draw_idle()
 
     def delete_selected_files(self) -> None:
+        """Permanently delete the SAC files of the marked records after confirmation.
+
+        macOS ``._`` sidecar files are removed too, and the view is refreshed.
+        """
         if not self.selected:
             QMessageBox.information(
                 self,
@@ -729,6 +848,7 @@ class RFPickerWindow(QMainWindow):
             )
 
     def _update_status(self) -> None:
+        """Update the page buttons and the status text."""
         self.previous_page_button.setEnabled(
             bool(self.records) and self.view_start > 0
         )
@@ -750,6 +870,10 @@ class RFPickerWindow(QMainWindow):
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the command-line arguments of ``fwat_pick_rf``.
+
+    :rtype: argparse.Namespace
+    """
     parser = argparse.ArgumentParser(
         description="Open the PySide6 receiver-function review/delete GUI."
     )
@@ -763,6 +887,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Command-line entry point of ``fwat_pick_rf``."""
     args = parse_args()
     application = QApplication(sys.argv[:1])
     window = RFPickerWindow(args.directory)

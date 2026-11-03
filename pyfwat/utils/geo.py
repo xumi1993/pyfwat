@@ -1,3 +1,5 @@
+"""Trigonometry in degrees, distance and slowness conversions, and geodesic destination points."""
+
 import numpy as np
 from pyproj import Geod
 
@@ -211,6 +213,17 @@ def latlon_from(lat0, lon0, azimuth, gcarc_dist, ellps="WGS84"):
     """
 
     def init_lalo(lat0, lon0, npts):
+        """Broadcast the initial point(s) to ``npts`` points.
+
+        :param lat0: Latitude(s) of the initial point(s)
+        :param lon0: Longitude(s) of the initial point(s)
+        :param npts: Number of points
+        :type npts: int
+        :raises ValueError: If array inputs differ in length from each other or
+            from ``npts``
+        :return: Latitudes and longitudes of length ``npts``
+        :rtype: tuple
+        """
         if hasattr(lat0, "__iter__") and hasattr(lon0, "__iter__"):
             if len(lat0) != len(lon0):
                 raise ValueError('lat0 and lon0 must be in the same length')

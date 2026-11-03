@@ -1,3 +1,8 @@
+"""Normalized misfit versus iteration for a period band.
+
+Command-line tool: ``fwat_plot_misfit``.
+"""
+
 import pygmt
 import glob
 import numpy as np
@@ -7,7 +12,19 @@ import os
 
 
 class PlotMisfit():
+    """Mean window misfit of a period band over a range of iterations."""
     def __init__(self, iter_start, iter_end, filtstr, col=28) -> None:
+        """Read the mean misfit of each iteration and print the total misfit.
+
+        :param iter_start: First iteration
+        :type iter_start: int
+        :param iter_end: Last iteration
+        :type iter_end: int
+        :param filtstr: Period band name in the misfit file names, ``'*'`` for all
+        :type filtstr: str
+        :param col: Not used, defaults to 28
+        :type col: int, optional
+        """
         self.iter_start = iter_start
         self.iter_end = iter_end
         self.col = col
@@ -20,6 +37,15 @@ class PlotMisfit():
             self.misfits[it-self.iter_start] = pbm.mean_chi
     
     def plot(self, outpath='./figures', color='255/25/25'):
+        """Plot the misfit normalized by its maximum versus iteration.
+
+        The figure is ``<outpath>/misfit_M<start>_M<end>_<filtstr>.png``.
+
+        :param outpath: Output directory, defaults to ``./figures``
+        :type outpath: str, optional
+        :param color: Marker color in GMT format, defaults to ``'255/25/25'``
+        :type color: str, optional
+        """
         self.misfits /= np.max(self.misfits)
         fig = pygmt.Figure()
         bound = (self.iter_end-self.iter_start)*0.1
@@ -34,6 +60,7 @@ class PlotMisfit():
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_misfit``."""
     parser = argparse.ArgumentParser('Plot Misfit with iterations')
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/10', metavar='iter_start/iter_end')
     parser.add_argument('-f', help='Filter info in the filename, e.g., T005_T050', default='*')

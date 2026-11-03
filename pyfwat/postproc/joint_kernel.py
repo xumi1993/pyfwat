@@ -1,3 +1,8 @@
+"""Combine the gradients of different data types into a joint gradient.
+
+Command-line tool: ``fwat_joint_kernel``.
+"""
+
 import h5py
 import numpy as np
 from ..utils.pario import readfwatpar
@@ -12,7 +17,16 @@ basepath = './optimize'
 
 
 class JointKernel():
+    """Joint gradient of ambient-noise and teleseismic data.
+
+    Each data type's gradient is normalized by its maximum absolute value at the
+    starting iteration (``MODEL_UPDATE.ITER_START``) and weighted by
+    ``POSTPROC.JOINT_WEIGHT`` of ``DATA/fwat_params.yml``.
+    """
     def __init__(self, model):
+        """:param model: Model name, e.g. ``M03``
+        :type model: str
+        """
         self.model = model
         self.data = self.read(model)
         self.para = readfwatpar()
@@ -23,6 +37,13 @@ class JointKernel():
         # self.setname['tele'] = readfwatpar('DATA/FWAT.PAR', 'TELE_SET_RANGE')[0]
 
     def read(self, model_name):
+        """Read the smoothed alpha, beta and rhop kernels of each data type.
+
+        :param model_name: Model name of ``optimize/gradient_<model_name>_<type>.h5``
+        :type model_name: str
+        :return: Kernels of each data type as an array of shape ``(3, nx, ny, nz)``
+        :rtype: dict
+        """
         data = {
             'noise': {},
             'tele': {},
@@ -37,6 +58,7 @@ class JointKernel():
         return data
 
     def sum(self):
+        """Normalize, weight and sum the gradients of all data types into ``grad``."""
         normval = {}
         data0 = self.read(self.model_start)
         for simu in simu_type:
@@ -55,6 +77,7 @@ class JointKernel():
         #     x = f['x'][:]
         #     y = f['y'][:]
         #     z = f['z'][:]
+        """Write the joint kernels to ``optimize/gradient_<model>.h5``."""
         with h5py.File(f'{basepath}/gradient_{self.model}.h5', 'w') as f:
             for kernel in kernel_name:
                 # kdata = np.asfortranarray(self.grad[kernel])
@@ -65,6 +88,7 @@ class JointKernel():
             # f.create_dataset('z', data=z)
 
 def main():
+    """Command-line entry point of ``fwat_joint_kernel``."""
     parser = argparse.ArgumentParser('Joint kernel of different data sets')
     parser.add_argument('-m', help='Model name e.g.,M01', metavar='M??', required=True)
     args = parser.parse_args()

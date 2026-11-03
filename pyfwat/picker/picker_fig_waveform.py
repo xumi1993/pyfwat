@@ -1,3 +1,5 @@
+"""Data loading, plotting and saving behind the ambient-noise and local-earthquake picker."""
+
 import numpy as np
 import obspy
 import matplotlib.pyplot as plt
@@ -14,7 +16,16 @@ Figure for visually check teleseismic waveform in R and Z components based on Ma
 """
 
 class Para():
+    """Display and processing settings of the ambient-noise and local-earthquake picker.
+
+    Attributes: ``freqmin``/``freqmax`` (Hz) of the band-pass filter,
+    ``xlim`` time range in s (None for the range of the data), ``path`` data
+    directory, ``comp`` component, ``sort_key`` (``'dist'`` or ``'baz'``),
+    ``enf`` amplitude scale, ``resample_dt``, ``cut_win`` time window in s kept
+    when saving, and ``num_per_page`` traces per page.
+    """
     def __init__(self):
+        """Set the default values."""
         self.freqmin = None
         self.freqmax = None
         self.xlim = [-50, 100]
@@ -28,18 +39,36 @@ class Para():
 
 
 class PickFig(object):
+    """Matplotlib figure of the waveforms of one component of an event.
+
+    Traces are sorted by ``sort_key`` and shown page by page; clicking a trace
+    toggles whether it is kept, and :meth:`save` writes the result back to the
+    data directory.
+    """
     def __init__(self, path, resample_dt=None) -> None:
+        """:param path: Directory with the ``*<comp>.sac`` files of an event
+        :type path: str
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to None
+        :type resample_dt: float, optional
+        """
         self.para = Para()
         self.para.path = path
         self.current_page = 0
         self.read_sac(resample_dt)
 
     def _get_y_limit(self):
+        """Compute the first and last trace index of each page and the number of pages."""
         self.low_lim = np.arange(1, self.stnum+1, self.para.num_per_page)
         self.up_lim = np.append(self.low_lim[1:]-1, self.low_lim[-1]+self.para.num_per_page-1)
         self.npage = self.low_lim.size
 
     def init_figure(self, figsize=(18,10)):
+        """Create the figure and its title with the event information.
+
+        :param figsize: Figure size in inches, defaults to ``(18, 10)``
+        :type figsize: tuple, optional
+        """
         self.fig, self.axes = plt.subplots(1, 1, figsize=figsize, tight_layout=True)
         if hasattr(self.stz[0].stats.sac, 'evdp'):
             evdp = self.stz[0].stats.sac.evdp
@@ -51,6 +80,10 @@ class PickFig(object):
         self._get_y_limit()
     
     def setup_figure(self):
+        """Set the title, axis limits and station labels of the current page.
+
+        Labels of the traces marked as bad are gray.
+        """
         ax = self.axes
         ax.set_title('{} Component'.format(self.stz_cp[0].stats.channel[-1]))
         if self.para.xlim is None:
@@ -66,6 +99,7 @@ class PickFig(object):
             ax.get_yticklabels()[idx].set_color('gray')
 
     def get_xlim_from_data(self):
+        """Set ``xlim`` to the earliest start and latest end time of the traces."""
         min_t = np.inf
         max_t = -np.inf
         for tr in self.stz_cp:
@@ -78,6 +112,13 @@ class PickFig(object):
         self.para.xlim = [min_t, max_t]
 
     def read_sac(self, resample_dt=0.025):
+        """Read, resample and sort the traces of the component.
+
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to 0.025
+        :type resample_dt: float, optional
+        :raises ValueError: If no file of the component is found
+        """
         self.stz = obspy.read(join(self.para.path, f'*{self.para.comp}.sac'))
         if not self.stz:
             raise ValueError(f'No files found in {self.para.comp} component')
@@ -100,6 +141,11 @@ class PickFig(object):
         self.wvfillnag = [[] for i in range(self.stnum)]
     
     def _calc_distaz(self):
+        """Distance and back-azimuth of each trace from the SAC headers.
+
+        :raises ValueError: If the headers have neither ``dist`` and ``baz`` nor the
+            station and event coordinates
+        """
         self.dist = np.zeros(self.stnum)
         self.baz = np.zeros(self.stnum)
         for i, tr in enumerate(self.stz):
@@ -116,6 +162,16 @@ class PickFig(object):
                                  'Please make sure sac headers contain dist, baz or stla, stlo, evla, evlo')
 
     def filter(self, renew=True, zerosphase=True):
+        """Band-pass filter the displayed traces with ``freqmin`` and ``freqmax``.
+
+        Does nothing if either frequency is None.
+
+        :param renew: Filter a fresh copy of the raw traces instead of the current
+            ones, defaults to True
+        :type renew: bool, optional
+        :param zerosphase: Use a zero-phase filter, defaults to True
+        :type zerosphase: bool, optional
+        """
         if self.para.freqmin is None or self.para.freqmax is None:
             return
         if renew:
@@ -128,6 +184,7 @@ class PickFig(object):
         # nb = max(int((tb-self.para.xlim[0]) / self.dt + 1), 0)
         # ne = min(int((self.para.xlim[1] - self.para.xlim[0]) / self.dt + 1), self.stz[0].data.size)
         # avg_data = np.zeros(ne-nb)
+        """Set ``avg_amp``, the mean of the peak absolute amplitudes, used to normalize the traces."""
         self.avg_amp = 0.0
         for _, tr in enumerate(self.stz):
             # avg_data += tr.data[nb:ne]
@@ -135,6 +192,7 @@ class PickFig(object):
         self.avg_amp /= self.stnum
 
     def plot_seis(self):
+        """Plot the traces against time after the origin."""
         ax = self.axes
         for i, tr in enumerate(self.stz_cp):
             bound = np.zeros(tr.data.size)
@@ -147,14 +205,17 @@ class PickFig(object):
                             alpha=0.5)
     
     def page_up(self):
+        """Go to the next page if there is one."""
         if self.current_page < self.npage-1:
             self.current_page += 1
     
     def page_down(self):
+        """Go to the previous page if there is one."""
         if self.current_page > 0:
             self.current_page -= 1
 
     def sort(self):
+        """Sort the traces by ``sort_key``: distance (``'dist'`` or ``'gcarc'``) or back-azimuth (``'baz'``)."""
         if self.para.sort_key == 'gcarc' or self.para.sort_key == 'dist':
             idx = np.argsort(self.dist)
         elif self.para.sort_key == 'baz':
@@ -164,6 +225,11 @@ class PickFig(object):
         self.stz = obspy.Stream([self.stz[i] for i in idx])
 
     def onclick(self, event):
+        """Toggle whether the clicked trace is kept.
+
+        :param event: Mouse click event
+        :type event: matplotlib.backend_bases.MouseEvent
+        """
         if event.inaxes != self.axes:
             return
         click_idx = int(np.round(event.ydata))
@@ -184,20 +250,27 @@ class PickFig(object):
             ticklabel[click_idx-1].set_color('black')
 
     def _set_gray(self):
+        """Gray out the traces marked as bad."""
         for i in np.where(self.good_seis == 0)[0]:
             self.wvfillpos[i].set_facecolor('gray')
             self.wvfillnag[i].set_facecolor('gray')
 
     def trim(self):
+        """Cut the traces marked as bad in ``stz_trim`` to ``cut_win`` after the origin time."""
         for i in np.where(self.good_seis == 0)[0]:
             tref = -self.stz_trim[i].stats.sac.b
             self.stz_trim[i].trim(self.stz_trim[i].stats.starttime+tref+self.para.cut_win[0],
                                   self.stz_trim[i].stats.starttime+tref+self.para.cut_win[1])
     
     def restore(self):
+        """Discard filtering by copying the raw traces to the displayed ones."""
         self.stz_cp = self.stz.copy()
 
     def save(self):
+        """Delete the files of the bad traces and rewrite the kept ones as ``<net>.<sta>.<comp>.sac``.
+
+        The selection and pages are then reset.
+        """
         self.stz_trim = self.stz.copy()
         if not (None in self.para.cut_win):
             self.trim()
@@ -222,6 +295,7 @@ class PickFig(object):
         self.current_page = 0
         
     def reset(self):
+        """Clear the axes and recompute the pages."""
         self.axes.cla()
         self._get_y_limit()
 

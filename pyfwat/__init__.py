@@ -1,3 +1,5 @@
+"""Python toolkit for SpecFWAT full-waveform adjoint tomography."""
+
 import os
 
 DATA_PATH = 'DATA'

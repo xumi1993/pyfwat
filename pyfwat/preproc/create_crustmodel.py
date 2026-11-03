@@ -1,3 +1,8 @@
+"""Build an initial gridded model from CRUST1.0 or a user model.
+
+Command-line tool: ``fwat_createmodel``.
+"""
+
 import numpy as np
 from ..utils.pario import readpar, readfwatpar, readfkpar
 from pyproj import Proj
@@ -12,12 +17,20 @@ import argparse
 CRUST1_PATH = join(dirname(dirname(abspath(__file__))), 'data', 'crust1.0.npz')
 
 class CrustModel():
-    def __init__(self, fname, mesh_fname='DATA/meshfem3D_files/Mesh_Par_file') -> None:
-        """Read internal CRUST1.0 model
+    """Initial model interpolated from CRUST1.0 or a user model onto the mesh region.
 
-        :param fname: The model file, defaults to join(dirname(dirname(abspath(__file__))), 'data', 'crust1.0-vp.npz')
-                      For custom model, use the ``npz`` file with keys 'model' for points with 5 columns lon, lat, depth, vp, vs.
-        :type fname: str, optional
+    Velocities are kept in km/s and densities in g/cm^3 until written.
+    """
+    def __init__(self, fname, mesh_fname='DATA/meshfem3D_files/Mesh_Par_file') -> None:
+        """Read the model points and the mesh region.
+
+        :param fname: Text file with columns longitude, latitude, depth (km), Vp and
+            Vs (km/s); if it cannot be read, the bundled CRUST1.0 model is used
+        :type fname: str
+        :param mesh_fname: Path to ``Mesh_Par_file``, defaults to
+            ``DATA/meshfem3D_files/Mesh_Par_file``
+        :type mesh_fname: str, optional
+        :raises FileNotFoundError: If ``mesh_fname`` does not exist
         """
         try:
             self.points = np.loadtxt(fname)
@@ -30,6 +43,16 @@ class CrustModel():
         self.points[:, 2] *= -1000  # Convert depth to meter
 
     def read_par(self, fname='DATA/meshfem3D_files/Mesh_Par_file'):
+        """Read the region and depth of the mesh.
+
+        Sets ``xmin``, ``xmax``, ``ymin``, ``ymax`` (UTM in m, or degrees when
+        ``SUPPRESS_UTM_PROJECTION`` is true), ``depmin`` (``-DEPTH_BLOCK_KM`` in m),
+        ``depmax`` and the UTM projection ``utm2latlon``.
+
+        :param fname: Path to ``Mesh_Par_file``, defaults to
+            ``DATA/meshfem3D_files/Mesh_Par_file``
+        :type fname: str, optional
+        """
         latmin = readpar(fname, 'LATITUDE_MIN')
         latmax = readpar(fname, 'LATITUDE_MAX')
         lonmin = readpar(fname, 'LONGITUDE_MIN')
@@ -49,12 +72,15 @@ class CrustModel():
             self.ymax = latmax
 
     def griddata(self, hx=5000., hz=1000.):
-        """Linearly interpolate velocity into regular grids
+        """Linearly interpolate Vp and Vs onto a regular grid over the mesh region.
 
-        :param hx: interval in meter along X and Y axis, 
-        :type hx: float
-        :param hz: interval in meter along Z axis
-        :type hz: float
+        Grid points outside the input model take the nearest value, and density is
+        computed from Vp.
+
+        :param hx: Grid spacing in m along x and y, defaults to 5000
+        :type hx: float, optional
+        :param hz: Grid spacing in m along z, defaults to 1000
+        :type hz: float, optional
         """
         self.hx = hx
         self.hz = hz
@@ -85,6 +111,7 @@ class CrustModel():
     def smooth(self, sigma_h, sigma_v):
         """
         Smooth the model using Gaussian filter
+
         :param sigma_h: Standard deviation in m for horizontal smoothing
         :type sigma_h: float
         :param sigma_v: Standard deviation in m for vertical smoothing
@@ -101,6 +128,14 @@ class CrustModel():
         self.grid_rho = get_rho(self.grid_vp)
 
     def _gen_fk_1d(self, fkmodel):
+        """Expand a 1-D layered FK model onto the model grid.
+
+        :param fkmodel: FK layers ordered from the half space upward, with columns
+            index, density, Vp, Vs and top z
+        :type fkmodel: numpy.ndarray
+        :return: Vp, Vs and density grids of the layered model
+        :rtype: tuple of numpy.ndarray
+        """
         nlayer = fkmodel.shape[0]
         ztop = fkmodel[:, -1]
         z1d = np.zeros(2*nlayer)
@@ -128,6 +163,22 @@ class CrustModel():
         return vp1dgrid, vs1dgrid, rho1dgrid
 
     def taper(self, fkmodel_path, sup_h=5000, buff_h=20000, win=hann):
+        """Taper the model to a 1-D FK model near the horizontal boundaries.
+
+        The relative difference from the FK model is set to zero within ``sup_h``
+        of each side and tapered over the next ``buff_h``.
+
+        :param fkmodel_path: Path to the FK model whose ``LAYER`` lines give the
+            1-D model
+        :type fkmodel_path: str
+        :param sup_h: Width in m of the zone with the 1-D model, defaults to 5000
+        :type sup_h: float, optional
+        :param buff_h: Width in m of the taper, defaults to 20000
+        :type buff_h: float, optional
+        :param win: Window function from :mod:`scipy.signal.windows`, defaults to
+            :func:`~scipy.signal.windows.hann`
+        :type win: callable, optional
+        """
         fkmodel = np.flipud(readfkpar(fkmodel_path, 'LAYER'))
         vp1dgrid, vs1dgrid, rho1dgrid = self._gen_fk_1d(fkmodel)
         mask_x = np.ones_like(self.x)
@@ -183,6 +234,12 @@ class CrustModel():
             pass
 
     def write_h5(self, fname='DATA/tomo_files/tomography_model.h5'):
+        """Write the grid and Vp, Vs (m/s) and density (kg/m^3) to an HDF5 file.
+
+        :param fname: Output path, defaults to
+            ``DATA/tomo_files/tomography_model.h5``
+        :type fname: str, optional
+        """
         rho = get_rho(self.grid_vp)
         with h5py.File(fname, 'w') as f:
             f.create_dataset('x', data=self.x)
@@ -193,6 +250,14 @@ class CrustModel():
             f.create_dataset('rho', data=rho*1000)
 
     def write_xyz(self, fname='DATA/tomo_files/tomography_model.xyz', maxelev=3000.):
+        """Write the model in the SPECFEM ``tomography_model.xyz`` format.
+
+        :param fname: Output path, defaults to
+            ``DATA/tomo_files/tomography_model.xyz``
+        :type fname: str, optional
+        :param maxelev: Maximum elevation in m written in the header, defaults to 3000
+        :type maxelev: float, optional
+        """
         rho = get_rho(self.grid_vp)
         with open(fname, 'w') as f:
             f.write('{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}\n'.format(
@@ -215,6 +280,7 @@ class CrustModel():
 
 
 def main():
+    """Command-line entry point of ``fwat_createmodel``."""
     parser = argparse.ArgumentParser('Create initial model from CRUST1.0')
     parser.add_argument('-a', help='Interval in meter along horizontal and vertial axis',
                         metavar='hx/hz', default='2000/1000')

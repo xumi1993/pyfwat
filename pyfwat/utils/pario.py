@@ -1,3 +1,8 @@
+"""Read and change parameters in SPECFEM, FK and SpecFWAT parameter files.
+
+Command-line tool: ``fwat_setpar``.
+"""
+
 import numpy as np
 import subprocess
 import re
@@ -65,6 +70,13 @@ def readfkpar(par_file, key):
         return np.array(val_lst)
 
 def readfwatpar(par_file='DATA/fwat_params.yml'):
+    """Read the SpecFWAT YAML parameter file.
+
+    :param par_file: Path to the parameter file, defaults to ``DATA/fwat_params.yml``
+    :type par_file: str, optional
+    :return: Parameters as nested mappings, keeping comments and order
+    :rtype: ruamel.yaml.comments.CommentedMap
+    """
     yaml = YAML()
     yaml.default_flow_style = True
     with open(par_file, encoding='utf-8') as f:
@@ -72,6 +84,14 @@ def readfwatpar(par_file='DATA/fwat_params.yml'):
     return yaml.load(file_data)
 
 def bool2str(condition):
+    """Convert a Python bool to a Fortran logical string.
+
+    :param condition: Value to convert
+    :type condition: bool
+    :raises ValueError: If ``condition`` is not a bool
+    :return: ``'.true.'`` or ``'.false.'``
+    :rtype: str
+    """
     if not isinstance(condition, bool):
         raise ValueError('condition must be bool type')
     if condition:
@@ -81,6 +101,17 @@ def bool2str(condition):
 
 
 def read_interface(fname='DATA/meshfem3D_files/interfaces.dat', inter_num=1):
+    """Read the grid definition of an interface in a SPECFEM ``interfaces.dat``.
+
+    :param fname: Path to the interfaces file, defaults to
+        ``DATA/meshfem3D_files/interfaces.dat``
+    :type fname: str, optional
+    :param inter_num: 1-based index of the interface, defaults to 1
+    :type inter_num: int, optional
+    :return: ``[NXI, NETA, LONG_MIN, LAT_MIN, SPACING_XI, SPACING_ETA]`` of the
+        interface
+    :rtype: list of float
+    """
     with open(fname) as f:
         cont = f.read()
     interfs = re.findall(r'(\d+)\s+(\d+)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\n', cont)
@@ -168,6 +199,11 @@ def str2val(str_val):
     return str_val
 
 def setpar():
+    """Command-line entry point of ``fwat_setpar``.
+
+    Sets ``key`` to ``value`` in a SPECFEM ``Par_file``/``Mesh_Par_file``, an FK
+    model or a SpecFWAT YAML file; nested YAML keys are joined with dots.
+    """
     parser = argparse.ArgumentParser(description="Set parameters to configure file")
     parser.add_argument('par_file', type=str, help='Path to configure file')
     parser.add_argument('key', type=str, help='key name', metavar='key.name')

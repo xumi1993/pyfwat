@@ -1,3 +1,8 @@
+"""Observed and synthetic teleseismic waveforms of an event.
+
+Command-line tool: ``fwat_plot_tele_fit``.
+"""
+
 from genericpath import exists
 import pygmt
 import subprocess
@@ -15,6 +20,20 @@ from .. import DATA_PATH
 def pre_plot(modelname, evtid, comp):
     # with open('src_rec/sources_set{}.dat'.format(setid)) as f:
     #     evtid = f.readlines()[0].strip().split()[0]
+    """List the observed and synthetic SAC files of an event with ``saclst``.
+
+    Writes the temporary files ``saclst_dat``, ``saclst_dat_plot``,
+    ``yticklabel.txt`` and ``saclst_syn`` in the current directory.
+
+    :param modelname: Model name, e.g. ``M03``
+    :type modelname: str
+    :param evtid: Event id
+    :type evtid: str
+    :param comp: Component, e.g. ``R`` or ``Z``
+    :type comp: str
+    :return: Number of stations and the time range ``[0, latest end time]``
+    :rtype: tuple
+    """
     s = ''
     s += 'saclst knetwk kstnm b e f solver/{}.set*/{}/OUTPUT_FILES/dat.*.*{}.sac.* > saclst_dat\n'.format(modelname, evtid, comp)
     s += "awk '{{print $1}}' saclst_dat> saclst_dat_plot\n"
@@ -28,6 +47,13 @@ def pre_plot(modelname, evtid, comp):
     return num_sta, xlim
 
 def read_time_window(evtid):
+    """FK arrival time of each station listed in ``saclst_dat``.
+
+    :param evtid: Event id of ``src_rec/FKtimes_<evtid>``
+    :type evtid: str
+    :return: Arrival times in s, in the order of ``saclst_dat``
+    :rtype: numpy.ndarray
+    """
     with open('saclst_dat') as f:
         staname = [[line.split()[1], line.split()[2]] for line in f.readlines()]
     with open('src_rec/FKtimes_{}'.format(evtid)) as f:
@@ -39,6 +65,31 @@ def read_time_window(evtid):
 
 def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
                   enf=0.05, par_file = f'{DATA_PATH}/FWAT.PAR', plot_fktimes=True):
+    """Plot observed and synthetic teleseismic waveforms of an event.
+
+    The figure is ``<outpath>/<modelname>.evt<evtid>_tele_<comp>_fit.png``.
+    Requires the ``saclst`` command of SAC.
+
+    :param modelname: Model name, e.g. ``M03``
+    :type modelname: str
+    :param evtid: Event id
+    :type evtid: str
+    :param comp: Component, defaults to ``'R'``
+    :type comp: str, optional
+    :param xlim: Time range in s, defaults to the range of the data
+    :type xlim: list of float, optional
+    :param outpath: Output directory, defaults to ``./figures``
+    :type outpath: str, optional
+    :param enf: Amplitude scale of the traces, defaults to 0.05
+    :type enf: float, optional
+    :param par_file: SpecFWAT parameter file with ``TELE_TW_BEFORE`` and
+        ``TELE_TW_AFTER``, defaults to ``DATA/FWAT.PAR``
+    :type par_file: str, optional
+    :param plot_fktimes: Mark the FK arrival time and the measurement window of
+        each station, defaults to True
+    :type plot_fktimes: bool, optional
+    :raises FileNotFoundError: If ``par_file`` does not exist
+    """
     num_sta, xlim_auto = pre_plot(modelname, evtid, comp)
     if plot_fktimes:
         fktimes = read_time_window(evtid)
@@ -66,6 +117,7 @@ def plot_tele_fit(modelname, evtid, comp='R', xlim=None, outpath='./figures',
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_tele_fit``."""
     parser = argparse.ArgumentParser('Plot teleseismic fitting. read '
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wdat* for data,'
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wsyn* for syn')

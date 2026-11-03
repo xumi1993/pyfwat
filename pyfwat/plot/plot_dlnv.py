@@ -1,3 +1,5 @@
+"""Cross sections of the relative perturbation of a model with respect to an initial model."""
+
 import numpy as np
 import pygmt
 from scipy.interpolate import interpn
@@ -5,6 +7,21 @@ import sys
 
 
 def proj_sta(stafile, lat1, lon1, lat2, lon2):
+    """Project stations onto a great-circle section.
+
+    :param stafile: SPECFEM station file
+    :type stafile: str
+    :param lat1: Latitude of the start of the section
+    :type lat1: float
+    :param lon1: Longitude of the start of the section
+    :type lon1: float
+    :param lat2: Latitude of the end of the section
+    :type lat2: float
+    :param lon2: Longitude of the end of the section
+    :type lon2: float
+    :return: ``NET.STA`` names, distances along the section in km and elevations
+    :rtype: tuple
+    """
     st, net, stla, stlo, stel = np.loadtxt(stafile, usecols=[0,1,2,3,4],
                                            dtype = {'names': ('station', 'net','stla', 'stlo', 'stel'),
                                                         'formats': ('U20', 'U20', 'f4', 'f4', 'f2')},
@@ -17,10 +34,32 @@ def proj_sta(stafile, lat1, lon1, lat2, lon2):
 
 
 def interp_sec(data, datainit, lat1, lon1, lat2, lon2, hval=0.5, vval=0.5, name='vs'):
-    """
-    hval = horizantal interval in km
-    vval = vertical interval in km
-    points = lon, lat, dist-from-start
+    """Interpolate the perturbation of a model relative to an initial model on a section.
+
+    The perturbation is ``100 * (m - m0) / m0`` in percent.
+
+    :param data: Model with ``x`` (longitude), ``y`` (latitude), ``z`` (km) and
+        parameter arrays
+    :type data: Mapping
+    :param datainit: Initial model on the same grid
+    :type datainit: Mapping
+    :param lat1: Latitude of the start of the section
+    :type lat1: float
+    :param lon1: Longitude of the start of the section
+    :type lon1: float
+    :param lat2: Latitude of the end of the section
+    :type lat2: float
+    :param lon2: Longitude of the end of the section
+    :type lon2: float
+    :param hval: Horizontal sampling interval in km, defaults to 0.5
+    :type hval: float, optional
+    :param vval: Vertical sampling interval in km, defaults to 0.5
+    :type vval: float, optional
+    :param name: Name of the parameter, defaults to ``'vs'``
+    :type name: str, optional
+    :return: Section points (longitude, latitude, distance), depth samples and
+        the section grid
+    :rtype: tuple
     """
     points = pygmt.project(center='{}/{}'.format(lon1, lat1),
                        endpoint='{}/{}'.format(lon2, lat2),
@@ -41,7 +80,19 @@ def interp_sec(data, datainit, lat1, lon1, lat2, lon2, hval=0.5, vval=0.5, name=
 
 
 class Pltdlnv():
+    """Cross sections of the perturbation of a model relative to the initial model.
+
+    Reads ``output_vtk/<modid>_<dataname>_projected.npz`` and
+    ``output_vtk/<dataname>_initial_projected.npz``.
+    """
     def __init__(self, modid, dataname, stafile='src_rec/STATIONS_1'):
+        """:param modid: Model name, e.g. ``M03``
+        :type modid: str
+        :param dataname: Parameter name, e.g. ``vs``
+        :type dataname: str
+        :param stafile: SPECFEM station file, defaults to ``src_rec/STATIONS_1``
+        :type stafile: str, optional
+        """
         self.modid = modid
         self.dataname = dataname
         self.stafile = stafile
@@ -50,6 +101,17 @@ class Pltdlnv():
         self.lines = []
     
     def append_lines(self, lat1, lon1, lat2, lon2):
+        """Interpolate the perturbation on a section and add it to ``lines``.
+
+        :param lat1: Latitude of the start of the section
+        :type lat1: float
+        :param lon1: Longitude of the start of the section
+        :type lon1: float
+        :param lat2: Latitude of the end of the section
+        :type lat2: float
+        :param lon2: Longitude of the end of the section
+        :type lon2: float
+        """
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2)
         points, depth, grid = interp_sec(self.data, self.init_data,
                                 lat1, lon1, lat2, lon2, hval=0.5,
@@ -59,6 +121,21 @@ class Pltdlnv():
                            'stpos':stpos, 'stel':stel, 'grid':grid, 'region':region})
     
     def plot(self, line, cpt='../semcmd/cpt/dvp.cpt', outpath='./figures', vmax=12, cpt_span=50):
+        """Plot a section and save it as a PNG.
+
+        The figure is ``<outpath>/<modid>_<dataname>_<lat1>_<lon1>_<lat2>_<lon2>.png``.
+
+        :param line: Section from ``lines``
+        :type line: dict
+        :param cpt: Color table, defaults to ``../semcmd/cpt/dvp.cpt``
+        :type cpt: str, optional
+        :param outpath: Output directory, defaults to ``./figures``
+        :type outpath: str, optional
+        :param vmax: Color range ``[-vmax, vmax]`` in percent, defaults to 12
+        :type vmax: float, optional
+        :param cpt_span: Number of color intervals, defaults to 50
+        :type cpt_span: int, optional
+        """
         fig = pygmt.Figure()
         fig.basemap(region=line['region'],
                     projection="x0.1c/-0.1c",
@@ -72,6 +149,10 @@ class Pltdlnv():
                     outpath, self.modid, self.dataname, *line['pos']))
     
     def plot_all(self, **kwargs):
+        """Plot every section in ``lines``.
+
+        :param kwargs: Arguments passed to :meth:`plot`
+        """
         for line in self.lines:
             self.plot(line, **kwargs)
 

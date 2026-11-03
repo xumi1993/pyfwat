@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""Polar plot of the back-azimuth and ray parameter of receiver-function events.
+
+Command-line tool: ``fwat_plot_rf_evts``.
+"""
 
 import numpy as np
 import pygmt
@@ -11,6 +15,13 @@ from ..utils.pario import readfkpar
 import argparse
 
 def get_rayp(evtid):
+    """Back-azimuth and P-wave ray parameter of an event from ``src_rec/FKmodel_<evtid>``.
+
+    :param evtid: Event id
+    :type evtid: str
+    :return: Back-azimuth in degrees and ray parameter in s/km
+    :rtype: tuple of float
+    """
     par_file = 'src_rec/FKmodel_{}'.format(evtid)
     model = readfkpar(par_file, 'LAYER')
     baz = readfkpar(par_file, 'BACK_AZIMUTH')
@@ -20,6 +31,22 @@ def get_rayp(evtid):
 
 
 def plot_evts(label_angle=22.5, setid=None, outpath='./figures', isweight=False):
+    """Plot events in polar coordinates of back-azimuth and ray parameter.
+
+    The figure is ``<outpath>/rf_evts.png``.
+
+    :param label_angle: Back-azimuth where the ray-parameter labels are drawn,
+        defaults to 22.5
+    :type label_angle: float, optional
+    :param setid: Plot the events of ``src_rec/sources_set<setid>.dat``,
+        defaults to None (all ``src_rec/sources_*.dat``)
+    :type setid: str, optional
+    :param outpath: Output directory, defaults to ``./figures``
+    :type outpath: str, optional
+    :param isweight: Color the events by the weight in the last column of the
+        sources file, defaults to False
+    :type isweight: bool, optional
+    """
     if setid is not None:
         srcfiles = ['src_rec/sources_set{}.dat'.format(setid)]
     else:
@@ -55,6 +82,7 @@ def plot_evts(label_angle=22.5, setid=None, outpath='./figures', isweight=False)
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_rf_evts``."""
     parser = argparse.ArgumentParser('Plot virtual events of RFs with back-azimuth and ray-parameters.'
                                      'This command read event id in src_rec/sources_*.dat'
                                      'and read TAKE_OFF in src_rec/FKmodel_* for computing ray-parameters.')

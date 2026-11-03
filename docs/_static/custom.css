@@ -1,0 +1,4 @@
+/* Furo stretches the logo to the full sidebar width; keep it small. */
+.sidebar-logo {
+  max-width: 5rem;
+}

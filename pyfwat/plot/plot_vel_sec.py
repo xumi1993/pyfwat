@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""Cross sections of Vp, Vs or density from a gridded model.
+
+Command-line tool: ``fwat_plot_vel_sec``.
+"""
 
 import numpy as np
 import sys
@@ -12,6 +16,13 @@ from pyproj import Geod, Proj
 
 
 def vs2vprho(vs):
+    """Vp and density from Vs with the Brocher (2005) empirical relations.
+
+    :param vs: S-wave velocity in km/s
+    :type vs: float or numpy.ndarray
+    :return: P-wave velocity in km/s and density in g/cm^3
+    :rtype: tuple
+    """
     vp = 0.9409 + 2.0947*vs - 0.8206*vs**2+ 0.2683*vs**3 - 0.0251*vs**4
     rho = 1.6612*vp - 0.4721*vp**2 + 0.0671*vp**3 - 0.0043*vp**4 + 0.000106*vp**5
     return vp, rho
@@ -19,6 +30,29 @@ def vs2vprho(vs):
 
 
 def proj_sta(stafile, lat1, lon1, lat2, lon2, xunit=None, utm=False):
+    """Project stations onto a section.
+
+    :param stafile: SPECFEM station file
+    :type stafile: str
+    :param lat1: Latitude (or y) of the start of the section
+    :type lat1: float
+    :param lon1: Longitude (or x) of the start of the section
+    :type lon1: float
+    :param lat2: Latitude (or y) of the end of the section
+    :type lat2: float
+    :param lon2: Longitude (or x) of the end of the section
+    :type lon2: float
+    :param xunit: Horizontal axis: ``'la'`` for latitude, ``'lo'`` for longitude,
+        None for the distance along the section in km, defaults to None
+    :type xunit: str, optional
+    :param utm: True if the grid coordinates are longitude and latitude (depth
+        in km); False for Cartesian coordinates in m, with the section end points
+        given as y and x in km, defaults to False
+    :type utm: bool, optional
+    :return: ``NET.STA`` names, positions along the horizontal axis and
+        elevations
+    :rtype: tuple
+    """
     st, net, stla, stlo, stel = np.loadtxt(stafile, usecols=[0,1,2,3,4],
                                            dtype = {'names': ('station', 'net','stla', 'stlo', 'stel'),
                                                         'formats': ('U20', 'U20', 'f4', 'f4', 'f2')},
@@ -42,10 +76,39 @@ def proj_sta(stafile, lat1, lon1, lat2, lon2, xunit=None, utm=False):
 
 def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs',
                xunit=None, utm=False, unit_trans=True, enf=1):
-    """
-    hval = horizantal interval in km
-    vval = vertical interval in km
-    points = lon, lat, dist-from-start
+    """Interpolate a gridded model parameter on a vertical section.
+
+    :param data: Model with ``x``, ``y``, ``z`` and the parameter arrays, e.g. a
+        loaded ``.npz``
+    :type data: Mapping
+    :param lat1: Latitude (or y) of the start of the section
+    :type lat1: float
+    :param lon1: Longitude (or x) of the start of the section
+    :type lon1: float
+    :param lat2: Latitude (or y) of the end of the section
+    :type lat2: float
+    :param lon2: Longitude (or x) of the end of the section
+    :type lon2: float
+    :param hval: Horizontal sampling interval in km, defaults to 2
+    :type hval: float, optional
+    :param vval: Vertical sampling interval in km, defaults to 2
+    :type vval: float, optional
+    :param name: Name of the parameter in ``data``, defaults to ``'vs'``
+    :type name: str, optional
+    :param xunit: Horizontal axis: ``'la'`` for latitude, ``'lo'`` for longitude,
+        None for the distance along the section in km, defaults to None
+    :type xunit: str, optional
+    :param utm: True if the grid coordinates are longitude and latitude (depth
+        in km); False for Cartesian coordinates in m, with the section end points
+        given as y and x in km, defaults to False
+    :type utm: bool, optional
+    :param unit_trans: Divide the values by 1000 (m/s to km/s), defaults to True
+    :type unit_trans: bool, optional
+    :param enf: Factor applied to the values, defaults to 1
+    :type enf: float, optional
+    :return: Start and end of the horizontal axis, depth samples in km (negative
+        down) and the section grid
+    :rtype: tuple
     """
     if utm:
         points = pygmt.project(center='{}/{}'.format(lon1, lat1),
@@ -89,7 +152,18 @@ def interp_sec(data, lat1, lon1, lat2, lon2, hval=2, vval=2, name='vs',
     return r1, r2, depth, grid
 
 class Pltvel():
+    """Cross sections of Vp, Vs or density from a gridded model.
+
+    Sections are added with :meth:`append_lines` and plotted with
+    :meth:`plot_all`.
+    """
     def __init__(self, velfile, stafile='DATA/STATIONS'):
+        """:param velfile: ``.npz`` model with ``x``, ``y``, ``z`` and the parameter
+            as the last array
+        :type velfile: str
+        :param stafile: SPECFEM station file, defaults to ``DATA/STATIONS``
+        :type stafile: str, optional
+        """
         self.velfile = velfile
         self.stafile = stafile
         try:
@@ -108,6 +182,34 @@ class Pltvel():
 
     def append_lines(self, data, lat1, lon1, lat2, lon2, utm=False, 
                      hval=1, vval=0.5, unit_trans=True, xunit=None, maxdep=None):
+        """Interpolate the model on a section and add it to ``lines``.
+
+        :param data: Model with ``x``, ``y``, ``z`` and the parameter arrays
+        :type data: Mapping
+        :param lat1: Latitude (or y) of the start of the section
+        :type lat1: float
+        :param lon1: Longitude (or x) of the start of the section
+        :type lon1: float
+        :param lat2: Latitude (or y) of the end of the section
+        :type lat2: float
+        :param lon2: Longitude (or x) of the end of the section
+        :type lon2: float
+        :param utm: True if the grid coordinates are longitude and latitude (depth
+            in km); False for Cartesian coordinates in m, with the section end points
+            given as y and x in km, defaults to False
+        :type utm: bool, optional
+        :param hval: Horizontal sampling interval in km, defaults to 1
+        :type hval: float, optional
+        :param vval: Vertical sampling interval in km, defaults to 0.5
+        :type vval: float, optional
+        :param unit_trans: Divide the values by 1000 (m/s to km/s), defaults to True
+        :type unit_trans: bool, optional
+        :param xunit: Horizontal axis: ``'la'`` for latitude, ``'lo'`` for longitude,
+            None for the distance along the section in km, defaults to None
+        :type xunit: str, optional
+        :param maxdep: Maximum depth to plot in km, defaults to the model bottom
+        :type maxdep: float, optional
+        """
         self.xunit = xunit
         self.utm = utm
         sta, stpos, stel = proj_sta(self.stafile, lat1, lon1, lat2, lon2,
@@ -125,6 +227,28 @@ class Pltvel():
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/vel.cpt'),
              reverse=False, outpath='./figures', colorbar=True, norm=None,
              img_scale=25, smooth=10):
+        """Plot a section and save it as ``<outpath>/<model>_<lat1>_<lon1>_<lat2>_<lon2>.png``.
+
+        :param line: Section from ``lines``
+        :type line: dict
+        :param cpt: Color table, defaults to the bundled ``vel.cpt``
+        :type cpt: str, optional
+        :param reverse: Reverse the color table, defaults to False
+        :type reverse: bool, optional
+        :param outpath: Output directory, defaults to ``./figures``
+        :type outpath: str, optional
+        :param colorbar: Draw a color bar, defaults to True
+        :type colorbar: bool, optional
+        :param norm: Color range ``[vmin, vmax]``; None uses a fixed range per
+            parameter (Vs 2.7-4.8 km/s and the matching Vp and density), False uses
+            ``cpt`` as is
+        :type norm: list of float or bool, optional
+        :param img_scale: Section length per cm of figure, defaults to 25
+        :type img_scale: float, optional
+        :param smooth: Width of the Gaussian smoothing filter in horizontal units,
+            None for no smoothing, defaults to 10
+        :type smooth: float, optional
+        """
         fig = pygmt.Figure()
         if self.utm:
             g = Geod(ellps="WGS84")
@@ -180,11 +304,16 @@ class Pltvel():
                     outpath, self.fname, *line['pos']))
     
     def plot_all(self, **kwargs):
+        """Plot every section in ``lines``.
+
+        :param kwargs: Arguments passed to :meth:`plot`
+        """
         for line in self.lines:
             self.plot(line, **kwargs)
 
 
 def main(): 
+    """Command-line entry point of ``fwat_plot_vel_sec``."""
     parser = argparse.ArgumentParser('Plot model parameter (Vp, vs or rho) with cross sections')
     parser.add_argument('sections', help='File to line positions or positions of single line (lat1/lon1/lat2/lon2)')
     parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',

@@ -1,3 +1,8 @@
+"""Misfit across several inversion stages.
+
+Command-line tool: ``fwat_plot_misfit_multistage``.
+"""
+
 import pygmt
 from ..io.misfit import PeriodBandMisfit
 import numpy as np
@@ -7,6 +12,7 @@ from .. import COLORS
 
 
 class PlotMulMisfit():
+    """Mean misfit of several inversion stages, each with its own period band."""
     def __init__(self, stages, fltlst, norm=True):
         """Plot misfit with multi stages.
 
@@ -26,6 +32,7 @@ class PlotMulMisfit():
     def read_stage_misfit(self, norm=True):
         """
         Read misfit values for each stage.
+
         Parameters
         ----------
         norm : bool
@@ -68,6 +75,7 @@ class PlotMulMisfit():
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_misfit_multistage``."""
     parser = argparse.ArgumentParser('Plot Misfit with multi stages')
     parser.add_argument('-f', help='band name of misfit files', metavar='band_name1/band_name2', default='*')
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/5,6/9,10/15',

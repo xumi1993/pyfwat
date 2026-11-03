@@ -19,6 +19,21 @@ SOURCE_COLUMNS = 'evtid evla evlo evdp evbur weight'
 
 
 def _check_inputs(x, y, names, coef):
+    """Validate two coordinate arrays and the kernel coefficient.
+
+    :param x: First coordinate of each event
+    :type x: array_like
+    :param y: Second coordinate of each event
+    :type y: array_like
+    :param names: Names of ``x`` and ``y`` used in error messages
+    :type names: str
+    :param coef: Kernel width coefficient
+    :type coef: float
+    :raises ValueError: If the arrays are empty, not 1-D, of different lengths
+        or not finite, or if ``coef`` is not finite and positive
+    :return: ``x`` and ``y`` as float arrays
+    :rtype: tuple of numpy.ndarray
+    """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     if x.ndim != 1 or x.size == 0 or y.shape != x.shape:
@@ -31,18 +46,35 @@ def _check_inputs(x, y, names, coef):
 
 
 def _density_weight(dis_mat, delta_ref):
-    """Inverse Gaussian-kernel density of each event; equal weights if all events coincide."""
+    """Inverse Gaussian-kernel density of each event.
+
+    :param dis_mat: Distances between all pairs of events
+    :type dis_mat: numpy.ndarray
+    :param delta_ref: Kernel width; 0 gives equal weights
+    :type delta_ref: float
+    :return: Raw weight of each event
+    :rtype: numpy.ndarray
+    """
     if delta_ref == 0:
         return np.full(dis_mat.shape[0], 1.0 / dis_mat.shape[0])
     return 1.0 / np.sum(np.exp(-(dis_mat / delta_ref)**2), axis=1)
 
 
 def gen_weight(baz, rayp, coef=0.5):
-    """Raw density weights from back-azimuth (deg) and ray parameter (s/km).
+    """Raw density weights from back-azimuth and ray parameter.
 
     The back-azimuth difference wraps around 360 deg, so events at 355 and
     5 deg are treated as neighbours. The kernel width is ``coef`` times the
     mean inter-event distance.
+
+    :param baz: Back-azimuth of each event in degrees
+    :type baz: array_like
+    :param rayp: Ray parameter of each event in s/km
+    :type rayp: array_like
+    :param coef: Kernel width coefficient, defaults to 0.5
+    :type coef: float, optional
+    :return: Raw weight of each event
+    :rtype: numpy.ndarray
     """
     baz, rayp = _check_inputs(baz, rayp, 'baz and rayp', coef)
     dbaz = np.abs(baz[:, None] - baz[None, :]) % 360
@@ -53,10 +85,19 @@ def gen_weight(baz, rayp, coef=0.5):
 
 
 def gen_weight_loc(evla, evlo, coef=0.25):
-    """Raw density weights from event latitude and longitude (deg).
+    """Raw density weights from event latitude and longitude.
 
     The kernel width is ``coef`` times the standard deviation of the
     inter-event epicentral distances.
+
+    :param evla: Latitude of each event in degrees
+    :type evla: array_like
+    :param evlo: Longitude of each event in degrees
+    :type evlo: array_like
+    :param coef: Kernel width coefficient, defaults to 0.25
+    :type coef: float, optional
+    :return: Raw weight of each event
+    :rtype: numpy.ndarray
     """
     evla, evlo = _check_inputs(evla, evlo, 'evla and evlo', coef)
     dis_mat = np.array([distaz(la, lo, evla, evlo).delta for la, lo in zip(evla, evlo)])
@@ -64,7 +105,18 @@ def gen_weight_loc(evla, evlo, coef=0.25):
 
 
 def rescale_weight(weight, wmin=0.3, wmax=1.0):
-    """Linearly map raw weights to [wmin, wmax]; uniform weights map to wmax."""
+    """Linearly map raw weights to ``[wmin, wmax]``; uniform weights map to ``wmax``.
+
+    :param weight: Raw weights
+    :type weight: array_like
+    :param wmin: Lowest output weight, defaults to 0.3
+    :type wmin: float, optional
+    :param wmax: Highest output weight, defaults to 1.0
+    :type wmax: float, optional
+    :raises ValueError: If the bounds are not finite or ``wmin > wmax``
+    :return: Rescaled weights
+    :rtype: numpy.ndarray
+    """
     weight = np.asarray(weight, dtype=float)
     if not np.isfinite([wmin, wmax]).all() or wmin > wmax:
         raise ValueError('weight bounds must be finite and wmin <= wmax')
@@ -75,10 +127,17 @@ def rescale_weight(weight, wmin=0.3, wmax=1.0):
 
 
 def read_fkmodel(path):
-    """Return back-azimuth (deg) and ray parameter (s/km) of an FKmodel.
+    """Return the back-azimuth and ray parameter of an FK model.
 
-    The ray parameter is computed from TAKE_OFF and the velocity of the
-    half space (the last LAYER), using Vp or Vs according to INCIDENT_WAVE.
+    The ray parameter is computed from ``TAKE_OFF`` and the velocity of the half
+    space (the last ``LAYER``), using Vp or Vs according to ``INCIDENT_WAVE``.
+
+    :param path: Path to the FK model
+    :type path: str or pathlib.Path
+    :raises ValueError: If there is no ``LAYER`` or ``INCIDENT_WAVE`` is not
+        ``p`` or ``s``
+    :return: Back-azimuth in degrees and ray parameter in s/km
+    :rtype: tuple of float
     """
     model = readfkpar(path, 'LAYER')
     if model.shape[0] == 0:
@@ -93,7 +152,15 @@ def read_fkmodel(path):
 
 
 def read_sources(fname):
-    """Read a sources file as lists of string fields, keeping the original text."""
+    """Read a sources file as lists of string fields, keeping the original text.
+
+    :param fname: Path to the sources file with the columns
+        ``evtid evla evlo evdp evbur weight``
+    :type fname: str or pathlib.Path
+    :raises ValueError: If a line does not have 6 columns or the file is empty
+    :return: Fields of each event
+    :rtype: list of list of str
+    """
     rows = []
     with open(fname) as f:
         for lineno, line in enumerate(f, 1):
@@ -110,7 +177,14 @@ def read_sources(fname):
 
 
 def find_set_name(src_rec='src_rec'):
-    """Return the set name of the only ``sources_<set_name>.dat`` in ``src_rec``."""
+    """Return the set name of the only ``sources_<set_name>.dat`` in ``src_rec``.
+
+    :param src_rec: Directory to search, defaults to ``src_rec``
+    :type src_rec: str or pathlib.Path, optional
+    :raises ValueError: If there is no sources file or more than one
+    :return: Set name
+    :rtype: str
+    """
     names = sorted(p.name[len('sources_'):-len('.dat')]
                    for p in Path(src_rec).glob('sources_*.dat'))
     if len(names) == 1:
@@ -159,6 +233,7 @@ def assign_weight(set_name=None, method='baz', coef=None, wmin=0.3, wmax=1.0,
 
 
 def main():
+    """Command-line entry point of ``fwat_assign_weight``."""
     parser = argparse.ArgumentParser(
         description='Assign weights to events in src_rec/sources_<set_name>.dat according to '
                     'their density in back-azimuth/ray-parameter (baz) or epicentral location (loc). '

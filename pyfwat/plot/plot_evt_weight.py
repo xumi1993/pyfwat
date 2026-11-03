@@ -21,7 +21,13 @@ TEXT_FONT = '7p,Helvetica,gray30'
 
 
 def weight_cpt(weight, cmap='batlow'):
-    """Make the cpt spanning the weight range."""
+    """Make the current color table span the range of the weights.
+
+    :param weight: Event weights
+    :type weight: numpy.ndarray
+    :param cmap: GMT color map, defaults to ``'batlow'``
+    :type cmap: str, optional
+    """
     vmin, vmax = float(weight.min()), float(weight.max())
     if vmin == vmax:
         vmin, vmax = vmin - 0.1, vmax + 0.1
@@ -29,7 +35,24 @@ def weight_cpt(weight, cmap='batlow'):
 
 
 def plot_baz_rayp(fig, baz, rayp, weight, order, label_angle=22.5, step=0.01):
-    """Polar plot with back-azimuth as angle and ray parameter (s/km) as radius."""
+    """Polar plot with back-azimuth as angle and ray parameter as radius.
+
+    :param fig: Figure to draw in
+    :type fig: pygmt.Figure
+    :param baz: Back-azimuth of each event in degrees
+    :type baz: numpy.ndarray
+    :param rayp: Ray parameter of each event in s/km
+    :type rayp: numpy.ndarray
+    :param weight: Weight of each event
+    :type weight: numpy.ndarray
+    :param order: Drawing order of the events
+    :type order: numpy.ndarray
+    :param label_angle: Back-azimuth where the ray-parameter labels are drawn,
+        defaults to 22.5
+    :type label_angle: float, optional
+    :param step: Interval of the ray-parameter rings in s/km, defaults to 0.01
+    :type step: float, optional
+    """
     rmin = max(0.0, np.floor((rayp.min() - step / 2) / step) * step)
     rmax = np.ceil((rayp.max() + step / 2) / step) * step
     fig.basemap(region=[0, 360, rmin, rmax], projection=f'P{PANEL}c+a',
@@ -43,7 +66,21 @@ def plot_baz_rayp(fig, baz, rayp, weight, order, label_angle=22.5, step=0.01):
 
 
 def plot_epicenters(fig, evla, evlo, weight, order, center):
-    """Azimuthal equidistant map of epicenters centered on the study region."""
+    """Azimuthal equidistant map of epicenters centered on the study region.
+
+    :param fig: Figure to draw in
+    :type fig: pygmt.Figure
+    :param evla: Latitude of each event
+    :type evla: numpy.ndarray
+    :param evlo: Longitude of each event
+    :type evlo: numpy.ndarray
+    :param weight: Weight of each event
+    :type weight: numpy.ndarray
+    :param order: Drawing order of the events
+    :type order: numpy.ndarray
+    :param center: Latitude and longitude of the map center
+    :type center: tuple of float
+    """
     clat, clon = center
     dist = np.atleast_1d(distaz(clat, clon, evla, evlo).delta)
     horizon = min(180, max(100, np.ceil(dist.max() / 10) * 10 + 10))
@@ -118,6 +155,7 @@ def plot_evt_weight(set_name=None, panels='both', center=None, outpath='./figure
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_evt_weight``."""
     parser = argparse.ArgumentParser(
         description='Plot the distribution of events in src_rec/sources_<set_name>.dat colored by '
                     'weight: back-azimuth and ray parameter from src_rec/FKmodel_<evtid> (baz), '

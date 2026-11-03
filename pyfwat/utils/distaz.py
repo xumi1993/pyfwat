@@ -1,3 +1,5 @@
+"""Distance, azimuth and back-azimuth between points on the Earth."""
+
 import numpy as np
 
 
@@ -47,7 +49,11 @@ class distaz:
     """
 
     def __init__(self, lat1, lon1, lat2, lon2):
-        
+        """Compute the distance, azimuth and back-azimuth from point 1 to point 2.
+
+        The results are stored in the ``delta`` (deg), ``az`` and ``baz`` (deg)
+        attributes; arrays give element-wise results.
+        """
         self.stalat = lat1
         self.stalon = lon1
         self.evtlat = lat2
@@ -206,14 +212,30 @@ class distaz:
                 self.baz[idx] = 0.
 
     def getDelta(self):
+        """Return the great-circle distance in degrees.
+
+        :rtype: float or numpy.ndarray
+        """
         return self.delta
 
     def getAz(self):
+        """Return the azimuth in degrees.
+
+        :rtype: float or numpy.ndarray
+        """
         return self.az
 
     def getBaz(self):
+        """Return the back-azimuth in degrees.
+
+        :rtype: float or numpy.ndarray
+        """
         return self.baz
 
     def degreesToKilometers(self):
+        """Return the great-circle distance in km, using 111.19 km per degree.
+
+        :rtype: float or numpy.ndarray
+        """
         return self.delta * 111.19
     
