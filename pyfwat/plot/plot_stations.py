@@ -33,7 +33,7 @@ def plot(stafile='DATA/STATIONS', outpath='./figures', coast=False):
                 frame=['a0.2f0.2', 'WSne'])
     if coast:
         fig.coast(resolution='f',land="250", water="173/217/230", pen='0.1p')
-    fig.plot(x=stlo, y=stla, style='t0.3c', color='255/25/25', pen='0.2p')
+    fig.plot(x=stlo, y=stla, style='t0.3c', fill='255/25/25', pen='0.2p')
     fig.savefig('{}/stations.png'.format(outpath))
 
 

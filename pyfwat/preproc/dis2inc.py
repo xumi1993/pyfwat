@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
-from seispy.geo import *
+from ..utils.geo import *
 from obspy.taup import TauPyModel
 from scipy.interpolate import interp1d
 import sys

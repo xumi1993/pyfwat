@@ -1,0 +1,12 @@
+sphinx>=7
+furo
+myst-parser
+sphinx-copybutton
+# Imported by pyfwat modules at import time; pygmt, obspy and PySide6 are mocked.
+numpy
+scipy
+pandas
+matplotlib
+h5py
+pyproj
+ruamel.yaml

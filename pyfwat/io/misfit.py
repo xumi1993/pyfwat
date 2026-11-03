@@ -27,5 +27,15 @@ class PeriodBandMisfit():
             'netwk', 'stnm', 'chan', 'imeas',
             'tstart', 'tend', 'residual', 'misfit',
         ]
+        self.misfits = self.misfits.astype({
+            'netwk': 'string',
+            'stnm': 'string',
+            'chan': 'string',
+            'imeas': 'int64',
+            'tstart': 'float64',
+            'tend': 'float64',
+            'residual': 'float64',
+            'misfit': 'float64',
+        })
         self.sum_chi = self.misfits[self.misfits['imeas']!=0]['misfit'].sum()
         self.mean_chi = self.misfits[self.misfits['imeas']!=0]['misfit'].mean()

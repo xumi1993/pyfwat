@@ -24,17 +24,45 @@ PyFWAT is a comprehensive Python toolkit designed for full waveform inversion (F
 
 ### Install from PyPI (recommended)
 
+Install PyFWAT with the PySide6 GUI tools:
+
 ```bash
 pip install pyfwat
 ```
+
+For servers or environments that do not need the GUI, install the core package:
+
+```bash
+pip install pyfwat-core
+```
+
+Both packages provide the same `pyfwat` Python imports and `fwat_*` commands.
+`pyfwat-core` owns the implementation and its command-line entry points;
+`pyfwat` is a small package that installs the matching core version with its GUI
+dependencies. The code is installed only once.
 
 ### Install from source
 
 ```bash
 git clone https://github.com/xumi1993/pyfwat.git
 cd pyfwat
+pip install -e ".[gui]"
+```
+
+To install from source without GUI dependencies:
+
+```bash
 pip install -e .
 ```
+
+To add the GUI later, install `pyfwat` or `pyfwat-core[gui]`.
+
+Use a clean environment when switching an existing GUI installation to core-only;
+installing `pyfwat-core` does not remove an installed `pyfwat` wrapper or PySide6.
+For upgrades from older releases that bundled the implementation directly in
+`pyfwat`, use a clean environment or uninstall the old `pyfwat` package before
+installing the new distributions. This avoids overlapping ownership of installed
+files during the packaging transition.
 
 ### Requirements
 
@@ -42,13 +70,13 @@ pip install -e .
 - ObsPy >= 1.2.0
 - NumPy >= 1.19.0
 - SciPy >= 1.1.0
-- Matplotlib >= 3.2.0
+- Matplotlib >= 3.5.0
 - pandas >= 1.0.0
 - PyGMT
 - h5py
 - pyproj
 - ruamel.yaml
-- PyQt5 (optional, for GUI tools)
+- PySide6 >= 6.2 (included with `pyfwat`; optional for `pyfwat-core`)
 
 ## Command-line Tools
 
@@ -66,6 +94,7 @@ PyFWAT provides numerous command-line utilities for various tasks:
 - `fwat_plot_misfit_linesearch` - Visualize line search optimization
 - `fwat_plot_stations` - Display station distributions
 - `fwat_plot_rf_evts` - Plot receiver function events
+- `fwat_plot_evt_weight` - Plot event distribution (back-azimuth/ray-parameter and epicenters) colored by weight
 - `fwat_plot_rf_fit` - Show receiver function data fits
 - `fwat_plot_waveform_fit` - Visualize ambient noise / local earthquake data fits
 - `fwat_plot_tele_fit` - Display teleseismic waveform fits
@@ -76,6 +105,7 @@ PyFWAT provides numerous command-line utilities for various tasks:
 - `fwat_gen_gauss_stf` - Generate Gaussian source time functions
 - `fwat_ch_fkmodel` - Modify FK models
 - `fwat_cal_fk_times` - Calculate FK travel times
+- `fwat_assign_weight` - Assign event weights in `src_rec/sources_*.dat` by back-azimuth/ray-parameter or location density
 - `fwat_checkerboard` - Create checkerboard resolution tests
 - `fwat_createmodel` - Generate initial crustal models
 - `fwat_setpar` - Setup parameters of FWAT and Specfem3D
@@ -87,10 +117,11 @@ PyFWAT provides numerous command-line utilities for various tasks:
 - `fwat_joint_kernel` - Combine kernels from different data types
 - `fwat_model_update` - Update velocity models
 
-### Interactive Tools
+### Interactive Tools for data quality control
 
-- `fwat_pick_tele` - Interactive GUI for teleseismic phase picking
+- `fwat_pick_tele` - Interactive GUI for teleseismic waveform with phase picking
 - `fwat_pick_waveform` - Interactive GUI for ambient noise / local earthquake waveform picking
+- `fwat_pick_rf` - Interactive GUI for receiver function picking
 
 ## Module Structure
 
@@ -109,6 +140,32 @@ pyfwat/
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## Building and publishing
+
+The version in the root `pyproject.toml` is the single version source for both
+distributions. Before a release, set it to a new version that has not already
+been published; PyPI does not allow replacing an existing release file.
+
+Build and check both packages from a source checkout using Python 3.11 or newer:
+
+```bash
+python -m pip install build twine setuptools wheel
+python -m unittest discover -s tests -p test_packaging.py -v
+python scripts/build_distributions.py
+python -m twine check dist/*
+```
+
+The build produces wheels and source distributions for `pyfwat-core` and
+`pyfwat`. The wrapper depends on the matching core version with its `gui` extra.
+Publishing a GitHub release runs the same tests and build, uploads the core
+distribution first, and then uploads the GUI wrapper.
+
+Configure PyPI Trusted Publishing for both project names using this repository
+and `.github/workflows/publish-to-pypi.yml`. For the first `pyfwat-core` release,
+create a pending publisher as described in the
+[PyPI guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+The existing `pyfwat` project's publisher must remain configured as well.
 
 ## License
 
