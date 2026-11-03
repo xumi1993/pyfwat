@@ -1,3 +1,8 @@
+"""Observed and synthetic receiver functions of an event.
+
+Command-line tool: ``fwat_plot_rf_fit``.
+"""
+
 import pygmt
 import subprocess
 from os import remove
@@ -10,6 +15,28 @@ import os
 
 
 def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.05, yunit=0.2):
+    """Plot observed and synthetic receiver functions of an event.
+
+    Reads ``solver/<modelname>.rf/<evtid>/OUTPUT_FILES/obs.*.F<gauss>`` and
+    ``syn.*.F<gauss>`` and saves
+    ``<outpath>/<modelname>_<evtid>_rf_fit_F<gauss>.png``.
+
+    :param modelname: Model name, e.g. ``M03``
+    :type modelname: str
+    :param evtid: Event id
+    :type evtid: str
+    :param gauss: Gaussian factor in the file names
+    :type gauss: float
+    :param xlim: Time range in s, defaults to ``TELE.TIME_WIN`` of
+        ``DATA/fwat_params.yml``
+    :type xlim: list of float, optional
+    :param outpath: Output directory, defaults to ``./figures``
+    :type outpath: str, optional
+    :param enf: Amplitude scale of the traces, defaults to 0.05
+    :type enf: float, optional
+    :param yunit: Figure height in cm per trace, defaults to 0.2
+    :type yunit: float, optional
+    """
     fs_dat = obspy.read(f'{SOLVER_PATH}/{modelname}.rf/{evtid}/OUTPUT_FILES/obs.*.F{gauss:3.1f}')
     fs_syn = obspy.read(f'{SOLVER_PATH}/{modelname}.rf/{evtid}/OUTPUT_FILES/syn.*.F{gauss:3.1f}')
     num_sta = len(fs_dat)
@@ -35,6 +62,7 @@ def plot_rf_fit(modelname, evtid, gauss, xlim=None, outpath='./figures', enf=0.0
     fig.savefig('{}/{}_{}_rf_fit_F{}.png'.format(outpath, modelname, evtid, gauss))
 
 def main():
+    """Command-line entry point of ``fwat_plot_rf_fit``."""
     parser = argparse.ArgumentParser('Plot rf fitting. read data/evtid/*F{{gauss}}.rf.sac for data,'
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/syn.*.F{{gauss}} for syn')
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')

@@ -1,3 +1,8 @@
+"""GUI to pick and review ambient-noise and local-earthquake waveforms.
+
+Command-line tool: ``fwat_pick_waveform``.
+"""
+
 import sys
 import os
 import argparse
@@ -21,9 +26,29 @@ import glob
 
 
 class MyMplCanvas(FigureCanvas):
+    """Qt canvas showing the picker figure."""
     def __init__(self, parent=None, path='', sort_key='dist', enf=1,
                  xlim=[0, 120], num=30, resample_dt=None):
+        """Read the traces and create the figure.
 
+        :param parent: Parent widget, defaults to None
+        :type parent: PySide6.QtWidgets.QWidget, optional
+        :param path: Event directory with the SAC files
+        :type path: str
+        :param sort_key: Sort traces by ``'dist'`` or ``'baz'``, defaults to
+            ``'dist'``
+        :type sort_key: str, optional
+        :param enf: Amplitude scale, defaults to 1
+        :type enf: float, optional
+        :param xlim: Time range in s, None for the range of the data, defaults to
+            ``[0, 120]``
+        :type xlim: list of float, optional
+        :param num: Traces per page, defaults to 30
+        :type num: int, optional
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to None
+        :type resample_dt: float, optional
+        """
         plt.rcParams['axes.unicode_minus'] = False 
 
         self.pf = PickFig(path, resample_dt=resample_dt)
@@ -47,8 +72,33 @@ class MyMplCanvas(FigureCanvas):
 
 
 class MatplotlibWidget(QMainWindow):
+    """Main window of the picker: control panel on the left, waveforms on the right.
+
+    Click a trace to toggle whether it is kept; ``c``/``z`` or the mouse wheel
+    change the page; *Save* deletes the bad traces and rewrites the others.
+    """
     def __init__(self, path, xlim=None, enf=1,
                  pre_flt=None, num=30, sort_key='dist', resample_dt=None, parent=None):
+        """:param path: Event directory with the SAC files
+        :type path: str
+        :param xlim: Time range in s, defaults to None (the range of the data)
+        :type xlim: list of float, optional
+        :param enf: Amplitude scale, defaults to 1
+        :type enf: float, optional
+        :param pre_flt: Band-pass periods ``[short, long]`` in s applied when the
+            window opens, defaults to None
+        :type pre_flt: list of float, optional
+        :param num: Traces per page, defaults to 30
+        :type num: int, optional
+        :param sort_key: Sort traces by ``'dist'`` or ``'baz'``, defaults to
+            ``'dist'``
+        :type sort_key: str, optional
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to None
+        :type resample_dt: float, optional
+        :param parent: Parent widget, defaults to None
+        :type parent: PySide6.QtWidgets.QWidget, optional
+        """
         super(MatplotlibWidget, self).__init__(parent)
         self.xlim = xlim
         self.pre_flt = pre_flt
@@ -60,6 +110,11 @@ class MatplotlibWidget(QMainWindow):
         self.initUi(path)
 
     def initUi(self, path):
+        """Build the window, draw the traces and connect the mouse and keyboard.
+
+        :param path: Event directory
+        :type path: str
+        """
         self._set_geom_center()
         self.mpl = MyMplCanvas(self, path=path, sort_key=self.sort_key, enf=self.enf,
                                xlim=self.xlim, num=self.num, resample_dt=self.resample_dt)
@@ -96,7 +151,11 @@ class MatplotlibWidget(QMainWindow):
         self.setWindowIcon(QIcon(join(dirname(dirname(__file__)), 'data', 'icon.svg')))
     
     def showEvent(self, event):
-        """在窗口显示时设置 splitter 的初始大小"""
+        """Give 30% of the window width to the control panel and 70% to the waveforms when the window is shown.
+
+        :param event: Show event
+        :type event: PySide6.QtGui.QShowEvent
+        """
         super().showEvent(event)
         # 获取窗口总宽度，按比例分配
         total_width = self.width()
@@ -105,6 +164,7 @@ class MatplotlibWidget(QMainWindow):
         self.splitter.setSizes([ctrl_width, plot_width])
     
     def add_layout(self):
+        """Assemble the control panel and the canvas."""
         self.add_filter_box()
         # self.add_align_box()
         self.add_plotting_box()
@@ -142,6 +202,7 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.setMinimumWidth(300)
 
     def add_plotting_box(self):
+        """Create the controls of the time range and amplitude scale."""
         self.plotting_box = QGroupBox('Plotting')
         self.plotting_box.setStyleSheet("QGroupBox {font-size: 18px; font-weight: bold;}")
         plotting_layout = QVBoxLayout()
@@ -183,6 +244,7 @@ class MatplotlibWidget(QMainWindow):
         self.plotting_box.setLayout(plotting_layout)
 
     def add_saving_box(self):
+        """Create the controls of the cut window and the *Save* button."""
         self.saving_box = QGroupBox("Saving")
         self.saving_box.setStyleSheet("QGroupBox {font-size: 18px; font-weight: bold;}")
         save_layout = QVBoxLayout()
@@ -212,6 +274,7 @@ class MatplotlibWidget(QMainWindow):
         self.saving_box.setLayout(save_layout)
 
     def add_filter_box(self):
+        """Create the band-pass filter controls and the *Restore* button."""
         self.filter_box = QGroupBox("Filter")
         self.filter_box.setStyleSheet("QGroupBox {font-size: 18px; font-weight: bold;}")
         self.Filter = QVBoxLayout()
@@ -256,6 +319,7 @@ class MatplotlibWidget(QMainWindow):
         self.filter_box.setLayout(self.Filter)
 
     def add_control_layout(self):
+        """Create the page buttons."""
         self.control_layout = QHBoxLayout()
         self.pagedown = QPushButton('Page Down (z)')
         self.pageup = QPushButton('Page Up (c)')
@@ -265,6 +329,7 @@ class MatplotlibWidget(QMainWindow):
         self.control_layout.addWidget(self.pageup)
 
     def _define_global_shortcuts(self):
+        """Bind ``c`` to the next page and ``z`` to the previous page."""
         self.key_c = QShortcut(QKeySequence('c'), self)
         self.key_c.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.key_c.activated.connect(self.next_connect)
@@ -275,6 +340,11 @@ class MatplotlibWidget(QMainWindow):
         # self.key_space.activated.connect(self.plot_ui)
     
     def wheelEvent(self, event: QWheelEvent):
+        """Scroll up for the next page and down for the previous page.
+
+        :param event: Wheel event
+        :type event: PySide6.QtGui.QWheelEvent
+        """
         if event.angleDelta().y() > 0:
             self.mpl.pf.page_up()
         else:
@@ -283,21 +353,29 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.draw_idle()
 
     def previous_connect(self):
+        """Show the previous page."""
         self.mpl.pf.page_down()
         self.mpl.pf.setup_figure()
         self.mpl.draw_idle()
     
     def next_connect(self):
+        """Show the next page."""
         self.mpl.pf.page_up()
         self.mpl.pf.setup_figure()
         self.mpl.draw_idle()
 
     def on_click(self, event):
+        """Toggle whether the clicked trace is kept.
+
+        :param event: Mouse click event
+        :type event: matplotlib.backend_bases.MouseEvent
+        """
         self.mpl.setFocus()
         self.mpl.pf.onclick(event)
         self.mpl.draw_idle()
 
     def on_cutmin_changed(self):
+        """Set the start of the cut window from its text box; invalid text clears it."""
         text = self.cutminEdit.text()
         try:
             self.mpl.pf.para.cut_win[0] = float(text)
@@ -306,6 +384,7 @@ class MatplotlibWidget(QMainWindow):
             self.cutminEdit.setText('')
 
     def on_cutmax_changed(self):
+        """Set the end of the cut window from its text box; invalid text clears it."""
         text = self.cutmaxEdit.text()
         try:
             self.mpl.pf.para.cut_win[1] = float(text)
@@ -314,36 +393,42 @@ class MatplotlibWidget(QMainWindow):
             self.cutmaxEdit.setText('')
 
     def on_xmin_changed(self):
+        """Set the start of the time range from its text box; invalid text restores the previous value."""
         try:
             self.mpl.pf.para.xlim[0] = float(self.xminEdit.text())
         except:
             self.xminEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[0]))
     
     def on_xmax_changed(self):
+        """Set the end of the time range from its text box; invalid text restores the previous value."""
         try:
             self.mpl.pf.para.xlim[1] = float(self.xmaxEdit.text())
         except:
             self.xmaxEdit.setText('{:.1f}'.format(self.mpl.pf.para.xlim[1]))
 
     def on_enf_changed(self):
+        """Set the amplitude scale from its text box; invalid text restores the previous value."""
         try:
             self.mpl.pf.para.enf = float(self.ampzoomEdit.text())
         except:
             self.ampzoomEdit.setText('{:.1f}'.format(self.mpl.pf.para.enf))
 
     def on_periodmin_changed(self):
+        """Set the upper corner frequency from the short period in its text box; invalid text is ignored."""
         try:
             self.mpl.pf.para.freqmax = 1/float(self.lineEdit_periodmin.text())
         except:
             pass
 
     def on_periodmax_changed(self):
+        """Set the lower corner frequency from the long period in its text box; invalid text is ignored."""
         try:
             self.mpl.pf.para.freqmin = 1/float(self.lineEdit_periodmax.text())
         except:
             pass
     
     def on_save(self):
+        """Save the selection to the data directory and redraw."""
         self.mpl.pf.save()
         self.mpl.pf.reset()
         self.mpl.pf.plot_seis()
@@ -351,28 +436,33 @@ class MatplotlibWidget(QMainWindow):
         self.mpl.draw_idle()
 
     def on_plot(self):
+        """Redraw with the new time range and amplitude scale, unless the range is reversed."""
         if self.mpl.pf.para.xlim[1] < self.mpl.pf.para.xlim[0]:
             return
         self.replot_fig()
         self.mpl.draw_idle()
     
     def replot_fig(self):
+        """Clear the axes and redraw the traces, keeping bad traces gray."""
         self.mpl.pf.axes.cla()
         self.mpl.pf.plot_seis()
         self.mpl.pf._set_gray()
         self.mpl.pf.setup_figure()
 
     def on_filter(self):
+        """Filter the raw traces with the current band and redraw."""
         self.mpl.pf.filter(renew=True)
         self.replot_fig()
         self.mpl.draw_idle()
     
     def on_restore(self):
+        """Discard filtering and redraw."""
         self.mpl.pf.restore()
         self.replot_fig()
         self.mpl.draw_idle()
 
     def on_align(self):
+        """Not connected in this window: there are no alignment controls."""
         btn = self.sender()
         if btn.isChecked():
             self.mpl.pf.para.align = btn.objectName()
@@ -380,6 +470,7 @@ class MatplotlibWidget(QMainWindow):
             self.mpl.draw_idle()
     
     def on_do_mccc(self):
+        """Not connected in this window: its figure has no MCCC alignment."""
         self.mpl.pf.tdelta_mccc()
         self.replot_fig()
         self.mpl.draw_idle()
@@ -397,6 +488,7 @@ class MatplotlibWidget(QMainWindow):
     #     QApplication.quit()
 
     def plot_ui(self):
+        """Apply the initial filter, draw the traces and show the time range."""
         if self.pre_flt is not None:
             self.mpl.pf.para.freqmax = 1/self.pre_flt[0]
             self.mpl.pf.para.freqmin = 1/self.pre_flt[1]
@@ -407,6 +499,9 @@ class MatplotlibWidget(QMainWindow):
         self.xmaxEdit.setText('{:.2f}'.format(self.mpl.pf.para.xlim[1]))
 
     def plot_save(self):
+        """Not used: left over from an older receiver-function GUI and refers to
+        attributes this window does not have.
+        """
         if self.only_r:
             default_name = 'R_bazorder'
         else:
@@ -427,6 +522,13 @@ class MatplotlibWidget(QMainWindow):
             self.mpl.rffig.log.RFlog.error('{}'.format(e))
 
     def _set_geom_center(self, height=1, width=1):
+        """Resize the window to a fraction of the screen and center it.
+
+        :param height: Fraction of the screen height, defaults to 1
+        :type height: float, optional
+        :param width: Fraction of the screen width, defaults to 1
+        :type width: float, optional
+        """
         screen_resolution = self.screen().availableGeometry()
         screen_height = screen_resolution.height()
         screen_width = screen_resolution.width()
@@ -439,6 +541,9 @@ class MatplotlibWidget(QMainWindow):
         self.move(frame_geometry.topLeft())
 
     def add_btn(self):
+        """Not used: left over from an older receiver-function GUI and refers to
+        methods this window does not have.
+        """
         pre_btn = QPushButton("Back (z)")
         pre_btn.clicked.connect(self.previous_connect)
         next_btn = QPushButton("Next (c)")
@@ -470,6 +575,7 @@ class MatplotlibWidget(QMainWindow):
 
 
 def main():
+    """Command-line entry point of ``fwat_pick_waveform``."""
     parser = argparse.ArgumentParser(description="User interface for picking Noise/LEQ waveforms")
     parser.add_argument('path', type=str, help='Path to data directory')
     parser.add_argument('-d', help='Resample dt, defaults to 0.01. set to NA to use raw rampling rate.', default=0.01, metavar='dt')

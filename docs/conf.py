@@ -48,6 +48,8 @@ autodoc_mock_imports = [
 ]
 autosummary_generate = True
 autodoc_member_order = 'bysource'
+# Class docstrings describe the class, __init__ docstrings its parameters.
+autoclass_content = 'both'
 autodoc_typehints = 'description'
 napoleon_google_docstring = False
 
@@ -57,5 +59,11 @@ copybutton_prompt_is_regexp = True
 # -- HTML output -------------------------------------------------------------
 html_theme = 'furo'
 html_title = f'PyFWAT {release}'
-html_logo = '../pyfwat/data/icon.svg'
 html_favicon = '../pyfwat/data/icon.svg'
+html_theme_options = {
+    # The lettering is white in the dark-mode logo.
+    'light_logo': 'logo-light.png',
+    'dark_logo': 'logo-dark.png',
+}
+html_static_path = ['_static']
+html_css_files = ['custom.css']

@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""Generate virtual FK plane-wave events on a grid of back-azimuths and ray parameters.
+
+Command-line tool: ``fwat_gen_virt_fkevts``.
+"""
+
 from genericpath import exists
 from os import makedirs
 import numpy as np
@@ -12,6 +17,15 @@ from pyproj import Proj
 
 
 def get_dist(px):
+    """Epicentral distance of a P wave with a given ray parameter.
+
+    Interpolated from a table between 30 and 90 degrees and extrapolated beyond.
+
+    :param px: Ray parameter in s/km
+    :type px: float or numpy.ndarray
+    :return: Epicentral distance in degrees
+    :rtype: float or numpy.ndarray
+    """
     dist = np.array([30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90])
     rayp = np.array([0.079422, 0.0773818, 0.0745565, 0.0714173, 0.0682781, 0.0649819, \
                      0.0616857, 0.0585465, 0.0552503, 0.0519541, 0.0485010, 0.0450478, 0.0415947])
@@ -19,8 +33,22 @@ def get_dist(px):
 
 
 class FKEvts():
+    """Virtual FK events on a grid of back-azimuths and ray parameters.
+
+    The incidence angle of each ray parameter is computed with the Vp of the
+    half space of the template FK model.
+    """
     def __init__(self, baz, rayp, fkfile='DATA/FKMODEL',
                  stafile='DATA/STATIONS') -> None:
+        """:param baz: Back-azimuths in degrees
+        :type baz: numpy.ndarray
+        :param rayp: Ray parameters in s/km
+        :type rayp: numpy.ndarray
+        :param fkfile: Template FK model, defaults to ``DATA/FKMODEL``
+        :type fkfile: str, optional
+        :param stafile: Template station file, defaults to ``DATA/STATIONS``
+        :type stafile: str, optional
+        """
         self.baz = baz
         self.rayp = rayp
         model = readfkpar(fkfile, 'LAYER')
@@ -33,6 +61,22 @@ class FKEvts():
         self.dis = get_dist(rayp)
         
     def evt_set(self, basepath='src_rec', center_la=None, center_lo=None):
+        """Write the FK model, stations and source list of every virtual event.
+
+        For each back-azimuth and ray parameter, writes ``FKmodel_<evtid>``,
+        ``STATIONS_<evtid>`` and ``sources_set<evtid>.dat``, and appends the event to
+        ``sources_ls.dat``. The wavefront origin is placed at the corner of the mesh
+        facing the back-azimuth, 20 km below the bottom of the mesh. Event locations
+        are computed from the center of the mesh when the UTM projection is used,
+        and set to (0, 0) otherwise.
+
+        :param basepath: Output directory, defaults to ``src_rec``
+        :type basepath: str, optional
+        :param center_la: Not used; the center of the mesh is used instead
+        :type center_la: float, optional
+        :param center_lo: Not used; the center of the mesh is used instead
+        :type center_lo: float, optional
+        """
         if not exists(basepath):
             makedirs(basepath)
         count = 0
@@ -84,6 +128,7 @@ class FKEvts():
 
 
 def main():
+    """Command-line entry point of ``fwat_gen_virt_fkevts``."""
     parser = argparse.ArgumentParser('Generate FKmodel, sources and STATIONS')
     parser.add_argument('-b', help='Range of back-azimuth, defaults to 0/360/45',
                         default='0/360/45', metavar='baz_start/baz_end/baz_val')

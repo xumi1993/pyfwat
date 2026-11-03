@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""Map of the stations in the mesh region.
+
+Command-line tool: ``fwat_plot_stations``.
+"""
+
 import sys
 from os.path import dirname, abspath
 from ..utils.pario import readpar
@@ -8,6 +13,13 @@ import argparse
 
 
 def read_sta(stafile):
+    """Read a SPECFEM station file.
+
+    :param stafile: Path to the station file
+    :type stafile: str
+    :return: Station names, networks, latitudes, longitudes and elevations
+    :rtype: tuple of numpy.ndarray
+    """
     return np.loadtxt(stafile, usecols=[0,1,2,3,4],
                     dtype = {'names': ('station', 'net','stla', 'stlo', 'stel'),
                                 'formats': ('U20', 'U20', 'f4', 'f4', 'f2')},
@@ -15,6 +27,16 @@ def read_sta(stafile):
 
 
 def plot(stafile='DATA/STATIONS', outpath='./figures', coast=False):
+    """Plot the stations in the region of ``Mesh_Par_file`` and save ``<outpath>/stations.png``.
+
+    :param stafile: Station file, defaults to ``DATA/STATIONS``
+    :type stafile: str, optional
+    :param outpath: Output directory, defaults to ``./figures``
+    :type outpath: str, optional
+    :param coast: Draw coastlines; ignored when ``SUPPRESS_UTM_PROJECTION`` is
+        true, defaults to False
+    :type coast: bool, optional
+    """
     par_file = 'DATA/meshfem3D_files/Mesh_Par_file'
     xmin = readpar(par_file, 'LONGITUDE_MIN')
     xmax = readpar(par_file, 'LONGITUDE_MAX')
@@ -38,6 +60,7 @@ def plot(stafile='DATA/STATIONS', outpath='./figures', coast=False):
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_stations``."""
     parser = argparse.ArgumentParser('Plot stations in the box region.')
     parser.add_argument('-s', help='Path to STATIONS, defaults to DATA/STATIONS', default='DATA/STATIONS', metavar='station_file')
     parser.add_argument('-o', help='Output path, defaults to ./figures', default='./figures', metavar='output_path')

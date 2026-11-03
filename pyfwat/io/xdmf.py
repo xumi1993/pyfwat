@@ -1,8 +1,23 @@
+"""Write an XDMF descriptor of an HDF5 grid model to open it in ParaView.
+
+Command-line tool: ``fwat_create_xmf``.
+"""
+
 import h5py
 from os.path import dirname, basename, join
 
 class XDMFIO:
+    """XDMF descriptor of an HDF5 grid model.
+
+    The descriptor references the ``x``, ``y`` and ``z`` datasets and every
+    other dataset of the HDF5 file, so that ParaView can open the model.
+    """
     def __init__(self, filename):
+        """:param filename: Path to the HDF5 model with ``x``, ``y`` and ``z``
+            datasets; the descriptor is written next to it with the ``.xmf``
+            extension
+        :type filename: str
+        """
         self.filename = filename
         self.basename = basename(filename)
         self.path = dirname(filename)
@@ -25,6 +40,7 @@ class XDMFIO:
         self.oz = self.z[0]
 
     def create_xdmf(self):
+        """Build the XDMF text in ``xmf``."""
         self.xmf = f'''<?xml version="1.0" ?>
 <Xdmf Version="3.0" xmlns:xi="http://www.w3.org/2001/XInclude">
   <Domain>
@@ -55,11 +71,13 @@ class XDMFIO:
 '''
 
     def write(self):
+        """Write ``xmf`` to the descriptor file ``fname``."""
         with open(f'{self.fname}', 'w') as f:
             f.write(self.xmf)
 
 
 def create_xmf():
+    """Command-line entry point of ``fwat_create_xmf``."""
     import argparse
 
     parser = argparse.ArgumentParser(description='Create XDMF file for HDF5')

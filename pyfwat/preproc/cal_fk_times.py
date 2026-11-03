@@ -4,6 +4,10 @@
 # Inst    : University of Toronto
 # Email   : wangkaim8@gmail.com
 # history : last modified on Jun 04, 2019
+"""Compute FK plane-wave arrival times at the stations of an event.
+
+Command-line tool: ``fwat_cal_fk_times``.
+"""
 
 import sys
 import os
@@ -15,6 +19,38 @@ import argparse
 ###
 #compute travetime of code phases for FK method in layered halfspace model
 def traveltime(H,p,al,be,nlayer,x0,y0,z0,xi,yi,z,phi_FK):
+  """Travel times of the FK plane wave and its crustal phases at a receiver.
+
+  Coordinates are in m, with z measured from the bottom of the layer stack.
+
+  :param H: Layer thicknesses, the last entry being the half space
+  :type H: numpy.ndarray
+  :param p: Ray parameter in s/m
+  :type p: float
+  :param al: P-wave velocity of each layer in m/s
+  :type al: numpy.ndarray
+  :param be: S-wave velocity of each layer in m/s
+  :type be: numpy.ndarray
+  :param nlayer: Number of layers including the half space
+  :type nlayer: int
+  :param x0: x of the origin of the wavefront
+  :type x0: float
+  :param y0: y of the origin of the wavefront
+  :type y0: float
+  :param z0: z of the origin of the wavefront
+  :type z0: float
+  :param xi: x of the receiver
+  :type xi: float
+  :param yi: y of the receiver
+  :type yi: float
+  :param z: z of the receiver
+  :type z: float
+  :param phi_FK: Propagation direction of the plane wave in degrees,
+      counterclockwise from the x axis
+  :type phi_FK: float
+  :return: Times in s of P, Ps, PpPmp, PpPms, PsSmp, PpPmpPmp and PsSms
+  :rtype: numpy.ndarray
+  """
   t=np.zeros(7)
   t[:]=p*(xi-x0)*np.cos(phi_FK/180.*np.pi)+p*(yi-y0)*np.sin(phi_FK/180*np.pi)
   # figure out the lcoation of z with respect to layer stack
@@ -69,6 +105,20 @@ def traveltime(H,p,al,be,nlayer,x0,y0,z0,xi,yi,z,phi_FK):
 
 ###### read FKmodel ##########
 def create_fktimes(evtid, utmzone=None, shift=0):
+  """Write the FK P-wave arrival time at each station of an event.
+
+  Reads ``src_rec/FKmodel_<evtid>`` and ``src_rec/STATIONS_<evtid>`` and
+  writes ``src_rec/FKtimes_<evtid>`` with one ``network station time 0.0 0.0``
+  line per station.
+
+  :param evtid: Event id
+  :type evtid: str
+  :param utmzone: UTM zone used to project station longitude and latitude,
+      defaults to None (station coordinates are used as x and y in m)
+  :type utmzone: int, optional
+  :param shift: Time in s subtracted from every arrival time, defaults to 0
+  :type shift: float, optional
+  """
   fkmodel = 'src_rec/FKmodel_{}'.format(evtid)
   fkfile = 'src_rec/STATIONS_{}'.format(evtid)
   f=open(fkmodel,'r')
@@ -167,6 +217,7 @@ def create_fktimes(evtid, utmzone=None, shift=0):
 
 
 def main():
+  """Command-line entry point of ``fwat_cal_fk_times``."""
   parser = argparse.ArgumentParser('generate FKtimes (FKmodel and STATIONS should be in preparation)')
   parser.add_argument('-s', help="Set name", metavar='set_name', required=True)
   parser.add_argument('-u', help='Use utm zone, default to None', default=None, type=int)

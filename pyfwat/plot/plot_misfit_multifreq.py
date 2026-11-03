@@ -1,3 +1,8 @@
+"""Misfit versus iteration for each period band, optionally with their average.
+
+Command-line tool: ``fwat_plot_misfit_multifreq``.
+"""
+
 import pygmt
 import glob
 import numpy as np
@@ -15,6 +20,7 @@ class PlotMisfit():
     """
     def __init__(self, iter_start:int, iter_end:int, all_band=True, norm=False, simu_type='noise') -> None:
         """Plot Misfit with iterations
+
         Parameters
         ----------
         iter_start : int
@@ -75,6 +81,7 @@ class PlotMisfit():
     def plot(self, outpath='./figures', color='218/56/58', avg=False):
         """
         Plot misfit values.
+
         Parameters
         ----------
         outpath : str
@@ -112,6 +119,7 @@ class PlotMisfit():
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_misfit_multifreq``."""
     parser = argparse.ArgumentParser('Plot Misfit with iterations')
     parser.add_argument('-m', help='start and end iteration nunbers e.g., 0/10', metavar='iter_start/iter_end')
     parser.add_argument('-a', help='Plot average misfit', action='store_true',default=False)

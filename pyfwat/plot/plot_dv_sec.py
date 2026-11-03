@@ -1,3 +1,8 @@
+"""Cross sections of velocity perturbations relative to the depth-averaged or an initial model.
+
+Command-line tool: ``fwat_plot_dv_sec``.
+"""
+
 import numpy as np
 import sys
 from os.path import basename, dirname, join, exists
@@ -9,11 +14,25 @@ from .plot_vel_sec import Pltvel
 from pyproj import Geod
 
 class PltDv(Pltvel):
+    """Cross sections of velocity perturbations in percent.
+
+    Call :meth:`get_dv` before adding sections with ``data_dv``.
+    """
     def __init__(self, velfile, stafile='DATA/STATIONS', initial=None) -> None:
+        """:param velfile: ``.npz`` model with ``x``, ``y``, ``z`` and the parameter
+            as the last array
+        :type velfile: str
+        :param stafile: SPECFEM station file, defaults to ``DATA/STATIONS``
+        :type stafile: str, optional
+        :param initial: ``.npz`` reference model, defaults to None (the horizontal
+            average of the model at each depth)
+        :type initial: str, optional
+        """
         Pltvel.__init__(self, velfile, stafile=stafile)
         self.initial = initial
 
     def get_dv(self):
+        """Compute the perturbation relative to the reference model in ``data_dv``."""
         if self.initial is None:
             mean_vel = np.mean(self.data[self.dataname], axis=(0,1))
             self.ref_vel = np.tile(mean_vel, (self.data['x'].size, self.data['y'].size, 1))
@@ -24,6 +43,24 @@ class PltDv(Pltvel):
     
     def plot(self, line, cpt=join(dirname(dirname(__file__)), 'cpt/dvp.cpt',), img_scale=35,
              reverse=False, outpath='./figures', colorbar=True, norm=[-10, 10]):
+        """Plot a section and save it as ``<outpath>/d<model>_<lat1>_<lon1>_<lat2>_<lon2>.png``.
+
+        :param line: Section from ``lines``
+        :type line: dict
+        :param cpt: Color table, defaults to the bundled ``dvp.cpt``
+        :type cpt: str, optional
+        :param img_scale: Section length per cm of figure, defaults to 35
+        :type img_scale: float, optional
+        :param reverse: Reverse the color table, defaults to False
+        :type reverse: bool, optional
+        :param outpath: Output directory, defaults to ``./figures``
+        :type outpath: str, optional
+        :param colorbar: Draw a color bar, defaults to True
+        :type colorbar: bool, optional
+        :param norm: Color range ``[vmin, vmax]`` in percent; None uses ``cpt`` as
+            is, defaults to ``[-10, 10]``
+        :type norm: list of float, optional
+        """
         fig = pygmt.Figure()
         if self.utm:
             g = Geod(ellps="WGS84")
@@ -63,6 +100,7 @@ class PltDv(Pltvel):
                     outpath, self.fname, *line['pos']))
 
 def main(): 
+    """Command-line entry point of ``fwat_plot_dv_sec``."""
     parser = argparse.ArgumentParser('Plot model parameter (Vp, vs or rho) with cross sections')
     parser.add_argument('sections', help='File to line positions or positions of single line (lat1/lon1/lat2/lon2)')
     parser.add_argument('-i', help='Path to 3D data structure in npz format, generated with \'xproject_and_combine_vol_data_on_regular_grid\'',

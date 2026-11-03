@@ -1,3 +1,5 @@
+"""Data loading, plotting and saving behind the teleseismic picker."""
+
 import numpy as np
 import obspy
 import matplotlib.pyplot as plt
@@ -14,7 +16,17 @@ Figure for visually check teleseismic waveform in R and Z components based on Ma
 """
 
 class Para():
+    """Display and processing settings of the teleseismic picker.
+
+    Attributes: ``freqmin``/``freqmax`` (Hz) of the band-pass filter,
+    ``xlim`` time range in s around the arrival, ``marker`` SAC header of the
+    reference arrival, ``align`` (``'a'`` for the marker, ``'mccc'`` for the
+    MCCC arrival), ``path`` data directory, ``enf`` amplitude scale,
+    ``resample_dt``, ``cut_win`` time window in s around the arrival kept when
+    saving, and ``num_per_page`` traces per page.
+    """
     def __init__(self):
+        """Set the default values."""
         self.freqmin = None
         self.freqmax = None
         self.xlim = [-50, 100]
@@ -28,7 +40,21 @@ class Para():
 
 
 class PickFig(object):
+    """Matplotlib figure of the R and Z teleseismic waveforms of an event.
+
+    Traces are sorted by distance and shown page by page; clicking a trace
+    toggles whether it is kept, and :meth:`save` writes the result back to the
+    data directory.
+    """
     def __init__(self, path, marker='t0', resample_dt=None) -> None:
+        """:param path: Directory with the ``*R.sac`` and ``*Z.sac`` files of an event
+        :type path: str
+        :param marker: SAC header of the reference arrival, defaults to ``'t0'``
+        :type marker: str, optional
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to None
+        :type resample_dt: float, optional
+        """
         self.para = Para()
         self.para.path = path
         self.para.marker = marker
@@ -36,11 +62,17 @@ class PickFig(object):
         self.read_sac(resample_dt)
 
     def _get_y_limit(self):
+        """Compute the first and last trace index of each page and the number of pages."""
         self.low_lim = np.arange(1, self.stnum+1, self.para.num_per_page)
         self.up_lim = np.append(self.low_lim[1:]-1, self.low_lim[-1]+self.para.num_per_page-1)
         self.npage = self.low_lim.size
 
     def init_figure(self, figsize=(18,10)):
+        """Create the figure with the R and Z axes and the event information.
+
+        :param figsize: Figure size in inches, defaults to ``(18, 10)``
+        :type figsize: tuple, optional
+        """
         self.fig, self.axes = plt.subplots(1, 2, figsize=figsize, tight_layout=True)
         self.fig.suptitle('Event: {}, Latitude: {:.3f}$^\\circ$, Longitude: {:.3f}$^\\circ$, Depth: {:.1f}, Mag: {:.1f}\n'
                           'Averaged distance: {:.2f}$^\\circ$, Averaged back-azimuth: {:.2f}$^\\circ$'.format(
@@ -49,6 +81,10 @@ class PickFig(object):
         self._get_y_limit()
     
     def setup_figure(self):
+        """Set titles, axis limits and station labels of the current page.
+
+        Labels of the traces marked as bad are gray.
+        """
         for st, icomp in zip([self.str_cp, self.stz_cp], [0, 1]):
             ax = self.axes[icomp]
             ax.set_title('{} Component'.format(st[0].stats.channel[-1]))
@@ -66,6 +102,14 @@ class PickFig(object):
                 ax.get_yticklabels()[idx].set_color('gray')
 
     def read_sac(self, resample_dt=0.025):
+        """Read, resample and sort the R and Z traces.
+
+        :param resample_dt: Resampling interval in s, None to keep the original
+            sampling, defaults to 0.025
+        :type resample_dt: float, optional
+        :raises ValueError: If the R and Z components have different numbers of
+            files
+        """
         self.str = obspy.read(join(self.para.path,'*R.sac'))
         self.stz = obspy.read(join(self.para.path,'*Z.sac'))
         if len(self.str) != len(self.stz):
@@ -90,6 +134,11 @@ class PickFig(object):
         self.wvfillnag = [[[], []] for i in range(self.stnum)]
     
     def _calc_distaz(self):
+        """Epicentral distance (deg) and back-azimuth of each trace from the SAC headers.
+
+        :raises ValueError: If the headers have neither the station and event
+            coordinates nor ``dist`` and ``baz``
+        """
         self.dist = np.zeros(self.stnum)
         self.baz = np.zeros(self.stnum)
         for i, tr in enumerate(self.stz):
@@ -106,6 +155,16 @@ class PickFig(object):
                                  'Please make sure sac headers contain dist, baz or stla, stlo, evla, evlo')
 
     def filter(self, renew=True, zerosphase=True):
+        """Band-pass filter the displayed traces with ``freqmin`` and ``freqmax``.
+
+        Does nothing if either frequency is None.
+
+        :param renew: Filter a fresh copy of the raw traces instead of the current
+            ones, defaults to True
+        :type renew: bool, optional
+        :param zerosphase: Use a zero-phase filter, defaults to True
+        :type zerosphase: bool, optional
+        """
         if self.para.freqmin is None or self.para.freqmax is None:
             return
         if renew:
@@ -119,6 +178,13 @@ class PickFig(object):
                            freqmax=self.para.freqmax, corners=4, zerophase=zerosphase)
 
     def tdelta_mccc(self, tb=5, te=20):
+        """Relative arrival times of the Z traces by multi-channel cross-correlation.
+
+        :param tb: Window start in s before the marker, defaults to 5
+        :type tb: float, optional
+        :param te: Window end in s after the marker, defaults to 20
+        :type te: float, optional
+        """
         dataz = np.zeros((len(self.stz_cp), int((tb+te)/self.dt)))
         for i, trz in enumerate(self.stz_cp):
             tshift = trz.stats.sac[self.para.marker] - trz.stats.sac.b
@@ -130,6 +196,7 @@ class PickFig(object):
         self.get_avg_amp()
 
     def set_times(self):
+        """Set the marker arrival ``t0`` and the MCCC arrival ``tmccc`` of each trace, in s after the trace start."""
         self.t0 = np.zeros(self.stnum)
         self.tmccc = np.zeros(self.stnum)
         for i, tr in enumerate(self.stz):
@@ -137,6 +204,7 @@ class PickFig(object):
             self.tmccc[i] = self.t0[i] - self.tdelta[i]
 
     def get_avg_amp(self):
+        """Set ``avg_amp``, the peak of the mean Z trace aligned on the marker, used to normalize the traces."""
         nb = int(-self.para.xlim[0]/self.dt)
         ne = int(self.para.xlim[1]/self.dt+1)
         avg_data = np.zeros(nb+ne)
@@ -150,6 +218,10 @@ class PickFig(object):
         self.avg_amp = np.max(avg_data)
 
     def plot_seis(self):
+        """Plot the R and Z traces aligned on the marker or the MCCC arrival.
+
+        Blue ticks mark the marker arrival and red ticks the MCCC arrival.
+        """
         for st, icomp in zip([self.str_cp, self.stz_cp], [0, 1]):
             ax = self.axes[icomp]
             for i, tr in enumerate(st):
@@ -173,18 +245,25 @@ class PickFig(object):
                 ax.plot([ttal, ttal], [i+1-0.3, i+1+0.3], color='red')
     
     def page_up(self):
+        """Go to the next page if there is one."""
         if self.current_page < self.npage-1:
             self.current_page += 1
             # for ax in self.axes:
                 # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
     
     def page_down(self):
+        """Go to the previous page if there is one."""
         if self.current_page > 0:
             self.current_page -= 1
             # for ax in self.axes:
                 # ax.set_ylim([self.low_lim[self.current_page]-1, self.up_lim[self.current_page]+1])
 
     def sort(self, key='dist'):
+        """Sort the traces by distance or back-azimuth.
+
+        :param key: ``'dist'`` (or ``'gcarc'``) or ``'baz'``, defaults to ``'dist'``
+        :type key: str, optional
+        """
         if key == 'gcarc' or key == 'dist':
             idx = np.argsort(self.dist)
         elif key == 'baz':
@@ -195,6 +274,11 @@ class PickFig(object):
         self.str = obspy.Stream([self.str[i] for i in idx])
 
     def onclick(self, event):
+        """Toggle whether the clicked trace is kept.
+
+        :param event: Mouse click event
+        :type event: matplotlib.backend_bases.MouseEvent
+        """
         if event.inaxes != self.axes[0] and event.inaxes != self.axes[1]:
             return
         click_idx = int(np.round(event.ydata))
@@ -221,6 +305,14 @@ class PickFig(object):
                 ticklabel[click_idx-1].set_color('black')
     
     def onclick_arr(self, event):
+        """Shift the arrival times of all traces by the clicked time.
+
+        The marker arrivals or the MCCC arrivals are shifted, depending on
+        ``align``.
+
+        :param event: Mouse click event
+        :type event: matplotlib.backend_bases.MouseEvent
+        """
         if event.inaxes != self.axes[0] and event.inaxes != self.axes[1]:
             return
         tcorr = event.xdata
@@ -230,6 +322,7 @@ class PickFig(object):
             self.t0 += tcorr
 
     def _set_gray(self):
+        """Gray out the traces marked as bad."""
         for i in np.where(self.good_seis == 0)[0]:
             self.wvfillpos[i][0].set_facecolor('gray')
             self.wvfillpos[i][1].set_facecolor('gray')
@@ -237,6 +330,13 @@ class PickFig(object):
             self.wvfillnag[i][1].set_facecolor('gray')
     
     def get_tref(self, idx):
+        """Reference arrival of a trace, following ``align``.
+
+        :param idx: Trace index
+        :type idx: int
+        :return: Arrival time in s after the trace start
+        :rtype: float
+        """
         if self.para.align == 'mccc':
             tref = self.tmccc[idx]
         else:
@@ -244,6 +344,7 @@ class PickFig(object):
         return tref
 
     def trim(self):
+        """Cut the traces marked as bad in ``str_trim`` and ``stz_trim`` to ``cut_win`` around their arrival."""
         for i in np.where(self.good_seis == 0)[0]:
             tref = self.get_tref(i)
             self.str_trim[i].trim(self.str_trim[i].stats.starttime+tref+self.para.cut_win[0],
@@ -252,10 +353,16 @@ class PickFig(object):
                                   self.stz_trim[i].stats.starttime+tref+self.para.cut_win[1])
     
     def restore(self):
+        """Discard filtering by copying the raw traces to the displayed ones."""
         self.str_cp = self.str.copy()
         self.stz_cp = self.stz.copy()
 
     def save(self):
+        """Delete the files of the bad traces and rewrite the kept ones.
+
+        Kept traces are written as ``<net>.<sta>.<comp>.sac`` with the reference
+        arrival in the ``t0`` header; the selection and pages are then reset.
+        """
         self.str_trim = self.str.copy()
         self.stz_trim = self.stz.copy()
         if not (None in self.para.cut_win):
@@ -290,6 +397,7 @@ class PickFig(object):
         self.current_page = 0
         
     def reset(self):
+        """Clear the axes and recompute the pages."""
         for ax in self.axes:
             ax.cla()
         self._get_y_limit()

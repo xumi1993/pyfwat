@@ -1,3 +1,8 @@
+"""Add checkerboard perturbations to a gridded HDF5 model.
+
+Command-line tool: ``fwat_checkerboard``.
+"""
+
 import h5py
 import numpy as np
 from ..utils.pario import readfwatpar
@@ -5,6 +10,11 @@ import argparse
 import sys
 
 class Checker:
+    """Checkerboard perturbation of a gridded HDF5 model.
+
+    Every model dataset of the file becomes an attribute of the instance and is
+    multiplied by ``1 + perturbation`` in :meth:`checkerboard`.
+    """
     def __init__(self, model_file:str, par_file='DATA/fwat_params.yml'):
         """
         Initialize the Checker class.
@@ -28,6 +38,18 @@ class Checker:
                 self.__dict__[self.keys[i]] = f[self.keys[i]][:]
     
     def _create_tape(self, xleft, xright, type='x'):
+        """Number of grid points outside an interval at each end of an axis.
+
+        :param xleft: Lower bound of the interval
+        :type xleft: float
+        :param xright: Upper bound of the interval
+        :type xright: float
+        :param type: Axis, ``'x'``, ``'y'`` or ``'z'``, defaults to ``'x'``
+        :type type: str, optional
+        :raises ValueError: If the axis is unknown or the interval exceeds the axis
+        :return: Numbers of points below ``xleft`` and above ``xright``
+        :rtype: tuple of int
+        """
         if type == 'x':
             x = self.x
             dx = self.x[1] - self.x[0]
@@ -113,6 +135,7 @@ class Checker:
             f.create_dataset('pert', data=self.perturbation)
 
 def main():
+    """Command-line entry point of ``fwat_checkerboard``."""
     parser = argparse.ArgumentParser(description="Create a checkerboard model.")
     parser.add_argument('-i', required=True, help='Input model file', metavar='input_model')
     parser.add_argument('-n', help='nx, ny and nz of velocity anomalies along longitude, latitude and depth',

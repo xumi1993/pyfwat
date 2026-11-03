@@ -1,7 +1,24 @@
+"""Multi-channel cross-correlation of waveforms for relative time delays."""
+
 import numpy as np
 
 
 def mccc(data, dt, twin=0):
+    """Relative time delays of waveforms by multi-channel cross-correlation.
+
+    The delay of every pair is taken at the peak of their cross-correlation,
+    and the delay of each trace is the least-squares solution relative to the
+    mean of all traces (VanDecar and Crosson, 1990).
+
+    :param data: Waveforms of shape ``(ntrace, npts)`` with a common sampling
+    :type data: numpy.ndarray
+    :param dt: Sampling interval in s
+    :type dt: float
+    :param twin: Maximum lag window in s, 0 for no limit, defaults to 0
+    :type twin: float, optional
+    :return: Time delay of each trace in s
+    :rtype: numpy.ndarray
+    """
     nt = data.shape[1] * 2
     ns = data.shape[0]
     mask = np.ones(nt)

@@ -1,3 +1,8 @@
+"""Observed and synthetic ambient-noise or local-earthquake waveforms of an event.
+
+Command-line tool: ``fwat_plot_waveform_fit``.
+"""
+
 import pygmt
 import numpy as np
 import subprocess
@@ -12,18 +17,23 @@ import os
 from .. import SOLVER_PATH
 
 class PlotWaveformFit:
+    """Observed and synthetic ambient-noise or local-earthquake waveforms of an event.
+
+    Call :meth:`read_waveform` and :meth:`read_windows` before :meth:`plot`.
+    """
     def __init__(self, modelname, evtid, comp, fltstr=None, simutype='LEQ'):
-        """ Plot waveform fitting for a given event and model.
-        :param modelname: Model name, e.g., M00, M01...
+        """:param modelname: Model name, e.g. ``M00``
         :type modelname: str
         :param evtid: Event id
         :type evtid: str
-        :param comp: Component name, e.g., Z, R, T
+        :param comp: Component, e.g. ``Z``, ``R`` or ``T``
         :type comp: str
-        :param fltstr: Period band name, e.g., T005_T020, defaults to the first band in parameter file
+        :param fltstr: Period band name, e.g. ``T005_T020``, defaults to the first
+            band in the parameter file
         :type fltstr: str, optional
-        :param simutype: Simulation type, LEQ or NOISE, defaults to '
+        :param simutype: Simulation type, ``LEQ`` or ``NOISE``, defaults to ``'LEQ'``
         :type simutype: str, optional
+        :raises ValueError: If ``fltstr`` is not a string
         """
         self.para = readfwatpar()
         self.modelname = modelname
@@ -43,6 +53,7 @@ class PlotWaveformFit:
 
     def read_waveform(self, sort='dist'):
         """ Read observed and synthetic waveforms, normalize them, and sort by distance.
+
         :param sort: Sorting key, defaults to 'dist'
         :type sort: str, optional
         """
@@ -75,6 +86,7 @@ class PlotWaveformFit:
     
     def plot(self, xlim=None, outpath='./figures', enf=0.4, yunit=0.3):
         """ Plot waveform fitting.
+
         :param xlim: x-axis limits, defaults to None
         :type xlim: list, optional
         :param outpath: Output path for figures, defaults to './figures'
@@ -125,6 +137,7 @@ class PlotWaveformFit:
         fig.savefig(f'{outpath}/{self.modelname}_{self.evtid}_waveform_fit_{self.comp}_{self.fltstr}.png')
 
 def main():
+    """Command-line entry point of ``fwat_plot_waveform_fit``."""
     parser = argparse.ArgumentParser('Plot noise/leq fitting.')
     parser.add_argument('-m', help='Model name e.g., M00, M01...', metavar='model')
     parser.add_argument('-s', help='Event id', metavar='evtid')

@@ -1,3 +1,5 @@
+"""Read and write SPECFEM binary mesh and GLL model files."""
+
 import numpy as np
 import os
 import re
@@ -6,6 +8,21 @@ from scipy.interpolate import griddata
 
 
 def read_fortran_external_mesh(filename, ngllx=5, nglly=5, ngllz=5):
+    """Read the mesh of one processor from a SPECFEM ``proc*_external_mesh.bin``.
+
+    :param filename: Path to the binary mesh file
+    :type filename: str
+    :param ngllx: Number of GLL points per element along x, defaults to 5
+    :type ngllx: int, optional
+    :param nglly: Number of GLL points per element along y, defaults to 5
+    :type nglly: int, optional
+    :param ngllz: Number of GLL points per element along z, defaults to 5
+    :type ngllz: int, optional
+    :return: ``nspec_ab``, ``nglob_ab`` and ``nspec_irr`` counts, the global
+        numbering ``ibool`` of shape ``(ngllx, nglly, ngllz, nspec_ab)`` and the
+        global point coordinates ``xstore``, ``ystore``, ``zstore``
+    :rtype: dict
+    """
     with open(filename, "rb") as file:
         data = {}
         data['nspec_ab'] = np.fromfile(file, dtype="int32", offset=4, count=1)[0]
@@ -21,6 +38,21 @@ def read_fortran_external_mesh(filename, ngllx=5, nglly=5, ngllz=5):
 
 
 def read_fortran_model(filename, nspec_ab, ngllx=5, nglly=5, ngllz=5):
+    """Read a GLL model of one processor from a SPECFEM ``proc*_<name>.bin``.
+
+    :param filename: Path to the binary model file
+    :type filename: str
+    :param nspec_ab: Number of spectral elements of the processor
+    :type nspec_ab: int
+    :param ngllx: Number of GLL points per element along x, defaults to 5
+    :type ngllx: int, optional
+    :param nglly: Number of GLL points per element along y, defaults to 5
+    :type nglly: int, optional
+    :param ngllz: Number of GLL points per element along z, defaults to 5
+    :type ngllz: int, optional
+    :return: Model values of shape ``(ngllx, nglly, ngllz, nspec_ab)``
+    :rtype: numpy.ndarray
+    """
     with open(filename, "rb") as file:
         file.seek(0)
         data = np.fromfile(file, dtype="float32", offset=4)[:-1].reshape(
@@ -29,21 +61,15 @@ def read_fortran_model(filename, nspec_ab, ngllx=5, nglly=5, ngllz=5):
 
 
 def write_fortran_model(filename, data):
-    """Write model data to binary file with Fortran order.
-    
-    Parameters
-    ----------
-    filename : str
-        Output filename for the binary file
-    data : numpy.ndarray
-        Model data array with shape (ngllx, nglly, ngllz, nspec_ab)
-        in Fortran order
-    ngllx : int, optional
-        Number of GLL points in x direction, by default 5
-    nglly : int, optional
-        Number of GLL points in y direction, by default 5
-    ngllz : int, optional
-        Number of GLL points in z direction, by default 5
+    """Write a GLL model to a Fortran unformatted binary file.
+
+    The data are written in Fortran order as one record, framed by the record
+    length in bytes.
+
+    :param filename: Output path of the binary file
+    :type filename: str
+    :param data: Model values of shape ``(ngllx, nglly, ngllz, nspec_ab)``
+    :type data: numpy.ndarray
     """
     # Flatten the data in Fortran order
     data_flat = data.flatten(order='F').astype('float32')
@@ -61,7 +87,26 @@ def write_fortran_model(filename, data):
 
 
 class GllModel:
+    """GLL model of all processors of a SPECFEM mesh.
+
+    The mesh and model files are read on creation. ``model_data[name]`` holds one
+    array per processor, and ``xmin`` ... ``zmax`` give the extent of the mesh.
+    """
     def __init__(self, mesh_path, volumn_path, volumns=['vp', 'vs', 'rho'], ngllx=5, nglly=5, ngllz=5) -> None:
+        """:param mesh_path: Directory with the ``proc*_external_mesh.bin`` files
+        :type mesh_path: str
+        :param volumn_path: Directory with the ``proc*_<name>.bin`` model files
+        :type volumn_path: str
+        :param volumns: Names of the model parameters to read, defaults to
+            ``['vp', 'vs', 'rho']``
+        :type volumns: list of str or str, optional
+        :param ngllx: Number of GLL points per element along x, defaults to 5
+        :type ngllx: int, optional
+        :param nglly: Number of GLL points per element along y, defaults to 5
+        :type nglly: int, optional
+        :param ngllz: Number of GLL points per element along z, defaults to 5
+        :type ngllz: int, optional
+        """
         self.mesh_path = mesh_path
         self.volumn_path = volumn_path
         self.model_data = {}
@@ -77,6 +122,7 @@ class GllModel:
         self._get_minmax()
 
     def _get_minmax(self):
+        """Set ``xmin``, ``xmax``, ``ymin``, ``ymax``, ``zmin`` and ``zmax`` from the mesh of all processors."""
         self.xmin = np.min([np.min(ex['xstore']) for ex in self.external_meshs])
         self.xmax = np.max([np.max(ex['xstore']) for ex in self.external_meshs])
         self.ymin = np.min([np.min(ex['ystore']) for ex in self.external_meshs])
@@ -85,7 +131,10 @@ class GllModel:
         self.zmax = np.max([np.max(ex['zstore']) for ex in self.external_meshs])
 
     def read_external_mesh(self):
-        """ read external mesh and model data from files. """
+        """Read the mesh and the model parameters of every processor.
+
+        Fills ``external_meshs``, ``nproc`` and ``model_data``.
+        """
         self.external_meshs = []
         extbins = glob(os.path.join(
             self.mesh_path, 'proc*_external_mesh.bin')
@@ -100,17 +149,23 @@ class GllModel:
                 self.model_data[para].append(read_fortran_model(fname, mesh_data['nspec_ab'], **self.nglls))
 
     def get_points_data(self):
+        """Collect the GLL points of all processors into ``points``.
+
+        ``points`` has one row per GLL point: x, y, z, then one column per model
+        parameter. Call it before :meth:`griddata`.
+        """
         self.points = np.empty([0, 3+len(self.parameters)])
         for i in range(self.nproc):
             self.points = np.vstack((self.points, self._get_gll_point(i)))
 
     def write(self, output_path, key=None):
-        """ Write model data back to Fortran binary files.
-        
-        Parameters
-        ----------
-        output_path : str
-            Directory path to save the output binary files.
+        """Write the model data back to Fortran binary files.
+
+        :param output_path: Directory of the output ``proc*_<name>.bin`` files,
+            created if needed
+        :type output_path: str
+        :param key: Name of the only parameter to write, defaults to all parameters
+        :type key: str, optional
         """
         os.makedirs(output_path, exist_ok=True)
         if key is None:
@@ -124,18 +179,22 @@ class GllModel:
                 write_fortran_model(fname, self.model_data[para][i])
 
     def griddata(self, x, y, z, method='linear'):
-        """ grid data with given series of x, y, z.
+        """Interpolate the GLL model onto a regular grid.
 
-        Parameters
-        ----------
-        x : 1D numpy.ndarray
-            Series of x
-        y : 1D numpy.ndarray
-            Series of y
-        z : 1D numpy.ndarray
-            Series of z
-        method : str, optional
-            method for interpolation, by default 'linear'
+        :meth:`get_points_data` must be called first.
+
+        :param x: Grid coordinates along x
+        :type x: numpy.ndarray
+        :param y: Grid coordinates along y
+        :type y: numpy.ndarray
+        :param z: Grid coordinates along z
+        :type z: numpy.ndarray
+        :param method: Interpolation method of :func:`scipy.interpolate.griddata`,
+            defaults to ``'linear'``
+        :type method: str, optional
+        :return: Gridded values of each parameter, shaped like
+            ``numpy.meshgrid(x, y, z)``
+        :rtype: dict of numpy.ndarray
         """
         # points = np.empty([0, 3+len(self.parameters)])
         x_inter, y_inter, z_inter = np.meshgrid(x, y, z)
@@ -148,6 +207,13 @@ class GllModel:
         return grid_data
 
     def _get_gll_point(self, idx):
+        """Return the coordinates and model values of every GLL point of a processor.
+
+        :param idx: Index of the processor
+        :type idx: int
+        :return: One row per GLL point: x, y, z, then one column per parameter
+        :rtype: numpy.ndarray
+        """
         external_mesh = self.external_meshs[idx]
         data = [self.model_data[para][idx] for para in self.parameters]
         points = np.zeros([external_mesh['nspec_ab']* \

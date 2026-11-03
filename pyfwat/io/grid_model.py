@@ -1,3 +1,5 @@
+"""Gridded HDF5 models with trimming, coordinate conversion and perturbations relative to a reference."""
+
 import numpy as np
 import h5py
 from scipy.interpolate import interpn
@@ -6,8 +8,14 @@ import xarray as xr
 
 
 class GridModel():
+    """Model on a regular grid stored in HDF5 with ``x``, ``y`` and ``z`` datasets.
+
+    ``model`` holds the values with shape ``(nx, ny, nz)``; ``dv`` holds the
+    perturbation in percent after :meth:`calc_dv` or :meth:`calc_dv_avg`.
+    """
     def __init__(self, fname:str, key=None) -> None:
         """ Grid model class to handle 3D grid data.
+
         Parameters
         ----------
         fname : str
@@ -43,10 +51,12 @@ class GridModel():
         return copy.deepcopy(self)
 
     def _meshgrid(self):
+        """Build the 3-D coordinate arrays ``xx``, ``yy`` and ``zz`` from ``x``, ``y`` and ``z``."""
         self.xx, self.yy, self.zz = np.meshgrid(self.x, self.y, self.z, indexing='ij')
 
     def trim(self, sup_m):
         """ Trim the model by a specified margin.
+
         Parameters
         ----------
         sup_m : float
@@ -63,10 +73,12 @@ class GridModel():
 
     def to_geo(self, zone:int):
         """ Convert UTM coordinates to geographic coordinates (longitude, latitude).
+
         Parameters
         ----------
         zone : int
             UTM zone number.
+
         Returns
         -------
         lon : numpy.ndarray
@@ -80,6 +92,7 @@ class GridModel():
     
     def calc_dv(self, ref_model_fname:str):
         """ Calculate the percentage velocity perturbation (dV/V) compared to a reference model.
+
         Parameters
         ----------
         ref_model_fname : str
@@ -99,14 +112,27 @@ class GridModel():
 
     def interp_dep(self, depth:float, is_pert:bool=False, output_grid:bool=False,
                    to_geo=None, bounds_error:bool=False, fill_value=None):
-        """ Interpolate the model at a specific depth.
+        """Interpolate the model on a horizontal slice.
 
-        :param depth: The depth to interpolate.
+        :param depth: z coordinate of the slice, in the units of ``z``
         :type depth: float
-        :param is_pert: Whether to interpolate the perturbation model.
-        :type is_pert: bool
-        :return: The interpolated 2D model at the specified depth.
-        :rtype: numpy.ndarray
+        :param is_pert: Interpolate the perturbation ``dv`` instead of the model,
+            defaults to False
+        :type is_pert: bool, optional
+        :param output_grid: Return a grid instead of a point list, defaults to False
+        :type output_grid: bool, optional
+        :param to_geo: UTM zone used to convert x and y of the point list to
+            longitude and latitude, defaults to None (no conversion)
+        :type to_geo: int, optional
+        :param bounds_error: Raise an error outside the model, passed to
+            :func:`scipy.interpolate.interpn`, defaults to False
+        :type bounds_error: bool, optional
+        :param fill_value: Value outside the model, passed to
+            :func:`scipy.interpolate.interpn`; None extrapolates
+        :type fill_value: float, optional
+        :return: Grid with ``y`` and ``x`` dimensions if ``output_grid``, otherwise
+            an ``(n, 3)`` array of x (or longitude), y (or latitude) and value
+        :rtype: xarray.DataArray or numpy.ndarray
         """
         if is_pert:
             model = self.dv
@@ -130,24 +156,32 @@ class GridModel():
             return out_points
 
     def interp_sec(self, start_point, end_point, to_geo=None, val=5, is_pert=False, output_grid=False, x_col=2, convert_km=True):
-        """ Interpolate the section between two points.
+        """Interpolate the model on a vertical section between two points.
 
-        :param start_point: The start point.
+        :param start_point: x and y of the start of the section
         :type start_point: tuple
-        :param end_point: The end point.
+        :param end_point: x and y of the end of the section
         :type end_point: tuple
-        :param val: The interval value.
-        :type val: float
-        :param is_geo: Whether the input points are in geographic coordinates.
-        :type is_geo: bool
-        :param is_pert: Whether to interpolate the perturbation model.
-        :type is_pert: bool
-        :param output_grid: Whether to output the result as a grid.
-        :type output_grid: bool
-        :param x_col: The column index for the x-coordinate in the output grid.
-        :type x_col: int
-        :return: The interpolated points or grid.
-        :rtype: numpy.ndarray or xarray.DataArray
+        :param to_geo: UTM zone used to report longitude and latitude, defaults to
+            None (report x and y)
+        :type to_geo: int, optional
+        :param val: Sampling interval along the section, in the units of x and y,
+            defaults to 5
+        :type val: float, optional
+        :param is_pert: Interpolate the perturbation ``dv`` instead of the model,
+            defaults to False
+        :type is_pert: bool, optional
+        :param output_grid: Return a grid instead of a point list, defaults to False
+        :type output_grid: bool, optional
+        :param x_col: Horizontal coordinate of the grid: 0 for x (or longitude),
+            1 for y (or latitude), 2 for the distance along the section, defaults to 2
+        :type x_col: int, optional
+        :param convert_km: Convert the distance to km and z to depth in km
+            (``-z / 1000``), defaults to True
+        :type convert_km: bool, optional
+        :return: Grid of depth by horizontal coordinate if ``output_grid``, otherwise
+            an ``(n, 5)`` array of x, y, distance, depth and value
+        :rtype: xarray.DataArray or numpy.ndarray
         """
         from pyproj import Proj
 

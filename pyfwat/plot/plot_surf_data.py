@@ -1,3 +1,8 @@
+"""Record section of the surface-wave data of an event in a period band.
+
+Command-line tool: ``fwat_plot_surf_data``.
+"""
+
 import pygmt
 from pygmt.clib import Session
 import numpy as np
@@ -11,6 +16,23 @@ import os
 
 
 def pre_plot(evtid, comp, periodmin, periodmax):
+    """Filter the surface-wave data of an event and list them with ``saclst``.
+
+    Band-passed copies of ``fwat_data/<evtid>/*<comp>.sac`` and the temporary
+    files ``saclst_dat``, ``saclst_dat_plot`` and ``yticklabel.txt`` are
+    written; :func:`post_plot` removes them.
+
+    :param evtid: Event id
+    :type evtid: str
+    :param comp: Component, e.g. ``Z``
+    :type comp: str
+    :param periodmin: Shortest period of the band in s
+    :type periodmin: float
+    :param periodmax: Longest period of the band in s
+    :type periodmax: float
+    :return: Band suffix such as ``.T010_T050`` and the largest distance in km
+    :rtype: tuple
+    """
     files = glob.glob('fwat_data/{}/*{}.sac'.format(evtid, comp))
     freqmin = 1/periodmax
     freqmax = 1/periodmin
@@ -38,6 +60,13 @@ def pre_plot(evtid, comp, periodmin, periodmax):
     return bandname, max_dis
 
 def post_plot(evtid, bandname):
+    """Remove the temporary and filtered files written by :func:`pre_plot`.
+
+    :param evtid: Event id
+    :type evtid: str
+    :param bandname: Band suffix returned by :func:`pre_plot`
+    :type bandname: str
+    """
     remove('saclst_dat')
     remove('saclst_dat_plot')
     remove('yticklabel.txt')
@@ -49,6 +78,30 @@ def post_plot(evtid, bandname):
 #     def __init__(self, modelname, evtid, max_dis=350, xlim=[0, 200]) -> None:
 def plot_surf_fit(evtid, periodmin=None, periodmax=None, comp='Z',
                   xlim=[0, 200], enf=2, ref_vel=[2.3, 4.5], outpath='./figures'):
+    """Record section of the surface-wave data of an event in a period band.
+
+    Dashed lines mark the arrivals at the two reference velocities. The figure
+    is ``<outpath>/<evtid>_surf_<comp>_<band>.png``. Requires the ``saclst``
+    command of SAC.
+
+    :param evtid: Event id
+    :type evtid: str
+    :param periodmin: Shortest period of the band in s
+    :type periodmin: float, optional
+    :param periodmax: Longest period of the band in s
+    :type periodmax: float, optional
+    :param comp: Component, defaults to ``'Z'``
+    :type comp: str, optional
+    :param xlim: Time range in s, defaults to ``[0, 200]``
+    :type xlim: list of float, optional
+    :param enf: Amplitude scale of the traces, defaults to 2
+    :type enf: float, optional
+    :param ref_vel: Lower and upper reference velocities in km/s, defaults to
+        ``[2.3, 4.5]``
+    :type ref_vel: list of float, optional
+    :param outpath: Output directory, defaults to ``./figures``
+    :type outpath: str, optional
+    """
     bandname, max_dis = pre_plot(evtid, comp, periodmin, periodmax)
     fig = pygmt.Figure()
     fig.basemap(region=[*xlim, 0, max_dis*1.1], projection='X10i', 
@@ -65,6 +118,7 @@ def plot_surf_fit(evtid, periodmin=None, periodmax=None, comp='Z',
 
 
 def main():
+    """Command-line entry point of ``fwat_plot_surf_data``."""
     parser = argparse.ArgumentParser('Plot teleseismic fitting. read '
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wdat* for data,'
                                      'solver/M{{model}}.set{{setid}}/{{evtid}}/OUTPUT_FILES/wsyn* for syn')

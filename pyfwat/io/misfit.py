@@ -1,10 +1,31 @@
+"""Read the window misfit tables in ``misfits/`` for an iteration and period band."""
+
 import pandas as pd
 import numpy as np
 import glob
 from .. import MISFIT_PATH
 
 class PeriodBandMisfit():
+    """Window misfits of an iteration and period band.
+
+    Reads the ``M<it>.<evtid>*_<band_name>_window_chi`` tables. ``misfits`` is a
+    DataFrame with the columns ``netwk``, ``stnm``, ``chan``, ``imeas``,
+    ``tstart``, ``tend``, ``residual`` and ``misfit``; ``sum_chi`` and
+    ``mean_chi`` are the sum and mean of the misfit over measured windows
+    (``imeas != 0``).
+    """
     def __init__(self, it, band_name, evtid='*', pathname=None) -> None:
+        """:param it: Iteration number
+        :type it: int
+        :param band_name: Period band name in the file names, e.g. ``T005_T050``
+        :type band_name: str
+        :param evtid: Event id pattern, defaults to ``'*'`` (all events)
+        :type evtid: str, optional
+        :param pathname: Directory of the misfit tables, defaults to ``misfits``
+        :type pathname: str, optional
+        :raises FileNotFoundError: If no misfit table matches
+        :raises ValueError: If ``pathname`` is not a string or a table cannot be read
+        """
         if pathname is None:
             path = MISFIT_PATH
         elif isinstance(pathname, str):
